@@ -45,7 +45,7 @@ class file_impl
         return ec;
     }
 
-    std::size_t read(void* buffer, std::size_t size, boost::system::error_code& ec) const
+    std::size_t read(void* buffer, std::size_t size, boost::system::error_code& ec)
     {
         if (size > SSIZE_MAX)
         {
@@ -68,11 +68,12 @@ class file_impl
             return 0;
         }
 
+        read_size_ += r;
         ec = {};
         return r;
     }
 
-    std::size_t write(void const* buffer, std::size_t size, boost::system::error_code& ec) const
+    std::size_t write(void const* buffer, std::size_t size, boost::system::error_code& ec)
     {
         if (size > SSIZE_MAX)
         {
@@ -96,11 +97,16 @@ class file_impl
             static constexpr boost::source_location loc = BOOST_CURRENT_LOCATION;
             ec.assign(ENOSPC, boost::system::system_category(), &loc);
         }
+        write_size_ += r;
         return r;
     }
+    std::size_t read_size() const { return read_size_; }
+    std::size_t write_size() const { return write_size_; }
 
    private:
     int fd_ = -1;
+    std::size_t read_size_ = 0;
+    std::size_t write_size_ = 0;
     std::string filename_;
 };
 //
@@ -109,11 +115,13 @@ file_writer::~file_writer() { delete impl_; }
 boost::system::error_code file_writer::open() { return impl_->open(O_WRONLY | O_CREAT | O_TRUNC, 0644); }
 boost::system::error_code file_writer::close() { return impl_->close(); }
 std::size_t file_writer::write(void const* buffer, std::size_t size, boost::system::error_code& ec) { return impl_->write(buffer, size, ec); }
+std::size_t file_writer::size() { return impl_->write_size(); };
 //
 file_reader::file_reader(std::string filename) : impl_(new file_impl(std::move(filename))) {}
 file_reader::~file_reader() { delete impl_; }
 boost::system::error_code file_reader::open() { return impl_->open(O_RDONLY, 0); }
 boost::system::error_code file_reader::close() { return impl_->close(); }
 std::size_t file_reader::read(void* buffer, std::size_t size, boost::system::error_code& ec) { return impl_->read(buffer, size, ec); }
+std::size_t file_reader::size() { return impl_->read_size(); };
 
 }    // namespace leaf
