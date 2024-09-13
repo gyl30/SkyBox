@@ -3,30 +3,31 @@
 
 #include <cstdint>
 #include <vector>
+#include "crypt.h"
 
 namespace leaf
 {
-class chacha20_encrypt
+class chacha20_encrypt : public leaf::encrypt
 {
    public:
     explicit chacha20_encrypt(std::vector<uint8_t> key);
-    ~chacha20_encrypt();
+    ~chacha20_encrypt() override;
 
    public:
-    std::vector<uint8_t> encode(const std::vector<uint8_t>& plaintext);
+    std::vector<uint8_t> encode(const std::vector<uint8_t>& plaintext, boost::system::error_code& ec) override;
 
    private:
     class chacha20_encrypt_impl;
     chacha20_encrypt_impl* impl_;
 };
-class chacha20_decrypt
+class chacha20_decrypt : public leaf::decrypt
 {
    public:
     explicit chacha20_decrypt(std::vector<uint8_t> key);
-    ~chacha20_decrypt();
+    ~chacha20_decrypt() override;
 
    public:
-    std::vector<uint8_t> decode(const std::vector<uint8_t>& ciphertext);
+    std::vector<uint8_t> decode(const std::vector<uint8_t>& ciphertext, boost::system::error_code& ec) override;
 
    private:
     class chacha20_decrypt_impl;
