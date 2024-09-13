@@ -47,6 +47,8 @@ class chacha20_encrypt::chacha20_encrypt_impl
         result.insert(result.end(), ciphertext.begin(), ciphertext.begin() + static_cast<int64_t>(outlen));
         return result;
     }
+    static std::size_t padding() { return crypto_secretstream_xchacha20poly1305_ABYTES; }
+    static std::size_t prefix() { return crypto_secretstream_xchacha20poly1305_HEADERBYTES; }
 
    private:
     bool first_ = true;
@@ -75,6 +77,8 @@ class chacha20_decrypt::chacha20_decrypt_impl
         }
         return decode_payload(ciphertext, ec);
     }
+    static std::size_t padding() { return crypto_secretstream_xchacha20poly1305_ABYTES; }
+    static std::size_t prefix() { return crypto_secretstream_xchacha20poly1305_HEADERBYTES; }
 
    private:
     std::vector<uint8_t> decode_payload(const std::vector<uint8_t>& ciphertext, boost::system::error_code& ec)
@@ -126,14 +130,19 @@ class chacha20_decrypt::chacha20_decrypt_impl
     crypto_secretstream_xchacha20poly1305_state st;
     unsigned char key_[crypto_secretstream_xchacha20poly1305_KEYBYTES] = {0};
 };
-chacha20_encrypt::chacha20_encrypt(std::vector<uint8_t> key) : impl_(new chacha20_encrypt_impl(std::move(key))) {}
 
+chacha20_encrypt::chacha20_encrypt(std::vector<uint8_t> key) : impl_(new chacha20_encrypt_impl(std::move(key))) {}
 chacha20_encrypt::~chacha20_encrypt() { delete impl_; }
+std::size_t chacha20_encrypt::padding() { return chacha20_encrypt_impl::padding(); }
+std::size_t chacha20_encrypt::prefix() { return chacha20_encrypt_impl::prefix(); }
 
 std::vector<uint8_t> chacha20_encrypt::encode(const std::vector<uint8_t>& plaintext, boost::system::error_code& ec) { return impl_->encode(plaintext, ec); }
 
 chacha20_decrypt::chacha20_decrypt(std::vector<uint8_t> key) : impl_(new chacha20_decrypt_impl(std::move(key))) {}
 chacha20_decrypt::~chacha20_decrypt() { delete impl_; }
+std::size_t chacha20_decrypt::padding() { return chacha20_decrypt_impl::padding(); }
+std::size_t chacha20_decrypt::prefix() { return chacha20_decrypt_impl::prefix(); }
+
 std::vector<uint8_t> chacha20_decrypt::decode(const std::vector<uint8_t>& ciphertext, boost::system::error_code& ec) { return impl_->decode(ciphertext, ec); }
 
 }    // namespace leaf

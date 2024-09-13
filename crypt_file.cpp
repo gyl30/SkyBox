@@ -1,4 +1,5 @@
 #include "crypt_file.h"
+#include <cstddef>
 
 namespace leaf
 {
@@ -27,9 +28,14 @@ void crypt_file::encode(leaf::reader* r, leaf::writer* w, encrypt* e, sha256* rs
 }
 void crypt_file::decode(leaf::reader* r, leaf::writer* w, decrypt* d, sha256* rs, sha256* ws, boost::system::error_code& ec)
 {
-    static const auto kBufferSize = 32 * 1024;
-    std::vector<uint8_t> ciphertext(kBufferSize, '0');
-    auto read_size = r->read(ciphertext.data(), kBufferSize, ec);
+    static const std::size_t kBufferSize = 32LU * 1024;
+    auto read_block_size = kBufferSize + d->padding();
+    if (r->size() == 0)
+    {
+        read_block_size = d->prefix();
+    }
+    std::vector<uint8_t> ciphertext(read_block_size, '0');
+    auto read_size = r->read(ciphertext.data(), read_block_size, ec);
     if (ec)
     {
         return;

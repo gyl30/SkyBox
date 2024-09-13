@@ -15,6 +15,8 @@ class chacha20_encrypt : public leaf::encrypt
 
    public:
     std::vector<uint8_t> encode(const std::vector<uint8_t>& plaintext, boost::system::error_code& ec) override;
+    std::size_t padding() override;
+    std::size_t prefix() override;
 
    private:
     class chacha20_encrypt_impl;
@@ -28,6 +30,8 @@ class chacha20_decrypt : public leaf::decrypt
 
    public:
     std::vector<uint8_t> decode(const std::vector<uint8_t>& ciphertext, boost::system::error_code& ec) override;
+    std::size_t padding() override;
+    std::size_t prefix() override;
 
    private:
     class chacha20_decrypt_impl;
