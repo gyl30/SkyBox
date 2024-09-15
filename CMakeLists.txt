@@ -33,6 +33,10 @@ list(APPEND LINK_LIBS ${Boost_LIBRARIES})
 pkg_check_modules(libsodium REQUIRED IMPORTED_TARGET libsodium)
 list(APPEND LINK_LIBS PkgConfig::libsodium)
 
+pkg_check_modules(libuv REQUIRED IMPORTED_TARGET libuv)
+list(APPEND LINK_LIBS PkgConfig::libuv)
+
+
 # include self
 include_directories(.)
 aux_source_directory(. SOURCE_FILE)
