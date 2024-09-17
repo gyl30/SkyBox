@@ -1,5 +1,6 @@
 #include <cassert>
 #include <sodium.h>
+#include <vector>
 #include "chacha20.h"
 
 namespace leaf

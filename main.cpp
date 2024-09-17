@@ -105,7 +105,7 @@ void decode(const std::string& encrypt_file, const std::string& plain_file, cons
     delete ws;
     delete d;
 }
-int main(int argc, char* argv[])
+int main11(int argc, char* argv[])
 {
     if (argc < 4)
     {
@@ -142,4 +142,15 @@ int main(int argc, char* argv[])
 
     leaf::shutdown_log();
     return 0;
+}
+#include "widget.h"
+
+#include <QApplication>
+
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+    Widget w;
+    w.show();
+    return a.exec();
 }
