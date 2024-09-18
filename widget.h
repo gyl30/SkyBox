@@ -18,7 +18,7 @@ class Widget : public QWidget
     ~Widget() override;
 
    private:
-    QTableView* list_view_ = nullptr;
+    QTableView* table_view_ = nullptr;
     QTimer* timer_ = nullptr;
 };
 #endif    // WIDGET_H

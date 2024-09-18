@@ -21,9 +21,19 @@
 #include <QShowEvent>
 #include <QToolTip>
 #include <QVBoxLayout>
+#include <QFileDialog>
 #include <random>
 #include <vector>
 #include <string>
+#include <boost/filesystem.hpp>
+#include "log.h"
+#include "file.h"
+#include "crypt.h"
+#include "chacha20.h"
+#include "crypt_file.h"
+
+static const std::vector<uint8_t> key = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+                                         0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
 
 struct task
 {
@@ -33,6 +43,71 @@ struct task
     std::string dst_hash;
     int progress = 0;
 };
+
+class file_task
+{
+   public:
+    explicit file_task(task t) : t_(std::move(t)) {}
+    ~file_task() = default;
+
+   public:
+    void startup(boost::system::error_code &ec)
+    {
+        reader_ = new leaf::file_reader(t_.src_file);
+        writer_ = new leaf::file_writer(t_.dst_file);
+        reader_sha_ = new leaf::sha256();
+        writer_sha_ = new leaf::sha256();
+        encrypt_ = new leaf::chacha20_encrypt(key);
+
+        ec = reader_->open();
+        if (ec)
+        {
+            LOG_ERROR("open {} error {}", t_.src_file, ec.message());
+            return;
+        }
+        ec = writer_->open();
+        if (ec)
+        {
+            LOG_ERROR("open {} error {}", t_.dst_file, ec.message());
+            return;
+        }
+        src_file_size_ = boost::filesystem::file_size(t_.src_file);
+        start_time_ = std::chrono::steady_clock::now();
+    }
+    void loop(boost::system::error_code &ec)
+    {
+        leaf::crypt_file::encode(reader_, writer_, encrypt_, reader_sha_, writer_sha_, ec);
+        if (ec)
+        {
+            return;
+        }
+        auto p = static_cast<double>(reader_->size()) / static_cast<double>(src_file_size_);
+        t_.progress = static_cast<int>(p * 100);
+    }
+    void shudown(boost::system::error_code &ec)
+    {
+        ec = reader_->close();
+        ec = writer_->close();
+        reader_sha_->final();
+        writer_sha_->final();
+        delete reader_;
+        delete writer_;
+        delete reader_sha_;
+        delete writer_sha_;
+        delete encrypt_;
+    }
+
+   private:
+    leaf::reader *reader_ = nullptr;
+    leaf::writer *writer_ = nullptr;
+    leaf::sha256 *reader_sha_ = nullptr;
+    leaf::sha256 *writer_sha_ = nullptr;
+    leaf::encrypt *encrypt_ = nullptr;
+    uint64_t src_file_size_ = 0;
+    std::chrono::time_point<std::chrono::steady_clock> start_time_;
+    task t_;
+};
+
 std::string random_string(int len)
 {
     std::string str("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
@@ -98,6 +173,10 @@ class task_model : public QAbstractTableModel
 
     [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override
     {
+        if (tasks_.empty())
+        {
+            return {};
+        }
         if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
         {
             return set_header_data(section, role);
@@ -176,6 +255,13 @@ class task_model : public QAbstractTableModel
             return t.progress;
         }
         return {};
+    }
+
+    void add_task(const task &t)
+    {
+        beginResetModel();
+        tasks_.push_back(t);
+        endResetModel();
     }
 
    private:
@@ -258,20 +344,35 @@ class task_table_view : public QTableView
 
 Widget::Widget(QWidget *parent) : QWidget(parent)
 {
-    list_view_ = new task_table_view(this);
+    table_view_ = new task_table_view(this);
 
     auto *model = new task_model();
-    list_view_->setModel(model);
+
+    table_view_->setModel(model);
 
     auto *delegate = new task_style_delegate();
-    list_view_->setItemDelegateForColumn(4, delegate);
+    table_view_->setItemDelegateForColumn(4, delegate);
 
     auto *new_file_btn = new QPushButton();
     new_file_btn->setText("Add New File");
-
+    connect(new_file_btn,
+            &QPushButton::clicked,
+            this,
+            [model, this]()
+            {
+                auto filename = QFileDialog::getOpenFileName(this, "选择文件");
+                if (filename.isEmpty())
+                {
+                    return;
+                }
+                task t;
+                t.src_file = filename.toStdString();
+                t.dst_file = random_string(12);
+                model->add_task(t);
+            });
     auto *layout = new QHBoxLayout();
     layout->addWidget(new_file_btn);
-    layout->addWidget(list_view_);
+    layout->addWidget(table_view_);
     layout->setContentsMargins(0, 0, 0, 0);
     setLayout(layout);
     resize(800, 300);
