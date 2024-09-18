@@ -33,14 +33,18 @@ find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem context)
 include_directories(${Boost_INCLUDE_DIRS})
 list(APPEND LINK_LIBS ${Boost_LIBRARIES})
 
-find_package(unofficial-sodium CONFIG REQUIRED)
-find_package(libuv CONFIG REQUIRED)
-
-include_directories(${Boost_INCLUDE_DIRS})
-list(APPEND LINK_LIBS ${Boost_LIBRARIES} unofficial-sodium::sodium $<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv>)
-
 if(MINGW)
-  list(APPEND LINK_LIBS ws2_32)
+    find_package(unofficial-sodium CONFIG REQUIRED)
+    find_package(libuv CONFIG REQUIRED)
+    include_directories(${Boost_INCLUDE_DIRS})
+    list(APPEND LINK_LIBS ${Boost_LIBRARIES} unofficial-sodium::sodium $<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv>)
+    list(APPEND LINK_LIBS ws2_32)
+else()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(libsodium REQUIRED IMPORTED_TARGET libsodium)
+    list(APPEND LINK_LIBS PkgConfig::libsodium)
+    pkg_check_modules(libuv REQUIRED IMPORTED_TARGET libuv)
+    list(APPEND LINK_LIBS PkgConfig::libuv)
 endif()
 
 # include self

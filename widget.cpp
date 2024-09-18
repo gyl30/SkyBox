@@ -187,7 +187,8 @@ class task_model : public QAbstractTableModel
     void start_timer()
     {
         timer_ = new QTimer(this);
-        connect(timer_, &QTimer::timeout, this, &task_model::on_timer);
+        auto c = connect(timer_, &QTimer::timeout, this, &task_model::on_timer);
+        (void)c;
         timer_->start(1000);
     }
     void init_tasks()
@@ -234,12 +235,13 @@ class task_table_view : public QTableView
         horizontalHeader()->setStretchLastSection(true);
         setMouseTracking(true);
         setSelectionBehavior(QAbstractItemView::SelectRows);
-        this->horizontalHeader()->setMinimumWidth(60);        // 设置水平单元格最小宽度
-        this->verticalHeader()->setMinimumSectionSize(18);    // 设置垂直单元格最小高度
-        this->verticalHeader()->setMaximumSectionSize(30);    // 设置垂直单元格最大高度
+        horizontalHeader()->setMinimumWidth(60);
+        verticalHeader()->setMinimumSectionSize(18);
+        verticalHeader()->setMaximumSectionSize(30);
         setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        connect(this, &QTableView::entered, this, &task_table_view::show_tooltip);
+        auto c = connect(this, &QTableView::entered, this, &task_table_view::show_tooltip);
+        (void)c;
     }
 
    public:
@@ -256,79 +258,6 @@ class task_table_view : public QTableView
         }
 
         QToolTip::showText(QCursor::pos(), index.data().toString());
-    }
-    void auto_adjust_table_item_width()
-    {
-        // 获取水平表头
-        auto *header_view = this->horizontalHeader();
-        // 计算所有列的总宽度
-        int section_total_width = 0;
-        header_view->setSectionResizeMode(QHeaderView::ResizeToContents);
-
-        for (int col = 0; col < header_view->count(); ++col)
-        {
-            section_total_width += header_view->sectionSize(col);
-        }
-        // 恢复列的调整模式为交互式
-        header_view->setSectionResizeMode(QHeaderView::Interactive);
-        // 获取水平表头的宽度
-        const int header_width = header_view->width();
-        // 如果水平表头的宽度大于所有列的总宽度
-        if (header_width <= section_total_width)
-        {
-            return;
-        }
-        // 计算缩放比例
-        const int scale = header_width / section_total_width;
-        int width_sum = 0;
-        // 根据缩放比例调整每列的宽度
-        for (int col = 0; col < header_view->count() - 1; ++col)
-        {
-            const int cell_width = header_view->sectionSize(col) * scale;
-            header_view->resizeSection(col, cell_width);
-            width_sum += cell_width;
-        }
-        // 调整最后一列的宽度，确保总宽度与表头宽度一致
-        header_view->resizeSection(header_view->count() - 1, header_width - width_sum);
-    }
-    void auto_adjust_table_item_height()
-    {
-        // 获取垂直表头
-        auto *header_view = verticalHeader();
-        header_view->setSectionResizeMode(QHeaderView::ResizeToContents);
-        // 获取垂直表头的高度
-        const int header_height = header_view->height();
-        // 计算每行的理论高度，以保证均匀分配表头高度
-        const int cell_height = header_height / header_view->count();
-
-        // 如果每行的理论高度大于最大值
-        if (cell_height <= header_view->maximumSectionSize())
-        {
-            header_view->setSectionResizeMode(QHeaderView::Stretch);
-            return;
-        }
-        // 将表头的调整模式设置为交互式
-        header_view->setSectionResizeMode(QHeaderView::Interactive);
-
-        // 将所有行的高度设置为最大值
-        for (int row = 0; row < header_view->count(); row++)
-        {
-            header_view->resizeSection(row, header_view->maximumSectionSize());
-        }
-    }
-
-   protected:
-    void resizeEvent(QResizeEvent *event) override
-    {
-        QTableView::resizeEvent(event);
-        auto_adjust_table_item_width();
-        auto_adjust_table_item_height();
-    }
-    void showEvent(QShowEvent *event) override
-    {
-        QTableView::showEvent(event);
-        auto_adjust_table_item_width();
-        auto_adjust_table_item_height();
     }
 };
 
@@ -353,4 +282,4 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     resize(800, 300);
 }
 
-Widget::~Widget() {}
+Widget::~Widget() = default;
