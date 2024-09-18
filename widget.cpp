@@ -57,11 +57,6 @@ class task_style_delegate : public QStyledItemDelegate
         {
             return QStyledItemDelegate::paint(painter, option, index);
         }
-        if (index.column() != 4)
-        {
-            return QStyledItemDelegate::paint(painter, option, index);
-        }
-
         painter->save();
 
         const QStyle *style(QApplication::style());
@@ -269,7 +264,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     list_view_->setModel(model);
 
     auto *delegate = new task_style_delegate();
-    list_view_->setItemDelegate(delegate);
+    list_view_->setItemDelegateForColumn(4, delegate);
 
     auto *new_file_btn = new QPushButton();
     new_file_btn->setText("Add New File");
