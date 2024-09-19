@@ -2,12 +2,8 @@
 #define WIDGET_H
 
 #include <QWidget>
-#include <QListWidget>
-#include <QListView>
-#include <QTimer>
-#include <QTableView>
-#include <QTableWidget>
-#include <QMainWindow>
+#include "table_view.h"
+#include "table_model.h"
 
 class Widget : public QWidget
 {
@@ -18,7 +14,9 @@ class Widget : public QWidget
     ~Widget() override;
 
    private:
-    QTableView* table_view_ = nullptr;
-    QTimer* timer_ = nullptr;
+    void on_new_file_clicked();
+   private:
+    leaf::task_model* model_ = nullptr;
+    leaf::task_table_view* table_view_ = nullptr;
 };
 #endif    // WIDGET_H
