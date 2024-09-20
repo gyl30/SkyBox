@@ -135,7 +135,10 @@ file_writer::file_writer(std::string filename) : impl_(new file_impl(std::move(f
 file_writer::~file_writer() { delete impl_; }
 boost::system::error_code file_writer::open() { return impl_->open(file_impl::file_operation::write); }
 boost::system::error_code file_writer::close() { return impl_->close(); }
-std::size_t file_writer::write(void const* buffer, std::size_t size, boost::system::error_code& ec) { return impl_->write(buffer, size, ec); }
+std::size_t file_writer::write(void const* buffer, std::size_t size, boost::system::error_code& ec)
+{
+    return impl_->write(buffer, size, ec);
+}
 std::size_t file_writer::size() { return impl_->write_size(); };
 std::string file_writer::name() const { return impl_->name(); };
 //
@@ -143,7 +146,10 @@ file_reader::file_reader(std::string filename) : impl_(new file_impl(std::move(f
 file_reader::~file_reader() { delete impl_; }
 boost::system::error_code file_reader::open() { return impl_->open(file_impl::file_operation::read); }
 boost::system::error_code file_reader::close() { return impl_->close(); }
-std::size_t file_reader::read(void* buffer, std::size_t size, boost::system::error_code& ec) { return impl_->read(buffer, size, ec); }
+std::size_t file_reader::read(void* buffer, std::size_t size, boost::system::error_code& ec)
+{
+    return impl_->read(buffer, size, ec);
+}
 std::size_t file_reader::size() { return impl_->read_size(); };
 std::string file_reader::name() const { return impl_->name(); };
 

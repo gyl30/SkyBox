@@ -38,7 +38,14 @@ class chacha20_encrypt::chacha20_encrypt_impl
         std::vector<uint8_t> ciphertext(plaintext.size() + crypto_secretstream_xchacha20poly1305_ABYTES, '0');
         unsigned long long outlen = 0;    // NOLINT
         int tag = plaintext.empty() ? crypto_secretstream_xchacha20poly1305_TAG_FINAL : 0;
-        int ret = crypto_secretstream_xchacha20poly1305_push(&st, static_cast<uint8_t*>(ciphertext.data()), &outlen, plaintext.data(), plaintext.size(), nullptr, 0, tag);
+        int ret = crypto_secretstream_xchacha20poly1305_push(&st,
+                                                             static_cast<uint8_t*>(ciphertext.data()),
+                                                             &outlen,
+                                                             plaintext.data(),
+                                                             plaintext.size(),
+                                                             nullptr,
+                                                             0,
+                                                             tag);
         if (ret != 0)
         {
             static constexpr boost::source_location loc = BOOST_CURRENT_LOCATION;
@@ -87,7 +94,14 @@ class chacha20_decrypt::chacha20_decrypt_impl
         std::vector<uint8_t> plaintext(ciphertext.size(), '0');
         unsigned long long out_len = 0;    // NOLINT
         unsigned char tag;
-        int ret = crypto_secretstream_xchacha20poly1305_pull(&st, static_cast<uint8_t*>(plaintext.data()), &out_len, &tag, ciphertext.data(), ciphertext.size(), nullptr, 0);
+        int ret = crypto_secretstream_xchacha20poly1305_pull(&st,
+                                                             static_cast<uint8_t*>(plaintext.data()),
+                                                             &out_len,
+                                                             &tag,
+                                                             ciphertext.data(),
+                                                             ciphertext.size(),
+                                                             nullptr,
+                                                             0);
         if (ret != 0)
         {
             static constexpr boost::source_location loc = BOOST_CURRENT_LOCATION;
@@ -137,13 +151,19 @@ chacha20_encrypt::~chacha20_encrypt() { delete impl_; }
 std::size_t chacha20_encrypt::padding() { return chacha20_encrypt_impl::padding(); }
 std::size_t chacha20_encrypt::prefix() { return chacha20_encrypt_impl::prefix(); }
 
-std::vector<uint8_t> chacha20_encrypt::encode(const std::vector<uint8_t>& plaintext, boost::system::error_code& ec) { return impl_->encode(plaintext, ec); }
+std::vector<uint8_t> chacha20_encrypt::encode(const std::vector<uint8_t>& plaintext, boost::system::error_code& ec)
+{
+    return impl_->encode(plaintext, ec);
+}
 
 chacha20_decrypt::chacha20_decrypt(std::vector<uint8_t> key) : impl_(new chacha20_decrypt_impl(std::move(key))) {}
 chacha20_decrypt::~chacha20_decrypt() { delete impl_; }
 std::size_t chacha20_decrypt::padding() { return chacha20_decrypt_impl::padding(); }
 std::size_t chacha20_decrypt::prefix() { return chacha20_decrypt_impl::prefix(); }
 
-std::vector<uint8_t> chacha20_decrypt::decode(const std::vector<uint8_t>& ciphertext, boost::system::error_code& ec) { return impl_->decode(ciphertext, ec); }
+std::vector<uint8_t> chacha20_decrypt::decode(const std::vector<uint8_t>& ciphertext, boost::system::error_code& ec)
+{
+    return impl_->decode(ciphertext, ec);
+}
 
 }    // namespace leaf

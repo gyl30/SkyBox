@@ -23,7 +23,10 @@ class sha256::sha256_impl
 
     std::vector<uint8_t> bytes() { return std::vector<uint8_t>{sha256_, sha256_ + crypto_hash_sha256_BYTES}; }
 
-    void update(const void* buffer, uint32_t buffer_len) { crypto_hash_sha256_update(&state, static_cast<const uint8_t*>(buffer), buffer_len); }
+    void update(const void* buffer, uint32_t buffer_len)
+    {
+        crypto_hash_sha256_update(&state, static_cast<const uint8_t*>(buffer), buffer_len);
+    }
 
     void final() { crypto_hash_sha256_final(&state, sha256_); }
 

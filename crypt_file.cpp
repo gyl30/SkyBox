@@ -3,7 +3,8 @@
 
 namespace leaf
 {
-void crypt_file::encode(leaf::reader* r, leaf::writer* w, encrypt* e, sha256* rs, sha256* ws, boost::system::error_code& ec)
+void crypt_file::encode(
+    leaf::reader* r, leaf::writer* w, encrypt* e, sha256* rs, sha256* ws, boost::system::error_code& ec)
 {
     static const auto kBufferSize = 32 * 1024;
     std::vector<uint8_t> plaintext(kBufferSize, '0');
@@ -26,7 +27,8 @@ void crypt_file::encode(leaf::reader* r, leaf::writer* w, encrypt* e, sha256* rs
     }
     ws->update(ciphertext.data(), ciphertext.size());
 }
-void crypt_file::decode(leaf::reader* r, leaf::writer* w, decrypt* d, sha256* rs, sha256* ws, boost::system::error_code& ec)
+void crypt_file::decode(
+    leaf::reader* r, leaf::writer* w, decrypt* d, sha256* rs, sha256* ws, boost::system::error_code& ec)
 {
     static const std::size_t kBufferSize = 32LU * 1024;
     auto read_block_size = kBufferSize + d->padding();
