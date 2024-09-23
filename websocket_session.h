@@ -1,5 +1,5 @@
 #ifndef LEAF_WEBSOCKET_SESSION_H
-#define LEAF_WEB_SOCKET_SESSION_H
+#define LEAF_WEBSOCKET_SESSION_H
 
 #include <memory>
 #include <string>
@@ -7,8 +7,6 @@
 #include <functional>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
-
-#include "executors.h"
 
 namespace leaf
 {
