@@ -15,9 +15,8 @@ class ssl_http_session : public std::enable_shared_from_this<ssl_http_session>
    public:
     ssl_http_session(boost::beast::tcp_stream&& stream,
                      boost::asio::ssl::context& ctx,
-                     boost::beast::flat_buffer&& buffer,
-                     std::string doc_root)
-        : root_(std::move(doc_root)), buffer_(std::move(buffer)), stream_(std::move(stream), ctx)
+                     boost::beast::flat_buffer&& buffer)
+        : buffer_(std::move(buffer)), stream_(std::move(stream), ctx)
     {
     }
 
@@ -99,7 +98,6 @@ class ssl_http_session : public std::enable_shared_from_this<ssl_http_session>
     }
 
    private:
-    std::string root_;
     boost::beast::flat_buffer buffer_;
     boost::beast::ssl_stream<boost::beast::tcp_stream> stream_;
     boost::optional<boost::beast::http::request_parser<boost::beast::http::string_body>> parser_;

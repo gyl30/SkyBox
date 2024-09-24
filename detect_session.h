@@ -2,18 +2,20 @@
 #define LEAF_DETECT_SESSION_H
 
 #include <memory>
+#include <utility>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/beast.hpp>
-#include <utility>
+#include "ssl_http_session.h"
+#include "plain_http_session.h"
 
 namespace leaf
 {
 class detect_session : public std::enable_shared_from_this<detect_session>
 {
    public:
-    explicit detect_session(boost::asio::ip::tcp::socket&& socket, boost::asio::ssl::context& ctx, std::string root)
-        : root_(std::move(root)), ctx_(ctx), stream_(std::move(socket))
+    explicit detect_session(boost::asio::ip::tcp::socket&& socket, boost::asio::ssl::context& ctx)
+        : ssl_ctx_(ctx), stream_(std::move(socket))
     {
     }
 
@@ -39,18 +41,17 @@ class detect_session : public std::enable_shared_from_this<detect_session>
 
         if (result)
         {
-            std::make_shared<ssl_http_session>(std::move(stream_), ctx_, std::move(buffer_), root_)->run();
+            std::make_shared<ssl_http_session>(std::move(stream_), ssl_ctx_, std::move(buffer_))->run();
             return;
         }
 
-        std::make_shared<plain_http_session>(std::move(stream_), std::move(buffer_), root_)->run();
+        std::make_shared<plain_http_session>(std::move(stream_), std::move(buffer_))->run();
     }
 
    private:
-    std::string root_;
     boost::beast::flat_buffer buffer_;
-    boost::asio::ssl::context& ctx_;
     boost::beast::tcp_stream stream_;
+    boost::asio::ssl::context& ssl_ctx_;
 };
 
 }    // namespace leaf

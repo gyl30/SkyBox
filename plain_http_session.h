@@ -13,8 +13,8 @@ namespace leaf
 class plain_http_session : public std::enable_shared_from_this<plain_http_session>
 {
    public:
-    plain_http_session(boost::beast::tcp_stream&& stream, boost::beast::flat_buffer&& buffer, std::string root)
-        : root_(std::move(root)), buffer_(std::move(buffer)), stream_(std::move(stream))
+    plain_http_session(boost::beast::tcp_stream&& stream, boost::beast::flat_buffer&& buffer)
+        : buffer_(std::move(buffer)), stream_(std::move(stream))
     {
     }
 
@@ -68,7 +68,6 @@ class plain_http_session : public std::enable_shared_from_this<plain_http_sessio
     }
 
    private:
-    std::string root_;
     boost::beast::flat_buffer buffer_;
     boost::beast::tcp_stream stream_;
     boost::optional<boost::beast::http::request_parser<boost::beast::http::string_body>> parser_;

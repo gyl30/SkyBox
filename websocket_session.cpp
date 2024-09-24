@@ -75,7 +75,7 @@ void websocket_session::on_read(boost::beast::error_code ec, std::size_t transfe
         handle_.read_error(ec);
         return;
     }
-    const auto buffer = boost::beast::buffers_to_string(buffer_);
+    const auto buffer = boost::beast::buffers_to_string(buffer_.data());
     if (ws_.got_binary())
     {
         handle_.binary(buffer);
