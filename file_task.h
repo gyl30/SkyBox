@@ -1,12 +1,10 @@
 #ifndef LEAF_FILE_TASK_H
 #define LEAF_FILE_TASK_H
 
-#include "log.h"
 #include "file.h"
 #include "crypt.h"
-#include "chacha20.h"
+#include "sha256.h"
 #include "task_item.h"
-#include "crypt_file.h"
 
 namespace leaf
 {
@@ -25,8 +23,8 @@ class file_task
     boost::system::error_code loop();
     void shudown(boost::system::error_code &ec);
     void set_error(const boost::system::error_code &ec);
-    boost::system::error_code error() const;
-    const leaf::task_item &task_info() const;
+    [[nodiscard]] boost::system::error_code error() const;
+    [[nodiscard]] const leaf::task_item &task_info() const;
 
    private:
     leaf::reader *reader_ = nullptr;

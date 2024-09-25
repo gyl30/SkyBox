@@ -22,7 +22,8 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 
     auto *new_file_btn = new QPushButton();
     new_file_btn->setText("Add New File");
-    connect(new_file_btn, &QPushButton::clicked, this, &Widget::on_new_file_clicked);
+    auto conn = connect(new_file_btn, &QPushButton::clicked, this, &Widget::on_new_file_clicked);
+    (void)conn;
     auto *layout = new QHBoxLayout();
     layout->addWidget(new_file_btn);
     layout->addWidget(table_view_);
@@ -44,8 +45,5 @@ void Widget::on_new_file_clicked()
     t.src_file = filename.toStdString();
     t.dst_file = t.src_file + ".leaf";
     auto file = std::make_shared<leaf::file_task>(t);
-    boost::system::error_code ec;
-    file->startup(ec);
-    file->set_error(ec);
     model_->add_task(file);
 }

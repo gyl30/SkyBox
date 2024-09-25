@@ -1,7 +1,10 @@
 #include <random>
 #include <boost/filesystem.hpp>
 
+#include "log.h"
+#include "chacha20.h"
 #include "file_task.h"
+#include "crypt_file.h"
 
 static const std::vector<uint8_t> key = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
                                          0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
@@ -20,6 +23,7 @@ std::string random_string(int len)
     std::string str("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 
     std::random_device rd;
+
     std::mt19937 generator(rd());
 
     std::shuffle(str.begin(), str.end(), generator);

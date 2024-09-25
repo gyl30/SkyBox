@@ -96,6 +96,9 @@ QVariant task_model::task_to_display_data(const QModelIndex &index) const
 
 void task_model::add_task(const file_task::ptr &t)
 {
+    boost::system::error_code ec;
+    t->startup(ec);
+    t->set_error(ec);
     beginResetModel();
     tasks_.push_back(t);
     endResetModel();
