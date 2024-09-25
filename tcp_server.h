@@ -44,7 +44,6 @@ class tcp_server : public std::enable_shared_from_this<tcp_server>
     boost::asio::ip::tcp::endpoint endpoint_;
     boost::asio::ip::tcp::socket socket_{ex_};
     boost::asio::ip::tcp::acceptor acceptor_{ex_};
-    boost::asio::ssl::context ssl_ctx_{boost::asio::ssl::context::tls_server};
 };
 
 }    // namespace leaf
