@@ -32,6 +32,14 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem context)
 include_directories(${Boost_INCLUDE_DIRS})
 list(APPEND LINK_LIBS ${Boost_LIBRARIES})
+message(STATUS "Found Boost ${Boost_VERSION} include directory ${Boost_INCLUDE_DIR}")
+
+# openssl
+set(OPENSSL_USE_STATIC_LIBS ON)
+find_package(OpenSSL REQUIRED)
+include_directories(SYSTEM ${OPENSSL_INCLUDE_DIR})
+list(APPEND LINK_LIBS OpenSSL::SSL OpenSSL::Crypto)
+message(STATUS "Found OpenSSL ${OPENSSL_VERSION} include directory ${OPENSSL_INCLUDE_DIR}")
 
 if(MINGW)
     find_package(unofficial-sodium CONFIG REQUIRED)
