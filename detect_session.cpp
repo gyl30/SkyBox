@@ -41,7 +41,7 @@ void detect_session::safe_detect(boost::beast::error_code ec, bool result)
 
     if (result)
     {
-        std::make_shared<ssl_http_session>(std::move(stream_), ssl_ctx_, std::move(buffer_))->run();
+        std::make_shared<ssl_http_session>(std::move(stream_), ssl_ctx_, std::move(buffer_))->startup();
         return;
     }
 

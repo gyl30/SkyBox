@@ -45,8 +45,7 @@ void plain_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_
     if (boost::beast::websocket::is_upgrade(parser_->get()))
     {
         boost::beast::get_lowest_layer(stream_).expires_never();
-        std::make_shared<leaf::plain_websocket_session>(std::move(stream_))->startup(parser_->release());
-        return;
+        return std::make_shared<leaf::plain_websocket_session>(std::move(stream_))->startup(parser_->release());
     }
 
     do_read();
