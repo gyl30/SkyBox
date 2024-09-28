@@ -4,6 +4,7 @@
 #include "detect_session.h"
 #include "ssl_http_session.h"
 #include "plain_http_session.h"
+#include "file_http_handle.h"
 
 namespace leaf
 {
@@ -55,7 +56,8 @@ void detect_session::safe_detect(boost::beast::error_code ec, bool result)
     }
 
     LOG_INFO("detect plain success {}", id_);
-    std::make_shared<plain_http_session>(id_, std::move(stream_), std::move(buffer_))->startup();
+    auto handle = std::make_shared<leaf::file_http_handle>();
+    std::make_shared<plain_http_session>(id_, std::move(stream_), std::move(buffer_), handle)->startup();
 }
 void detect_session::safe_shutdown()
 {
