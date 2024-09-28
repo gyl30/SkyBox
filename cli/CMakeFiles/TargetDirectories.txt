@@ -1,0 +1,6 @@
+/home/gyl/example/crypt/cli/CMakeFiles/edit_cache.dir
+/home/gyl/example/crypt/cli/CMakeFiles/rebuild_cache.dir
+/home/gyl/example/crypt/cli/cli/CMakeFiles/cli.dir
+/home/gyl/example/crypt/cli/cli/CMakeFiles/edit_cache.dir
+/home/gyl/example/crypt/cli/cli/CMakeFiles/rebuild_cache.dir
+/home/gyl/example/crypt/cli/cli/CMakeFiles/cli_autogen.dir

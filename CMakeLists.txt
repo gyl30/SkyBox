@@ -55,15 +55,11 @@ else()
     list(APPEND LINK_LIBS PkgConfig::libuv)
 endif()
 
-# include self
-include_directories(.)
-aux_source_directory(. SOURCE_FILE)
-
 # rapidjson
 include_directories(third/rapidjson/include)
 
 # spdlog
 include_directories(third/spdlog/include)
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILE})
-target_link_libraries(crypt ${LINK_LIBS} Qt${QT_VERSION_MAJOR}::Widgets)
+add_subdirectory(cli)
+add_subdirectory(cmd)
