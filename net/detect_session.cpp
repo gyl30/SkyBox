@@ -48,15 +48,15 @@ void detect_session::safe_detect(boost::beast::error_code ec, bool result)
         return;
     }
 
+    auto handle = std::make_shared<leaf::file_http_handle>();
     if (result)
     {
         LOG_INFO("detect ssl success {}", id_);
-        std::make_shared<ssl_http_session>(std::move(stream_), ssl_ctx_, std::move(buffer_))->startup();
+        std::make_shared<ssl_http_session>(id_, std::move(stream_), ssl_ctx_, std::move(buffer_), handle)->startup();
         return;
     }
 
     LOG_INFO("detect plain success {}", id_);
-    auto handle = std::make_shared<leaf::file_http_handle>();
     std::make_shared<plain_http_session>(id_, std::move(stream_), std::move(buffer_), handle)->startup();
 }
 void detect_session::safe_shutdown()

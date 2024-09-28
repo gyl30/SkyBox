@@ -19,8 +19,11 @@ class plain_http_session : public http_session
                        leaf::http_handle::ptr handle);
     ~plain_http_session() override;
 
+   public:
     void startup() override;
+
     void shutdown() override;
+
     void write(const http_response_ptr& ptr) override;
 
    private:

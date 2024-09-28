@@ -71,10 +71,10 @@ void plain_http_session::write(const http_response_ptr& ptr)
 
 void plain_http_session::safe_write(const http_response_ptr& ptr)
 {
+    boost::beast::http::message_generator msg(std::move(*ptr));
     boost::beast::async_write(stream_,
-                              std::move(*ptr),    //
-                              [ptr, this](boost::beast::error_code ec, std::size_t bytes_transferred)
-                              { on_write(ec, bytes_transferred); });
+                              std::move(msg),    //
+                              boost::beast::bind_front_handler(&plain_http_session::on_write, this));
 }
 
 void plain_http_session::on_write(boost::beast::error_code ec, std::size_t bytes_transferred) {}
