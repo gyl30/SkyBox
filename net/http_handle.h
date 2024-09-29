@@ -1,5 +1,5 @@
-#ifndef LEAF_HTTP_HANDLE_REQUEST_H
-#define LEAF_HTTP_HANDLE_REQUEST_H
+#ifndef LEAF_HTTP_HANDLE_H
+#define LEAF_HTTP_HANDLE_H
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
