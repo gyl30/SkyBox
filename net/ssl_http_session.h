@@ -33,7 +33,7 @@ class ssl_http_session : public http_session
     void safe_startup();
     void safe_shutdown();
     void safe_write(const http_response_ptr& ptr);
-    void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
+    void on_write(bool keep_alive, boost::beast::error_code ec, std::size_t bytes_transferred);
     void on_handshake(boost::beast::error_code ec, std::size_t bytes_used);
     void do_read();
     void safe_read();
@@ -41,6 +41,7 @@ class ssl_http_session : public http_session
 
    private:
     std::string id_;
+    std::shared_ptr<void> self_;
     leaf::http_handle::ptr handle_;
     boost::beast::flat_buffer buffer_;
     boost::beast::ssl_stream<boost::beast::tcp_stream> stream_;

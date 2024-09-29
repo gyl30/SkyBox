@@ -19,6 +19,7 @@ ssl_http_session::~ssl_http_session() { LOG_INFO("destroy {}", id_); }
 
 void ssl_http_session::startup()
 {
+    self_ = shared_from_this();
     boost::asio::dispatch(stream_.get_executor(),
                           boost::beast::bind_front_handler(&ssl_http_session::safe_startup, this));
 }
@@ -43,6 +44,10 @@ void ssl_http_session::safe_shutdown()
     LOG_INFO("shutdown {}", id_);
     boost::system::error_code ec;
     ec = stream_.next_layer().socket().close(ec);
+
+    auto self = self_;
+    self_.reset();
+    boost::asio::dispatch(stream_.get_executor(), [self]() mutable { self.reset(); });
 }
 
 void ssl_http_session::on_handshake(boost::beast::error_code ec, std::size_t bytes_used)
@@ -98,12 +103,23 @@ void ssl_http_session::write(const http_response_ptr& ptr)
 }
 void ssl_http_session::safe_write(const http_response_ptr& ptr)
 {
+    bool keep_alive = ptr->keep_alive();
     boost::beast::http::message_generator msg(std::move(*ptr));
     boost::beast::async_write(stream_,
                               std::move(msg),    //
-                              boost::beast::bind_front_handler(&ssl_http_session::on_write, this));
+                              boost::beast::bind_front_handler(&ssl_http_session::on_write, this, keep_alive));
 }
 
-void ssl_http_session::on_write(boost::beast::error_code ec, std::size_t bytes_transferred) {}
+void ssl_http_session::on_write(bool keep_alive, boost::beast::error_code ec, std::size_t bytes_transferred)
+{
+    if (keep_alive)
+    {
+        do_read();
+    }
+    else
+    {
+        shutdown();
+    }
+}
 
 }    // namespace leaf
