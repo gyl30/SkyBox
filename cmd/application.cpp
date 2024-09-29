@@ -3,6 +3,7 @@
 #include "tcp_server.h"
 #include "application.h"
 #include "detect_session.h"
+#include "file_http_handle.h"
 
 namespace leaf
 {
@@ -14,17 +15,25 @@ application::~application() = default;
 void application::startup()
 {
     endpoint_ = boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 8080);
+
+    leaf::detect_session::handle h2;
+    h2.http_handle = []
+    {
+        //
+        return std::make_shared<leaf::file_http_handle>();
+    };
+
     leaf::tcp_server::handle h;
-    h.accept = [this](boost::asio::ip::tcp::socket socket)
+    h.accept = [this, &h2](boost::asio::ip::tcp::socket socket)
     {
         //
         std::string local_addr = leaf::get_socket_local_address(socket);
         std::string remote_addr = leaf::get_socket_remote_address(socket);
         LOG_INFO("new socket local {} remote {}", local_addr, remote_addr);    // NOLINT
-        std::make_shared<leaf::detect_session>(std::move(socket), ssl_ctx_)->startup();
+        std::make_shared<leaf::detect_session>(std::move(socket), ssl_ctx_, h2)->startup();
     };
 
-    h.socket = [this]()
+    h.socket = [this]
     {
         //
         return boost::asio::ip::tcp::socket(executors_->get_executor());

@@ -9,8 +9,10 @@
 namespace leaf
 {
 
-detect_session::detect_session(boost::asio::ip::tcp::socket&& socket, boost::asio::ssl::context& ctx)
-    : stream_(std::move(socket)), ssl_ctx_(ctx)
+detect_session::detect_session(boost::asio::ip::tcp::socket&& socket,
+                               boost::asio::ssl::context& ctx,
+                               leaf::detect_session::handle h)
+    : h_(std::move(h)), stream_(std::move(socket)), ssl_ctx_(ctx)
 {
     id_ = leaf::get_socket_remote_address(stream_.socket());
     LOG_INFO("create {}", id_);
@@ -48,7 +50,7 @@ void detect_session::safe_detect(boost::beast::error_code ec, bool result)
         return;
     }
 
-    auto handle = std::make_shared<leaf::file_http_handle>();
+    auto handle = h_.http_handle();
     if (result)
     {
         LOG_INFO("detect ssl success {}", id_);
