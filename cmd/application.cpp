@@ -45,29 +45,32 @@ int application::exec()
     leaf::init_log("cmd.log");
     executors_ = new leaf::executors(4);
     executors_->startup();
-    std::atomic<bool> stop{false};
-    boost::asio::signal_set sig(executors_->get_executor());
-    boost::system::error_code ec;
-    ec = sig.add(SIGINT, ec);
-    if (ec)
     {
-        LOG_ERROR("add signal failed", ec.message());
-        return -1;
+        std::atomic<bool> stop{false};
+        boost::asio::signal_set sig(executors_->get_executor());
+        boost::system::error_code ec;
+        ec = sig.add(SIGINT, ec);
+        if (ec)
+        {
+            LOG_ERROR("add signal failed", ec.message());
+            return -1;
+        }
+
+        // 注册退出信号
+        sig.async_wait([&stop](boost::system::error_code, int /*s*/) { stop = true; });
+
+        //
+        LOG_INFO("start");
+        startup();
+        //
+        while (!stop)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        }
+        //
+
+        ec = sig.cancel(ec);
     }
-
-    // 注册退出信号
-    sig.async_wait([&stop](boost::system::error_code, int /*s*/) { stop = true; });
-
-    //
-    LOG_INFO("start");
-    startup();
-    //
-    while (!stop)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
-    }
-    //
-
     LOG_INFO("shutdown");
     shutdown();
     executors_->shutdown();
