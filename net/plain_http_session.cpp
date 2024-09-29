@@ -18,6 +18,7 @@ plain_http_session::~plain_http_session() { LOG_INFO("destroy {}", id_); }
 void plain_http_session::startup()
 {
     LOG_INFO("startup {}", id_);
+    self_ = shared_from_this();
     do_read();
 }
 
@@ -94,7 +95,11 @@ void plain_http_session::safe_shutdown()
 {
     LOG_INFO("shutdown {}", id_);
     boost::beast::error_code ec;
-    ec = stream_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
+    ec = stream_.socket().close(ec);
+
+    std::shared_ptr<void> self = self_;
+    self_.reset();
+    boost::asio::dispatch(stream_.get_executor(), [self]() mutable { self.reset(); });
 }
 
 }    // namespace leaf

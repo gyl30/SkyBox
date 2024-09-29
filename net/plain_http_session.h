@@ -39,6 +39,7 @@ class plain_http_session : public http_session
     leaf::http_handle::ptr handle_;
     boost::beast::flat_buffer buffer_;
     boost::beast::tcp_stream stream_;
+    std::shared_ptr<void> self_;
     boost::optional<boost::beast::http::request_parser<boost::beast::http::string_body>> parser_;
 };
 
