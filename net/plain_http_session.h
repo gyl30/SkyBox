@@ -28,7 +28,7 @@ class plain_http_session : public http_session
 
    private:
     void safe_write(const http_response_ptr& ptr);
-    void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
+    void on_write(bool keep_alive, boost::beast::error_code ec, std::size_t bytes_transferred);
     void do_read();
     void safe_read();
     void on_read(boost::beast::error_code ec, std::size_t bytes_transferred);

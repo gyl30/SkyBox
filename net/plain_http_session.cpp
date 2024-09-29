@@ -71,13 +71,25 @@ void plain_http_session::write(const http_response_ptr& ptr)
 
 void plain_http_session::safe_write(const http_response_ptr& ptr)
 {
+    bool keep_alive = ptr->keep_alive();
     boost::beast::http::message_generator msg(std::move(*ptr));
     boost::beast::async_write(stream_,
                               std::move(msg),    //
-                              boost::beast::bind_front_handler(&plain_http_session::on_write, this));
+                              boost::beast::bind_front_handler(&plain_http_session::on_write, this, keep_alive));
 }
 
-void plain_http_session::on_write(boost::beast::error_code ec, std::size_t bytes_transferred) {}
+void plain_http_session::on_write(bool keep_alive, boost::beast::error_code ec, std::size_t bytes_transferred)
+{
+    if (keep_alive)
+    {
+        do_read();
+    }
+    else
+    {
+        shutdown();
+    }
+}
+
 void plain_http_session::safe_shutdown()
 {
     LOG_INFO("shutdown {}", id_);
