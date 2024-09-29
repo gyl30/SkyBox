@@ -12,7 +12,7 @@ namespace leaf
 detect_session::detect_session(boost::asio::ip::tcp::socket&& socket, boost::asio::ssl::context& ctx)
     : stream_(std::move(socket)), ssl_ctx_(ctx)
 {
-    id_ = leaf::get_socket_remote_address(socket);
+    id_ = leaf::get_socket_remote_address(stream_.socket());
     LOG_INFO("create {}", id_);
 }
 
