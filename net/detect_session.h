@@ -5,23 +5,14 @@
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/asio/ssl.hpp>
-
-#include "http_handle.h"
+#include "session_handle.h"
 
 namespace leaf
 {
 class detect_session : public std::enable_shared_from_this<detect_session>
 {
    public:
-    struct handle
-    {
-        std::function<leaf::http_handle::ptr(void)> http_handle;
-    };
-
-   public:
-    detect_session(boost::asio::ip::tcp::socket&& socket,
-                   boost::asio::ssl::context& ctx,
-                   leaf::detect_session::handle h);
+    detect_session(boost::asio::ip::tcp::socket&& socket, boost::asio::ssl::context& ctx, leaf::session_handle h);
     ~detect_session();
 
     void startup();
@@ -34,7 +25,7 @@ class detect_session : public std::enable_shared_from_this<detect_session>
 
    private:
     std::string id_;
-    leaf::detect_session::handle h_;
+    leaf::session_handle h_;
     boost::beast::flat_buffer buffer_;
     boost::beast::tcp_stream stream_;
     boost::asio::ssl::context& ssl_ctx_;

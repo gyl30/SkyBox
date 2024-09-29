@@ -2,6 +2,7 @@
 #include "socket.h"
 #include "tcp_server.h"
 #include "application.h"
+#include "session_handle.h"
 #include "detect_session.h"
 #include "file_http_handle.h"
 
@@ -16,7 +17,7 @@ void application::startup()
 {
     endpoint_ = boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 8080);
 
-    leaf::detect_session::handle h2;
+    leaf::session_handle h2;
     h2.http_handle = []
     {
         //
@@ -24,7 +25,7 @@ void application::startup()
     };
 
     leaf::tcp_server::handle h;
-    h.accept = [this, &h2](boost::asio::ip::tcp::socket socket)
+    h.accept = [this, h2](boost::asio::ip::tcp::socket socket)
     {
         //
         std::string local_addr = leaf::get_socket_local_address(socket);
