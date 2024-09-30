@@ -14,7 +14,6 @@ class websocket_handle : public std::enable_shared_from_this<websocket_handle>
     using ptr = std::shared_ptr<websocket_handle>;
 
    public:
-    websocket_handle() = default;
     virtual ~websocket_handle() = default;
 
    public:
