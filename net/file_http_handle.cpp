@@ -4,7 +4,7 @@
 namespace leaf
 {
 
-leaf::websocket_handle::ptr file_http_handle::websocket_handle() { return std::make_shared<file_websocket_handle>(); }
+leaf::websocket_handle::ptr file_http_handle::websocket_handle(const std::string &id) { return std::make_shared<file_websocket_handle>(id); }
 
 void file_http_handle::handle(const leaf::http_session::ptr &session, const leaf::http_session::http_request_ptr &req)
 {

@@ -5,7 +5,7 @@ namespace leaf
 class file_websocket_handle : public websocket_handle
 {
    public:
-    file_websocket_handle();
+    explicit file_websocket_handle(std::string id);
     ~file_websocket_handle() override;
 
    public:
