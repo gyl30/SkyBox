@@ -1,5 +1,6 @@
 #include <utility>
 #include "log.h"
+#include "buffer.h"
 #include "ssl_websocket_session.h"
 
 namespace leaf
@@ -68,12 +69,6 @@ void ssl_websocket_session::safe_read()
     boost::beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(30));
     ws_.async_read(buffer_, boost::beast::bind_front_handler(&ssl_websocket_session::on_read, this));
 }
-static std::shared_ptr<std::vector<uint8_t>> buffers_to_vector(const boost::asio::mutable_buffer& buffers)
-{
-    auto result = std::make_shared<std::vector<uint8_t>>();
-    result->reserve(boost::asio::buffer_size(buffers));
-    return result;
-}
 
 void ssl_websocket_session::on_read(boost::beast::error_code ec, std::size_t bytes_transferred)
 {
@@ -85,7 +80,7 @@ void ssl_websocket_session::on_read(boost::beast::error_code ec, std::size_t byt
         return shutdown();
     }
 
-    auto bytes = buffers_to_vector(buffer_.data());
+    auto bytes = leaf::buffers_to_vector(buffer_.data());
 
     buffer_.consume(buffer_.size());
 
