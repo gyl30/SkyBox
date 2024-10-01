@@ -20,14 +20,16 @@ void file_websocket_handle::startup()
     LOG_INFO("startup {}", id_);
 }
 
-void file_websocket_handle::on_text_message(const leaf::websocket_session::ptr& session, const std::string& msg)
+void file_websocket_handle::on_text_message(const leaf::websocket_session::ptr& session,
+                                            const std::shared_ptr<std::vector<uint8_t>>& msg)
 {
-    LOG_INFO("{} on_text_message {}", id_, msg);
+    LOG_INFO("{} on_text_message {}", id_, msg->size());
     session->write("0hello");
 }
-void file_websocket_handle::on_binary_message(const leaf::websocket_session::ptr& session, const std::string& bin)
+void file_websocket_handle::on_binary_message(const leaf::websocket_session::ptr& session,
+                                              const std::shared_ptr<std::vector<uint8_t>>& msg)
 {
-    LOG_INFO("{} on_binary_message {}", id_, bin);
+    LOG_INFO("{} on_binary_message {}", id_, msg->size());
     session->write("1hello");
 }
 void file_websocket_handle::shutdown()

@@ -1,5 +1,6 @@
 #include <utility>
-
+#include <boost/asio/buffer.hpp>
+#include <boost/beast/core/buffers_range.hpp>
 #include "log.h"
 #include "plain_websocket_session.h"
 
@@ -73,6 +74,17 @@ void plain_websocket_session::safe_read()
     ws_.async_read(buffer_, boost::beast::bind_front_handler(&plain_websocket_session::on_read, this));
 }
 
+static std::shared_ptr<std::vector<uint8_t>> buffers_to_vector(const boost::asio::mutable_buffer& buffers)
+{
+    auto result = std::make_shared<std::vector<uint8_t>>();
+    result->reserve(boost::asio::buffer_size(buffers));
+    for (const auto buff : boost::beast::buffers_range(buffers))
+    {
+        const auto* data = static_cast<const uint8_t*>(buff.data());
+        result->insert(result->end(), data, data + buff.size());
+    }
+    return result;
+}
 void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t bytes_transferred)
 {
     boost::ignore_unused(bytes_transferred);
@@ -82,17 +94,17 @@ void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t b
         LOG_ERROR("{} read failed {}", id_, ec.message());
         return shutdown();
     }
-    std::string msg = boost::beast::buffers_to_string(buffer_.data());
+    auto bytes = buffers_to_vector(buffer_.data());
 
     buffer_.consume(buffer_.size());
 
     if (ws_.binary())
     {
-        h_->on_binary_message(shared_from_this(), msg);
+        h_->on_binary_message(shared_from_this(), bytes);
     }
     else
     {
-        h_->on_text_message(shared_from_this(), msg);
+        h_->on_text_message(shared_from_this(), bytes);
     }
     do_read();
 }

@@ -19,8 +19,9 @@ class websocket_handle : public std::enable_shared_from_this<websocket_handle>
 
    public:
     virtual void startup() = 0;
-    virtual void on_text_message(const leaf::websocket_session::ptr&, const std::string&) = 0;
-    virtual void on_binary_message(const leaf::websocket_session::ptr&, const std::string&) = 0;
+    virtual void on_text_message(const leaf::websocket_session::ptr&, const std::shared_ptr<std::vector<uint8_t>>&) = 0;
+    virtual void on_binary_message(const leaf::websocket_session::ptr&,
+                                   const std::shared_ptr<std::vector<uint8_t>>&) = 0;
     virtual void shutdown() = 0;
 };
 
