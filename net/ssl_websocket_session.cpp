@@ -1,10 +1,13 @@
 #include "ssl_websocket_session.h"
 
+#include <utility>
+
 namespace leaf
 {
 
-ssl_websocket_session::ssl_websocket_session(boost::beast::ssl_stream<boost::beast::tcp_stream> stream)
-    : ws_(std::move(stream))
+ssl_websocket_session::ssl_websocket_session(boost::beast::ssl_stream<boost::beast::tcp_stream> stream,
+                                             leaf::websocket_handle::ptr handle)
+    : h_(std::move(handle)), ws_(std::move(stream))
 {
 }
 

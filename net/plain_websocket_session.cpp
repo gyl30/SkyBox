@@ -1,9 +1,14 @@
 #include "plain_websocket_session.h"
 
+#include <utility>
+
 namespace leaf
 {
 
-plain_websocket_session::plain_websocket_session(boost::beast::tcp_stream&& stream) : ws_(std::move(stream)) {}
+plain_websocket_session::plain_websocket_session(boost::beast::tcp_stream&& stream, leaf::websocket_handle::ptr handle)
+    : h_(std::move(handle)), ws_(std::move(stream))
+{
+}
 
 void plain_websocket_session::startup(const boost::beast::http::request<boost::beast::http::string_body>& req)
 {
@@ -60,12 +65,23 @@ void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t b
     {
         return shutdown();
     }
+    std::string msg = boost::beast::buffers_to_string(buffer_.data());
+    if (ws_.binary())
+    {
+        h_->on_binary_message(msg);
+    }
+    else
+    {
+        h_->on_text_message(msg);
+    }
 
-    ws_.text(ws_.got_text());
-    ws_.async_write(buffer_.data(),
-                    boost::beast::bind_front_handler(&plain_websocket_session::on_write, shared_from_this()));
+    ws_.async_write(buffer_.data(), boost::beast::bind_front_handler(&plain_websocket_session::on_write, shared_from_this()));
 }
 
+void plain_websocket_session::write(const std::string& msg)
+{
+
+}
 void plain_websocket_session::on_write(boost::beast::error_code ec, std::size_t bytes_transferred)
 {
     boost::ignore_unused(bytes_transferred);

@@ -79,8 +79,12 @@ void plain_http_session::safe_write(const http_response_ptr& ptr)
                               boost::beast::bind_front_handler(&plain_http_session::on_write, this, keep_alive));
 }
 
-void plain_http_session::on_write(bool keep_alive, boost::beast::error_code ec, std::size_t bytes_transferred)
+void plain_http_session::on_write(bool keep_alive, boost::beast::error_code ec, std::size_t  /*bytes_transferred*/)
 {
+    if (ec)
+    {
+        return shutdown();
+    }
     if (keep_alive)
     {
         do_read();

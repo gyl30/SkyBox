@@ -1,4 +1,5 @@
 #include "http_handle.h"
+#include "websocket_handle.h"
 
 namespace leaf
 {
@@ -13,6 +14,7 @@ class file_http_handle : public http_handle
 
    public:
     void handle(const leaf::http_session::ptr &session, const leaf::http_session::http_request_ptr &req) override;
+    leaf::websocket_handle::ptr websocket_handle() override;
 };
 
 }    // namespace leaf
