@@ -15,8 +15,8 @@ file_websocket_handle::~file_websocket_handle()
 }
 
 void file_websocket_handle::startup() {}
-void file_websocket_handle::on_text_message(const std::string& msg) { LOG_INFO("{} on_text_message {}", msg); }
-void file_websocket_handle::on_binary_message(const std::string& bin) { LOG_INFO("{} on_binary_message {}", bin); }
+void file_websocket_handle::on_text_message(const std::string& msg) { LOG_INFO("{} on_text_message {}", id_, msg); }
+void file_websocket_handle::on_binary_message(const std::string& bin) { LOG_INFO("{} on_binary_message {}", id_, bin); }
 void file_websocket_handle::shutdown()
 {
     //
