@@ -88,8 +88,9 @@ void ssl_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_tr
 
     if (boost::beast::websocket::is_upgrade(parser_->get()))
     {
+        auto h = handle_->websocket_handle();
         boost::beast::get_lowest_layer(stream_).expires_never();
-        return std::make_shared<ssl_websocket_session>(std::move(stream_))->startup(parser_->release());
+        return std::make_shared<ssl_websocket_session>(std::move(stream_), h)->startup(parser_->release());
     }
 
     auto req_ptr = std::make_shared<boost::beast::http::request<boost::beast::http::string_body>>(parser_->release());

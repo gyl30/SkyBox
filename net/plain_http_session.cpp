@@ -57,8 +57,9 @@ void plain_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_
 
     if (boost::beast::websocket::is_upgrade(parser_->get()))
     {
+        auto h = handle_->websocket_handle();
         boost::beast::get_lowest_layer(stream_).expires_never();
-        return std::make_shared<leaf::plain_websocket_session>(std::move(stream_))->startup(parser_->release());
+        return std::make_shared<leaf::plain_websocket_session>(std::move(stream_), h)->startup(parser_->release());
     }
     auto req_ptr = std::make_shared<boost::beast::http::request<boost::beast::http::string_body>>(parser_->release());
     handle_->handle(shared_from_this(), req_ptr);
@@ -79,7 +80,7 @@ void plain_http_session::safe_write(const http_response_ptr& ptr)
                               boost::beast::bind_front_handler(&plain_http_session::on_write, this, keep_alive));
 }
 
-void plain_http_session::on_write(bool keep_alive, boost::beast::error_code ec, std::size_t  /*bytes_transferred*/)
+void plain_http_session::on_write(bool keep_alive, boost::beast::error_code ec, std::size_t /*bytes_transferred*/)
 {
     if (ec)
     {
