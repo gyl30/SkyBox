@@ -9,21 +9,22 @@
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/ssl/ssl_stream.hpp>
 #include "websocket_handle.h"
+#include "websocket_session.h"
 
 namespace leaf
 {
-class ssl_websocket_session : public std::enable_shared_from_this<ssl_websocket_session>
+class ssl_websocket_session : public leaf::websocket_session
 {
    public:
     explicit ssl_websocket_session(std::string id,
                                    boost::beast::ssl_stream<boost::beast::tcp_stream> stream,
                                    leaf::websocket_handle::ptr handle);
-    ~ssl_websocket_session();
+    ~ssl_websocket_session() override;
 
    public:
-    void startup(const boost::beast::http::request<boost::beast::http::string_body>& req);
-    void shutdown();
-    void write(const std::string& msg);
+    void startup(const boost::beast::http::request<boost::beast::http::string_body>& req) override;
+    void shutdown() override;
+    void write(const std::string& msg) override;
 
    private:
     void safe_shutdown();
@@ -37,6 +38,7 @@ class ssl_websocket_session : public std::enable_shared_from_this<ssl_websocket_
 
    private:
     std::string id_;
+    std::shared_ptr<void> self_;
     leaf::websocket_handle::ptr h_;
     boost::beast::flat_buffer buffer_;
     std::queue<std::string> msg_queue_;

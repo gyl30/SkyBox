@@ -8,23 +8,24 @@
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
 #include "websocket_handle.h"
+#include "websocket_session.h"
 
 namespace leaf
 {
 
-class plain_websocket_session : public std::enable_shared_from_this<plain_websocket_session>
+class plain_websocket_session : public leaf::websocket_session
 {
    public:
     explicit plain_websocket_session(std::string id,
                                      boost::beast::tcp_stream&& stream,
                                      leaf::websocket_handle::ptr handle);
 
-    ~plain_websocket_session();
+    ~plain_websocket_session() override;
 
    public:
-    void startup(const boost::beast::http::request<boost::beast::http::string_body>& req);
-    void shutdown();
-    void write(const std::string& msg);
+    void startup(const boost::beast::http::request<boost::beast::http::string_body>& req) override;
+    void shutdown() override;
+    void write(const std::string& msg) override;
 
    private:
     void do_accept(const boost::beast::http::request<boost::beast::http::string_body>& req);
@@ -39,6 +40,7 @@ class plain_websocket_session : public std::enable_shared_from_this<plain_websoc
 
    private:
     std::string id_;
+    std::shared_ptr<void> self_;
     leaf::websocket_handle::ptr h_;
     boost::beast::flat_buffer buffer_;
     std::queue<std::string> msg_queue_;
