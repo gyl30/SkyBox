@@ -88,11 +88,11 @@ void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t b
 
     if (ws_.binary())
     {
-        h_->on_binary_message(msg);
+        h_->on_binary_message(shared_from_this(), msg);
     }
     else
     {
-        h_->on_text_message(msg);
+        h_->on_text_message(shared_from_this(), msg);
     }
     do_read();
 }
@@ -115,8 +115,17 @@ void plain_websocket_session::do_write()
     {
         return;
     }
+    auto& msg = msg_queue_.front();
+    if (msg.front() == '0')
+    {
+        ws_.text(true);
+    }
+    else if (msg.front() == '1')
+    {
+        ws_.binary(true);
+    }
 
-    ws_.async_write(boost::asio::buffer(msg_queue_.front()),
+    ws_.async_write(boost::asio::buffer(msg.data() + 1, msg.size() - 1),
                     boost::beast::bind_front_handler(&plain_websocket_session::on_write, this));
 }
 

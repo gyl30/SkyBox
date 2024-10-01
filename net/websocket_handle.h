@@ -4,6 +4,7 @@
 #include <memory>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include "websocket_session.h"
 
 namespace leaf
 {
@@ -18,8 +19,8 @@ class websocket_handle : public std::enable_shared_from_this<websocket_handle>
 
    public:
     virtual void startup() = 0;
-    virtual void on_text_message(const std::string&) = 0;
-    virtual void on_binary_message(const std::string&) = 0;
+    virtual void on_text_message(const leaf::websocket_session::ptr&, const std::string&) = 0;
+    virtual void on_binary_message(const leaf::websocket_session::ptr&, const std::string&) = 0;
     virtual void shutdown() = 0;
 };
 

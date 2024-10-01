@@ -10,8 +10,8 @@ class file_websocket_handle : public websocket_handle
 
    public:
     void startup() override;
-    void on_text_message(const std::string& msg) override;
-    void on_binary_message(const std::string& bin) override;
+    void on_text_message(const leaf::websocket_session::ptr& session, const std::string& msg) override;
+    void on_binary_message(const leaf::websocket_session::ptr& session, const std::string& bin) override;
     void shutdown() override;
 
    private:
