@@ -3,12 +3,14 @@
 
 #include <string>
 #include <chrono>
+#include <memory>
 #include <boost/asio.hpp>
 
 namespace leaf
 {
-struct task_item
+struct file_item
 {
+    using ptr = std::shared_ptr<file_item>;
     int progress = 0;
     std::string src_file;
     std::string dst_file;

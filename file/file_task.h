@@ -15,7 +15,7 @@ class file_task
     using ptr = std::shared_ptr<file_task>;
 
    public:
-    explicit file_task(leaf::task_item t);
+    explicit file_task(leaf::file_item t);
     ~file_task();
 
    public:
@@ -24,7 +24,7 @@ class file_task
     void shudown(boost::system::error_code &ec);
     void set_error(const boost::system::error_code &ec);
     [[nodiscard]] boost::system::error_code error() const;
-    [[nodiscard]] const leaf::task_item &task_info() const;
+    [[nodiscard]] const leaf::file_item &task_info() const;
 
    private:
     leaf::reader *reader_ = nullptr;
@@ -33,7 +33,7 @@ class file_task
     leaf::sha256 *writer_sha_ = nullptr;
     leaf::encrypt *encrypt_ = nullptr;
     uint64_t src_file_size_ = 0;
-    leaf::task_item t_;
+    leaf::file_item t_;
 };
 
 }    // namespace leaf

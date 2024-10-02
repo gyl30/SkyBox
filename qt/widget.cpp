@@ -41,7 +41,7 @@ void Widget::on_new_file_clicked()
     {
         return;
     }
-    leaf::task_item t;
+    leaf::file_item t;
     t.src_file = filename.toStdString();
     t.dst_file = t.src_file + ".leaf";
     auto file = std::make_shared<leaf::file_task>(t);
