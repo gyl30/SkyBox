@@ -1,5 +1,5 @@
-#ifndef LEAF_WEBSOCKET_CLIENT_H
-#define LEAF_WEBSOCKET_CLIENT_H
+#ifndef LEAF_PLAIN_WEBSOCKET_CLIENT_H
+#define LEAF_PLAIN_WEBSOCKET_CLIENT_H
 
 #include <queue>
 #include <functional>
