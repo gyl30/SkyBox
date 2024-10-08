@@ -73,7 +73,7 @@ QVariant task_model::task_to_display_data(const QModelIndex &index) const
     const int column = index.column();
     if (column == 0)
     {
-        return QString::fromStdString(t.src_file);
+        return QString::fromStdString(t.name);
     }
     if (column == 1)
     {
