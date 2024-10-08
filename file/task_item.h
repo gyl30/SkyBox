@@ -12,7 +12,7 @@ struct file_item
 {
     using ptr = std::shared_ptr<file_item>;
     int progress = 0;
-    std::string src_file;
+    std::string name;
     std::string dst_file;
     std::string src_hash;
     std::string dst_hash;

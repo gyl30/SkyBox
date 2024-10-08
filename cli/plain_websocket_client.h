@@ -6,6 +6,7 @@
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include "task_item.h"
+#include "codec.h"
 
 namespace leaf
 {
@@ -32,15 +33,27 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     void on_handshake(boost::beast::error_code ec);
     void safe_startup();
     void safe_shutdown();
+    void do_read();
+    void safe_read();
+    void on_read(boost::beast::error_code ec, std::size_t bytes_transferred);
+
     void safe_add_file(const leaf::file_item::ptr& file);
-    void running_task();
+    void process_file();
+    void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
+
+   private:
+    void create_file_response(const leaf::create_file_response&);
+    void delete_file_response(const leaf::delete_file_response&);
+    void block_data_request(const leaf::block_data_request&);
+    void file_block_request(const leaf::file_block_request&);
+    void error_response(const leaf::error_response&);
 
    private:
     std::string id_;
     boost::beast::flat_buffer buffer_;
     boost::asio::ip::tcp::endpoint ed_;
-    std::queue<leaf::file_item::ptr> padding_files_;
-    std::vector<leaf::file_item::ptr> running_files_;
+    leaf::codec_handle codec_;
+    leaf::file_item::ptr file_;
     leaf::plain_websocket_client::handle h_;
     boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;
 };

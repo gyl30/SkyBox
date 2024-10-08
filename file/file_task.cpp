@@ -39,7 +39,7 @@ file_task::~file_task() = default;
 
 void file_task::startup(boost::system::error_code &ec)
 {
-    reader_ = new leaf::file_reader(t_.src_file);
+    reader_ = new leaf::file_reader(t_.name);
     writer_ = new leaf::file_writer(t_.dst_file);
     reader_sha_ = new leaf::sha256();
     writer_sha_ = new leaf::sha256();
@@ -48,7 +48,7 @@ void file_task::startup(boost::system::error_code &ec)
     ec = reader_->open();
     if (ec)
     {
-        LOG_ERROR("open {} error {}", t_.src_file, ec.message());
+        LOG_ERROR("open {} error {}", t_.name, ec.message());
         return;
     }
     ec = writer_->open();
@@ -57,7 +57,7 @@ void file_task::startup(boost::system::error_code &ec)
         LOG_ERROR("open {} error {}", t_.dst_file, ec.message());
         return;
     }
-    src_file_size_ = boost::filesystem::file_size(t_.src_file);
+    src_file_size_ = boost::filesystem::file_size(t_.name);
     t_.start_time_ = std::chrono::steady_clock::now();
 }
 boost::system::error_code file_task::loop()
