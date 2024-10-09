@@ -54,6 +54,7 @@ void application::startup()
 int application::exec()
 {
     leaf::init_log("cmd.log");
+    leaf::set_log_level("trace");
     executors_ = new leaf::executors(4);
     executors_->startup();
     {
