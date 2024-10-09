@@ -76,10 +76,7 @@ void serialize_file_block_response(const file_block_response &msg, std::vector<u
     write_padding(w);
     w.write_uint16(to_underlying(message_type::file_block_response));
     w.write_uint32(msg.block_size);
-    for (auto block : msg.blocks)
-    {
-        w.write_uint32(block);
-    }
+    w.write_uint32(msg.block_count);
     w.copy_to(bytes);
 }
 void serialize_block_data_response(const block_data_response &msg, std::vector<uint8_t> *bytes)
@@ -204,8 +201,8 @@ static int decode_delete_file_request(leaf::read_buffer &r, codec_handle *handle
 int deserialize_message(const uint8_t *data, uint64_t len, codec_handle *handle)
 {
     leaf::read_buffer r(data, len);
-    uint32_t msg_padding = 0;
-    r.read_uint32(&msg_padding);
+    uint64_t msg_padding = 0;
+    r.read_uint64(&msg_padding);
     uint16_t msg_type = 0;
     r.read_uint16(&msg_type);
     if (msg_type == to_underlying(leaf::message_type::create_file_request))

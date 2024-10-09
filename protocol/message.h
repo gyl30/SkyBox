@@ -55,7 +55,7 @@ struct create_file_response
 };
 struct file_block_response
 {
-    std::vector<uint32_t> blocks;
+    uint32_t block_count = 0;
     uint32_t block_size = 0;
 };
 struct delete_file_response
