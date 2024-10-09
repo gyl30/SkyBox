@@ -88,7 +88,7 @@ void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t b
 
     buffer_.consume(buffer_.size());
 
-    if (ws_.binary())
+    if (ws_.got_binary())
     {
         h_->on_binary_message(shared_from_this(), bytes);
     }
