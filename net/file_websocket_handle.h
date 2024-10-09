@@ -32,6 +32,7 @@ class file_websocket_handle : public websocket_handle
 
    private:
     std::string id_;
+    std::vector<uint8_t> bytes_;
     leaf::codec_handle handle_;
 };
 

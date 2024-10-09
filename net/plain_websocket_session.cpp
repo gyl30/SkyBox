@@ -99,14 +99,15 @@ void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t b
     do_read();
 }
 
-void plain_websocket_session::write(const std::string& msg)
+void plain_websocket_session::write(const std::vector<uint8_t>& msg)
 {
     boost::asio::dispatch(ws_.get_executor(),
                           boost::beast::bind_front_handler(&plain_websocket_session::safe_write, this, msg));
 }
 
-void plain_websocket_session::safe_write(const std::string& msg)
+void plain_websocket_session::safe_write(const std::vector<uint8_t>& msg)
 {
+    assert(!msg.empty());
     msg_queue_.push(msg);
     do_write();
 }
@@ -118,16 +119,16 @@ void plain_websocket_session::do_write()
         return;
     }
     auto& msg = msg_queue_.front();
-    if (msg.front() == '0')
+    if (msg.back() == '0')
     {
         ws_.text(true);
     }
-    else if (msg.front() == '1')
+    else if (msg.back() == '1')
     {
         ws_.binary(true);
     }
 
-    ws_.async_write(boost::asio::buffer(msg.data() + 1, msg.size() - 1),
+    ws_.async_write(boost::asio::buffer(msg.data(), msg.size() - 1),
                     boost::beast::bind_front_handler(&plain_websocket_session::on_write, this));
 }
 

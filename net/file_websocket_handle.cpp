@@ -1,9 +1,16 @@
+#include <atomic>
 #include "log.h"
 #include "codec.h"
+#include "message.h"
 #include "file_websocket_handle.h"
 
 namespace leaf
 {
+static uint64_t file_id()
+{
+    static std::atomic<uint64_t> id = 0xff1;
+    return ++id;
+}
 file_websocket_handle::file_websocket_handle(std::string id) : id_(std::move(id))
 {
     // clang-format off
@@ -39,13 +46,21 @@ void file_websocket_handle::on_text_message(const leaf::websocket_session::ptr& 
     }
 
     LOG_INFO("{} on_text_message {}", id_, msg->size());
-    session->write("0hello");
+    bytes_.push_back('0');
+    session->write(bytes_);
+    bytes_.clear();
 }
 void file_websocket_handle::on_binary_message(const leaf::websocket_session::ptr& session,
                                               const std::shared_ptr<std::vector<uint8_t>>& msg)
 {
     LOG_INFO("{} on_binary_message {}", id_, msg->size());
-    session->write("1hello");
+    if (leaf::deserialize_message(msg->data(), msg->size(), &handle_) != 0)
+    {
+        return;
+    }
+    bytes_.push_back('1');
+    session->write(bytes_);
+    bytes_.clear();
 }
 void file_websocket_handle::shutdown()
 {
@@ -56,6 +71,13 @@ void file_websocket_handle::shutdown()
 void file_websocket_handle::on_create_file_request(const leaf::create_file_request& msg)
 {
     LOG_INFO("{} on_create_file_request file size {} name {}", id_, msg.file_size, msg.filename);
+    leaf::create_file_response response;
+    response.filename = msg.filename;
+    response.file_id = file_id();
+    if (leaf::serialize_message(response, &bytes_) != 0)
+    {
+        bytes_.clear();
+    }
 }
 
 void file_websocket_handle::on_delete_file_request(const leaf::delete_file_request& msg)

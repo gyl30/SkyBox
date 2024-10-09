@@ -94,13 +94,13 @@ void ssl_websocket_session::on_read(boost::beast::error_code ec, std::size_t byt
     }
     do_read();
 }
-void ssl_websocket_session::write(const std::string& msg)
+void ssl_websocket_session::write(const std::vector<uint8_t>& msg)
 {
     boost::asio::dispatch(ws_.get_executor(),
                           boost::beast::bind_front_handler(&ssl_websocket_session::safe_write, this, msg));
 }
 
-void ssl_websocket_session::safe_write(const std::string& msg)
+void ssl_websocket_session::safe_write(const std::vector<uint8_t>& msg)
 {
     msg_queue_.push(msg);
     do_write();
@@ -112,8 +112,17 @@ void ssl_websocket_session::do_write()
     {
         return;
     }
+    auto& msg = msg_queue_.front();
+    if (msg.back() == '0')
+    {
+        ws_.text(true);
+    }
+    else if (msg.back() == '1')
+    {
+        ws_.binary(true);
+    }
 
-    ws_.async_write(boost::asio::buffer(msg_queue_.front()),
+    ws_.async_write(boost::asio::buffer(msg.data(), msg.size() - 1),
                     boost::beast::bind_front_handler(&ssl_websocket_session::on_write, this));
 }
 
