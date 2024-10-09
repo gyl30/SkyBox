@@ -71,6 +71,7 @@ void plain_websocket_client::on_handshake(boost::beast::error_code ec)
         LOG_ERROR("{} handshake failed {}", id_, ec.message());
         return shutdown();
     }
+    ws_.binary(true);
     process_file();
 }
 void plain_websocket_client::do_read()
@@ -133,6 +134,7 @@ void plain_websocket_client::safe_add_file(const leaf::file_item::ptr& file)
     }
 
     file_ = file;
+    process_file();
 }
 void plain_websocket_client::process_file()
 {
@@ -157,7 +159,7 @@ void plain_websocket_client::process_file()
         LOG_ERROR("{} serialize create file message error {}", id_, ec.message());
         return;
     }
-    ws_.binary(true);
+    LOG_DEBUG("{} send create file {} size {} message size {}", id_, file_->name, file_size, bytes.size());
     ws_.async_write(boost::asio::buffer(bytes),
                     boost::beast::bind_front_handler(&plain_websocket_client::on_write, shared_from_this()));
 }
@@ -168,14 +170,24 @@ void plain_websocket_client::on_write(boost::beast::error_code ec, std::size_t b
         LOG_ERROR("{} write create file message error {}", id_, ec.message());
         return shutdown();
     }
+    LOG_DEBUG("{} write message size {}", id_, bytes_transferred);
 }
 void plain_websocket_client::create_file_response(const leaf::create_file_response& msg)
 {
     LOG_INFO("{} create file response id {} name {}", id_, msg.file_id, msg.filename);
 }
-void plain_websocket_client::delete_file_response(const leaf::delete_file_response& msg) {}
-void plain_websocket_client::block_data_request(const leaf::block_data_request& msg) {}
-void plain_websocket_client::file_block_request(const leaf::file_block_request& msg) {}
+void plain_websocket_client::delete_file_response(const leaf::delete_file_response& msg)
+{
+    LOG_INFO("{} delete file response name {}", id_, msg.filename);
+}
+void plain_websocket_client::block_data_request(const leaf::block_data_request& msg)
+{
+    LOG_INFO("{} block data request id {} block {}", id_, msg.file_id, msg.block_id);
+}
+void plain_websocket_client::file_block_request(const leaf::file_block_request& msg)
+{
+    LOG_INFO("{} delete file response file id {}", id_, msg.file_id);
+}
 void plain_websocket_client::error_response(const leaf::error_response& msg)
 {
     LOG_ERROR("{} error {}", id_, msg.error);
