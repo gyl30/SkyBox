@@ -11,12 +11,12 @@ enum class message_type : uint16_t
     error = 0x00,
     create_file_request = 0x01,
     create_file_response = 0x02,
-    delete_file_request = 0x02,
-    delete_file_response = 0x03,
-    file_block_request = 0x04,
-    file_block_response = 0x05,
-    block_data_request = 0x06,
-    block_data_response = 0x07,
+    delete_file_request = 0x03,
+    delete_file_response = 0x04,
+    file_block_request = 0x05,
+    file_block_response = 0x06,
+    block_data_request = 0x07,
+    block_data_response = 0x08,
 };
 
 // ------------------------------------------------------------------------------
