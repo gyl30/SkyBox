@@ -1,3 +1,4 @@
+#include <cassert>
 #include "codec.h"
 #include "net_buffer.h"
 
@@ -11,7 +12,7 @@ constexpr auto to_underlying(E e) noexcept
 
 static void write_padding(leaf::write_buffer &w)
 {
-    uint64_t xx;           // NOLINT
+    uint64_t xx = 0;       // NOLINT
     w.write_uint64(xx);    // NOLINT
 }
 
@@ -197,6 +198,22 @@ static int decode_delete_file_request(leaf::read_buffer &r, codec_handle *handle
     handle->delete_file_request(req);
     return 0;
 }
+static int decode_create_file_response(leaf::read_buffer &r, codec_handle *handle)
+{
+    if (r.size() > 2048)
+    {
+        return -1;
+    }
+    uint64_t file_id = 0;
+    r.read_uint64(&file_id);
+    std::string filename;
+    r.read_string(&filename, r.size());
+    leaf::create_file_response res;
+    res.filename = filename;
+    res.file_id = file_id;
+    handle->create_file_response(res);
+    return 0;
+}
 
 int deserialize_message(const uint8_t *data, uint64_t len, codec_handle *handle)
 {
@@ -212,6 +229,10 @@ int deserialize_message(const uint8_t *data, uint64_t len, codec_handle *handle)
     if (msg_type == to_underlying(leaf::message_type::delete_file_request))
     {
         return decode_delete_file_request(r, handle);
+    }
+    if (msg_type == to_underlying(leaf::message_type::create_file_response))
+    {
+        return decode_create_file_response(r, handle);
     }
 
     return -1;
