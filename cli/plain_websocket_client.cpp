@@ -71,7 +71,7 @@ void plain_websocket_client::on_handshake(boost::beast::error_code ec)
         LOG_ERROR("{} handshake failed {}", id_, ec.message());
         return shutdown();
     }
-    ws_.binary(true);
+    do_read();
     process_file();
 }
 void plain_websocket_client::do_read()
@@ -86,13 +86,14 @@ void plain_websocket_client::safe_read()
 }
 void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t bytes_transferred)
 {
-    boost::ignore_unused(bytes_transferred);
-
     if (ec)
     {
         LOG_ERROR("{} read failed {}", id_, ec.message());
         return shutdown();
     }
+
+    LOG_DEBUG("{} read message size {}", id_, bytes_transferred);
+
     auto bytes = leaf::buffers_to_vector(buffer_.data());
 
     buffer_.consume(buffer_.size());
@@ -159,18 +160,56 @@ void plain_websocket_client::process_file()
         LOG_ERROR("{} serialize create file message error {}", id_, ec.message());
         return;
     }
+    bytes.push_back('1');
     LOG_DEBUG("{} send create file {} size {} message size {}", id_, file_->name, file_size, bytes.size());
-    ws_.async_write(boost::asio::buffer(bytes),
-                    boost::beast::bind_front_handler(&plain_websocket_client::on_write, shared_from_this()));
+    this->write(bytes);
 }
+
+void plain_websocket_client::write(const std::vector<uint8_t>& msg)
+{
+    boost::asio::dispatch(ws_.get_executor(),
+                          boost::beast::bind_front_handler(&plain_websocket_client::safe_write, this, msg));
+}
+
+void plain_websocket_client::safe_write(const std::vector<uint8_t>& msg)
+{
+    assert(!msg.empty());
+    msg_queue_.push(msg);
+    do_write();
+}
+void plain_websocket_client::do_write()
+{
+    if (msg_queue_.empty())
+    {
+        return;
+    }
+    auto& msg = msg_queue_.front();
+    if (msg.back() == '0')
+    {
+        ws_.text(true);
+    }
+    else if (msg.back() == '1')
+    {
+        ws_.binary(true);
+    }
+
+    ws_.async_write(boost::asio::buffer(msg.data(), msg.size() - 1),
+                    boost::beast::bind_front_handler(&plain_websocket_client::on_write, this));
+}
+
 void plain_websocket_client::on_write(boost::beast::error_code ec, std::size_t bytes_transferred)
 {
     if (ec)
     {
-        LOG_ERROR("{} write create file message error {}", id_, ec.message());
+        LOG_ERROR("{} write failed {}", id_, ec.message());
         return shutdown();
     }
-    LOG_DEBUG("{} write message size {}", id_, bytes_transferred);
+    LOG_DEBUG("{} write success {} bytes", id_, bytes_transferred);
+    msg_queue_.pop();
+    if (!msg_queue_.empty())
+    {
+        do_write();
+    }
 }
 void plain_websocket_client::create_file_response(const leaf::create_file_response& msg)
 {
