@@ -38,17 +38,10 @@ void file_websocket_handle::startup()
     LOG_INFO("startup {}", id_);
 }
 
-void file_websocket_handle::on_text_message(const leaf::websocket_session::ptr& session,
+void file_websocket_handle::on_text_message(const leaf::websocket_session::ptr& /*session*/,
                                             const std::shared_ptr<std::vector<uint8_t>>& msg)
 {
-    if (leaf::deserialize_message(msg->data(), msg->size(), &handle_) != 0)
-    {
-    }
-
     LOG_INFO("{} on_text_message {}", id_, msg->size());
-    bytes_.push_back('0');
-    session->write(bytes_);
-    bytes_.clear();
 }
 void file_websocket_handle::on_binary_message(const leaf::websocket_session::ptr& session,
                                               const std::shared_ptr<std::vector<uint8_t>>& msg)
@@ -58,9 +51,11 @@ void file_websocket_handle::on_binary_message(const leaf::websocket_session::ptr
     {
         return;
     }
-    bytes_.push_back('1');
-    session->write(bytes_);
-    bytes_.clear();
+    while (!handle_.msg_queue.empty())
+    {
+        session->write(handle_.msg_queue.front());
+        handle_.msg_queue.pop();
+    }
 }
 void file_websocket_handle::shutdown()
 {
@@ -74,9 +69,24 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
     leaf::create_file_response response;
     response.filename = msg.filename;
     response.file_id = file_id();
-    if (leaf::serialize_message(response, &bytes_) != 0)
     {
-        bytes_.clear();
+        std::vector<uint8_t> bytes;
+        if (leaf::serialize_message(response, &bytes) != 0)
+        {
+            return;
+        }
+        handle_.msg_queue.push(bytes);
+    }
+
+    leaf::file_block_request request;
+    request.file_id = response.file_id;
+    {
+        std::vector<uint8_t> bytes2;
+        if (leaf::serialize_message(request, &bytes2) != 0)
+        {
+            return;
+        }
+        handle_.msg_queue.push(bytes2);
     }
 }
 
@@ -102,7 +112,7 @@ void file_websocket_handle::on_delete_file_response(const leaf::delete_file_resp
 }
 void file_websocket_handle::on_file_block_response(const leaf::file_block_response& msg)
 {
-    LOG_INFO("{} on_file_block_response block size {}", id_, msg.block_size);
+    LOG_INFO("{} on_file_block_response block size {} block count {}", id_, msg.block_size, msg.block_count);
 }
 void file_websocket_handle::on_block_data_response(const leaf::block_data_response& msg)
 {
