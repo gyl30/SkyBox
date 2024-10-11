@@ -12,6 +12,8 @@ struct file_item
 {
     using ptr = std::shared_ptr<file_item>;
     int progress = 0;
+    uint64_t id = 0;
+    uint64_t file_size = 0;
     std::string name;
     std::string dst_file;
     std::string src_hash;

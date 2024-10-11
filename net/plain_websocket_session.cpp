@@ -23,6 +23,7 @@ plain_websocket_session::~plain_websocket_session()
 }
 void plain_websocket_session::startup(const boost::beast::http::request<boost::beast::http::string_body>& req)
 {
+    ws_.binary(true);
     self_ = shared_from_this();
     LOG_INFO("startup {}", id_);
     do_accept(req);
@@ -118,30 +119,27 @@ void plain_websocket_session::do_write()
     {
         return;
     }
+    if (writing_)
+    {
+        return;
+    }
+    writing_ = true;
     auto& msg = msg_queue_.front();
-    if (msg.back() == '0')
-    {
-        ws_.text(true);
-    }
-    else if (msg.back() == '1')
-    {
-        ws_.binary(true);
-    }
-
-    ws_.async_write(boost::asio::buffer(msg.data(), msg.size() - 1),
+    ws_.async_write(boost::asio::buffer(msg),
                     boost::beast::bind_front_handler(&plain_websocket_session::on_write, this));
 }
 
 void plain_websocket_session::on_write(boost::beast::error_code ec, std::size_t bytes_transferred)
 {
-    boost::ignore_unused(bytes_transferred);
-
     if (ec)
     {
         LOG_ERROR("{} write failed {}", id_, ec.message());
         return shutdown();
     }
+    LOG_DEBUG("{} write success {} bytes", id_, bytes_transferred);
     msg_queue_.pop();
+    writing_ = false;
+    do_write();
 }
 
 }    // namespace leaf

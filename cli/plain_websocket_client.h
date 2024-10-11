@@ -43,6 +43,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     void safe_write(const std::vector<uint8_t>& msg);
     void do_write();
     void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
+    void write_message(const codec_message& msg);
 
    private:
     void create_file_response(const leaf::create_file_response&);
@@ -57,6 +58,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     boost::asio::ip::tcp::endpoint ed_;
     leaf::codec_handle codec_;
     leaf::file_item::ptr file_;
+    bool writing_ = false;
     leaf::plain_websocket_client::handle h_;
     std::queue<std::vector<uint8_t>> msg_queue_;
     boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;

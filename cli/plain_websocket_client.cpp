@@ -38,6 +38,7 @@ void plain_websocket_client::startup()
 
 void plain_websocket_client::safe_startup()
 {
+    ws_.binary(true);
     LOG_INFO("startup {}", id_);
     boost::beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(3));
     boost::beast::get_lowest_layer(ws_).async_connect(
@@ -93,12 +94,19 @@ void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t by
     }
 
     LOG_DEBUG("{} read message size {}", id_, bytes_transferred);
+    if (bytes_transferred == 18)
+    {
+        LOG_ERROR("{} read message size {}", id_, bytes_transferred);
+    }
 
     auto bytes = leaf::buffers_to_vector(buffer_.data());
 
     buffer_.consume(buffer_.size());
 
-    deserialize_message(bytes->data(), bytes->size(), &codec_);
+    if (deserialize_message(bytes->data(), bytes->size(), &codec_) != 0)
+    {
+        LOG_ERROR("{} deserialize message error {}", id_, bytes_transferred);
+    }
 
     do_read();
 }
@@ -153,6 +161,7 @@ void plain_websocket_client::process_file()
     create_file_request create;
     create.file_size = file_size;
     create.filename = file_->name;
+    file_->file_size = file_size;
     codec_message msg = create;
     std::vector<uint8_t> bytes;
     if (serialize_message(msg, &bytes) != 0)
@@ -183,17 +192,15 @@ void plain_websocket_client::do_write()
     {
         return;
     }
-    auto& msg = msg_queue_.front();
-    if (msg.back() == '0')
+    if (writing_)
     {
-        ws_.text(true);
-    }
-    else if (msg.back() == '1')
-    {
-        ws_.binary(true);
+        return;
     }
 
-    ws_.async_write(boost::asio::buffer(msg.data(), msg.size() - 1),
+    writing_ = true;
+    auto& msg = msg_queue_.front();
+
+    ws_.async_write(boost::asio::buffer(msg),
                     boost::beast::bind_front_handler(&plain_websocket_client::on_write, this));
 }
 
@@ -205,14 +212,13 @@ void plain_websocket_client::on_write(boost::beast::error_code ec, std::size_t b
         return shutdown();
     }
     LOG_DEBUG("{} write success {} bytes", id_, bytes_transferred);
+    writing_ = false;
     msg_queue_.pop();
-    if (!msg_queue_.empty())
-    {
-        do_write();
-    }
+    do_write();
 }
 void plain_websocket_client::create_file_response(const leaf::create_file_response& msg)
 {
+    file_->id = msg.file_id;
     LOG_INFO("{} create file response id {} name {}", id_, msg.file_id, msg.filename);
 }
 void plain_websocket_client::delete_file_response(const leaf::delete_file_response& msg)
@@ -225,8 +231,36 @@ void plain_websocket_client::block_data_request(const leaf::block_data_request& 
 }
 void plain_websocket_client::file_block_request(const leaf::file_block_request& msg)
 {
-    LOG_INFO("{} delete file response file id {}", id_, msg.file_id);
+    if (msg.file_id != file_->id)
+    {
+        return;
+    }
+    constexpr auto kBlockSize = 128 * 1024;
+    uint64_t block_count = file_->file_size / kBlockSize;
+    if (file_->file_size % kBlockSize != 0)
+    {
+        block_count++;
+    }
+    leaf::file_block_response response;
+    response.block_count = block_count;
+    response.block_size = kBlockSize;
+    response.file_id = file_->id;
+    LOG_INFO("{} file block request id {} block count {} block size {}", id_, file_->id, block_count, kBlockSize);
+    write_message(response);
 }
+
+void plain_websocket_client::write_message(const codec_message& msg)
+{
+    std::vector<uint8_t> bytes;
+    if (serialize_message(msg, &bytes) != 0)
+    {
+        LOG_ERROR("{} serialize message failed", id_);
+        return;
+    }
+    LOG_DEBUG("{} send message size {}", id_, bytes.size());
+    write(bytes);
+}
+
 void plain_websocket_client::error_response(const leaf::error_response& msg)
 {
     LOG_ERROR("{} error {}", id_, msg.error);

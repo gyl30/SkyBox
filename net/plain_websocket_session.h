@@ -43,6 +43,7 @@ class plain_websocket_session : public leaf::websocket_session
     std::shared_ptr<void> self_;
     leaf::websocket_handle::ptr h_;
     boost::beast::flat_buffer buffer_;
+    bool writing_ = false;
     std::queue<std::vector<uint8_t>> msg_queue_;
     boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;
 };
