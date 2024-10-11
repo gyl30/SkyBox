@@ -39,7 +39,6 @@ struct block_data_request
     // block data request payload(4 bytes block id + random data) == 128k
     uint32_t block_id = 0;
     uint64_t file_id = 0;
-    std::vector<uint8_t> data;
 };
 //
 // ------------------------------------------------------------------------------
@@ -55,6 +54,7 @@ struct create_file_response
 };
 struct file_block_response
 {
+    uint64_t file_id = 0;
     uint32_t block_count = 0;
     uint32_t block_size = 0;
 };
