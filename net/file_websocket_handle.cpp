@@ -35,6 +35,7 @@ file_websocket_handle::~file_websocket_handle()
 void file_websocket_handle::startup()
 {
     //
+    file_ = std::make_shared<file_item>();
     LOG_INFO("startup {}", id_);
 }
 
@@ -77,7 +78,8 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
         }
         handle_.msg_queue.push(bytes);
     }
-
+    file_->id = response.file_id;
+    file_->name = msg.filename;
     leaf::file_block_request request;
     request.file_id = response.file_id;
     {
@@ -112,7 +114,15 @@ void file_websocket_handle::on_delete_file_response(const leaf::delete_file_resp
 }
 void file_websocket_handle::on_file_block_response(const leaf::file_block_response& msg)
 {
+    if (file_->id != msg.file_id)
+    {
+        LOG_ERROR("{} on_file_block_response file id {} != {}", id_, msg.file_id, file_->id);
+        return;
+    }
+    file_->block_size = msg.block_size;
+    file_->block_count = msg.block_count;
     LOG_INFO("{} on_file_block_response block size {} block count {}", id_, msg.block_size, msg.block_count);
+    //
 }
 void file_websocket_handle::on_block_data_response(const leaf::block_data_response& msg)
 {
