@@ -30,6 +30,7 @@ class file_websocket_handle : public websocket_handle
     void on_file_block_response(const leaf::file_block_response& msg);
     void on_block_data_response(const leaf::block_data_response& msg);
     void on_error_response(const leaf::error_response& msg);
+    void commit_message(const leaf::codec_message& msg);
 
    private:
     std::string id_;

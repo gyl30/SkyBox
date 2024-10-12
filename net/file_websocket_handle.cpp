@@ -70,28 +70,24 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
     leaf::create_file_response response;
     response.filename = msg.filename;
     response.file_id = file_id();
-    {
-        std::vector<uint8_t> bytes;
-        if (leaf::serialize_message(response, &bytes) != 0)
-        {
-            return;
-        }
-        handle_.msg_queue.push(bytes);
-    }
+    commit_message(response);
+    //
     file_->id = response.file_id;
     file_->name = msg.filename;
     leaf::file_block_request request;
     request.file_id = response.file_id;
-    {
-        std::vector<uint8_t> bytes2;
-        if (leaf::serialize_message(request, &bytes2) != 0)
-        {
-            return;
-        }
-        handle_.msg_queue.push(bytes2);
-    }
+    commit_message(request);
 }
 
+void file_websocket_handle::commit_message(const leaf::codec_message& msg)
+{
+    std::vector<uint8_t> bytes2;
+    if (leaf::serialize_message(msg, &bytes2) != 0)
+    {
+        return;
+    }
+    handle_.msg_queue.push(bytes2);
+}
 void file_websocket_handle::on_delete_file_request(const leaf::delete_file_request& msg)
 {
     LOG_INFO("{} on_delete_file_request name {}", id_, msg.filename);
@@ -122,6 +118,10 @@ void file_websocket_handle::on_file_block_response(const leaf::file_block_respon
     file_->block_size = msg.block_size;
     file_->block_count = msg.block_count;
     LOG_INFO("{} on_file_block_response block size {} block count {}", id_, msg.block_size, msg.block_count);
+    leaf::block_data_request request;
+    request.file_id = file_->id;
+    request.block_id = file_->recv_block_count;
+    commit_message(request);
     //
 }
 void file_websocket_handle::on_block_data_response(const leaf::block_data_response& msg)
