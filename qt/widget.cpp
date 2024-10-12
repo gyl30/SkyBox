@@ -4,7 +4,6 @@
 #include <QFileDialog>
 
 #include "widget.h"
-#include "task_item.h"
 #include "table_view.h"
 #include "table_model.h"
 #include "table_delegate.h"
@@ -41,9 +40,4 @@ void Widget::on_new_file_clicked()
     {
         return;
     }
-    leaf::file_item t;
-    t.name = filename.toStdString();
-    t.dst_file = t.name + ".leaf";
-    auto file = std::make_shared<leaf::file_task>(t);
-    model_->add_task(file);
 }
