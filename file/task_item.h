@@ -13,9 +13,12 @@ struct file_item
     using ptr = std::shared_ptr<file_item>;
     int32_t progress = 0;
     uint32_t block_size = 0;
+
     uint64_t id = 0;
     uint64_t file_size = 0;
     uint64_t block_count = 0;
+    uint64_t send_block_count = 0;
+    uint64_t recv_block_count = 0;
     std::string name;
     std::string dst_file;
     std::string src_hash;
