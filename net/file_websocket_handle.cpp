@@ -71,7 +71,7 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
     response.file_id = file_id();
     commit_message(response);
     //
-    file_ = std::make_shared<file_item>();
+    file_ = std::make_shared<file_context>();
     file_->id = response.file_id;
     file_->name = msg.filename;
     leaf::file_block_request request;

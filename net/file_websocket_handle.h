@@ -1,5 +1,5 @@
 #include "codec.h"
-#include "task_item.h"
+#include "file_context.h"
 #include "message.h"
 #include "websocket_handle.h"
 
@@ -34,7 +34,7 @@ class file_websocket_handle : public websocket_handle
 
    private:
     std::string id_;
-    leaf::file_item::ptr file_;
+    leaf::file_context::ptr file_;
     leaf::codec_handle handle_;
 };
 

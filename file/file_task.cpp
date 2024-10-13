@@ -34,7 +34,7 @@ std::string random_string(int len)
 namespace leaf
 {
 
-file_task::file_task(leaf::file_item t) : t_(std::move(t)) {}
+file_task::file_task(leaf::file_context t) : t_(std::move(t)) {}
 file_task::~file_task() = default;
 
 void file_task::startup(boost::system::error_code &ec)
@@ -86,6 +86,6 @@ void file_task::shudown(boost::system::error_code &ec)
 }
 void file_task::set_error(const boost::system::error_code &ec) { t_.ec = ec; }
 boost::system::error_code file_task::error() const { return t_.ec; }
-const leaf::file_item &file_task::task_info() const { return t_; }
+const leaf::file_context &file_task::task_info() const { return t_; }
 
 }    // namespace leaf

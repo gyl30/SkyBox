@@ -8,9 +8,9 @@
 
 namespace leaf
 {
-struct file_item
+struct file_context
 {
-    using ptr = std::shared_ptr<file_item>;
+    using ptr = std::shared_ptr<file_context>;
     int32_t progress = 0;
     uint32_t block_size = 0;
 

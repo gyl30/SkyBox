@@ -124,14 +124,14 @@ void plain_websocket_client::safe_shutdown()
     ec = ws_.next_layer().socket().close(ec);
 }
 
-void plain_websocket_client::add_file(const leaf::file_item::ptr& file)
+void plain_websocket_client::add_file(const leaf::file_context::ptr& file)
 {
     boost::asio::dispatch(
         ws_.get_executor(),
         boost::beast::bind_front_handler(&plain_websocket_client::safe_add_file, shared_from_this(), file));
 }
 
-void plain_websocket_client::safe_add_file(const leaf::file_item::ptr& file)
+void plain_websocket_client::safe_add_file(const leaf::file_context::ptr& file)
 {
     if (file_ != nullptr)
     {
