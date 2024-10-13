@@ -5,6 +5,7 @@
 #include <chrono>
 #include <memory>
 #include <boost/asio.hpp>
+#include "file.h"
 
 namespace leaf
 {

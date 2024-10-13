@@ -94,10 +94,6 @@ void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t by
     }
 
     LOG_DEBUG("{} read message size {}", id_, bytes_transferred);
-    if (bytes_transferred == 18)
-    {
-        LOG_ERROR("{} read message size {}", id_, bytes_transferred);
-    }
 
     auto bytes = leaf::buffers_to_vector(buffer_.data());
 
@@ -160,7 +156,7 @@ void plain_websocket_client::process_file()
     }
     create_file_request create;
     create.file_size = file_size;
-    create.filename = file_->name;
+    create.filename = std::filesystem::path(file_->name).filename().string();
     file_->file_size = file_size;
     codec_message msg = create;
     std::vector<uint8_t> bytes;
@@ -169,7 +165,6 @@ void plain_websocket_client::process_file()
         LOG_ERROR("{} serialize create file message error {}", id_, ec.message());
         return;
     }
-    bytes.push_back('1');
     LOG_DEBUG("{} send create file {} size {} message size {}", id_, file_->name, file_size, bytes.size());
     this->write(bytes);
 }
@@ -219,20 +214,87 @@ void plain_websocket_client::on_write(boost::beast::error_code ec, std::size_t b
 void plain_websocket_client::create_file_response(const leaf::create_file_response& msg)
 {
     file_->id = msg.file_id;
-    LOG_INFO("{} create file response id {} name {}", id_, msg.file_id, msg.filename);
+    LOG_INFO("{} create_file_response id {} name {}", id_, msg.file_id, msg.filename);
 }
 void plain_websocket_client::delete_file_response(const leaf::delete_file_response& msg)
 {
-    LOG_INFO("{} delete file response name {}", id_, msg.filename);
+    LOG_INFO("{} delete_file_response name {}", id_, msg.filename);
+}
+void plain_websocket_client::open_file()
+{
+    if (file_ != nullptr)
+    {
+        close_file();
+    }
+    reader_ = std::make_unique<leaf::file_reader>(file_->name);
+    auto ec = reader_->open();
+    if (ec)
+    {
+        LOG_ERROR("{} file open error {}", id_, ec.message());
+        return;
+    }
+}
+void plain_websocket_client::close_file()
+{
+    if (file_ != nullptr)
+    {
+        return;
+    }
+    assert(file_ != nullptr);
+    auto ec = reader_->close();
+    if (ec)
+    {
+        LOG_ERROR("{} file close error {}", id_, ec.message());
+        return;
+    }
+    file_ = nullptr;
 }
 void plain_websocket_client::block_data_request(const leaf::block_data_request& msg)
 {
-    LOG_INFO("{} block data request id {} block {}", id_, msg.file_id, msg.block_id);
+    LOG_INFO("{} block_data_request id {} block {}", id_, msg.file_id, msg.block_id);
+    if (msg.block_id == 0)
+    {
+        close_file();
+        return;
+    }
+
+    if (msg.block_id < file_->send_block_count)
+    {
+        LOG_ERROR("{} block_data_request block {} less than send block {}", id_, msg.block_id, file_->send_block_count);
+        return;
+    }
+
+    if (msg.block_id == 1)
+    {
+        open_file();
+    }
+    if (file_ == nullptr)
+    {
+        LOG_ERROR("{} file not found {}", id_, msg.file_id);
+        return;
+    }
+    boost::system::error_code ec;
+    std::vector<uint8_t> buffer(file_->block_size, '0');
+    auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
+    if (ec)
+    {
+        LOG_ERROR("{} file read block {} error {}", id_, msg.block_id, ec.message());
+        return;
+    }
+    buffer.resize(read_size);
+    file_->send_block_count = msg.block_id;
+    LOG_DEBUG("{} file read block {} size {}", id_, msg.block_id, read_size);
+    leaf::block_data_response response;
+    response.file_id = msg.file_id;
+    response.block_id = msg.block_id;
+    response.data = std::move(buffer);
+    write_message(response);
 }
 void plain_websocket_client::file_block_request(const leaf::file_block_request& msg)
 {
     if (msg.file_id != file_->id)
     {
+        LOG_ERROR("{} file id not match {} {}", id_, msg.file_id, file_->id);
         return;
     }
     constexpr auto kBlockSize = 128 * 1024;
@@ -245,6 +307,7 @@ void plain_websocket_client::file_block_request(const leaf::file_block_request& 
     response.block_count = block_count;
     response.block_size = kBlockSize;
     response.file_id = file_->id;
+    file_->block_size = kBlockSize;
     LOG_INFO("{} file block request id {} block count {} block size {}", id_, file_->id, block_count, kBlockSize);
     write_message(response);
 }

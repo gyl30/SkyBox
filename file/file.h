@@ -13,7 +13,7 @@ class writer
     virtual ~writer() = default;
 
    public:
-    virtual std::string name() const = 0;
+    [[nodiscard]] virtual std::string name() const = 0;
     virtual boost::system::error_code open() = 0;
     virtual boost::system::error_code close() = 0;
     virtual std::size_t write(void const* buffer, std::size_t size, boost::system::error_code& ec) = 0;
@@ -25,7 +25,7 @@ class reader
     virtual ~reader() = default;
 
    public:
-    virtual std::string name() const = 0;
+    [[nodiscard]] virtual std::string name() const = 0;
     virtual boost::system::error_code open() = 0;
     virtual boost::system::error_code close() = 0;
     virtual std::size_t read(void* buffer, std::size_t size, boost::system::error_code& ec) = 0;
@@ -38,7 +38,7 @@ class null_writer : public writer
     ~null_writer() override = default;
 
    public:
-    std::string name() const override { return "null_writer"; }
+    [[nodiscard]] std::string name() const override { return "null_writer"; }
     boost::system::error_code open() override { return {}; }
     boost::system::error_code close() override { return {}; }
     std::size_t write(void const* /*buffer*/, std::size_t size, boost::system::error_code& /*ec*/) override
@@ -57,7 +57,7 @@ class null_reader : public reader
     ~null_reader() override = default;
 
    public:
-    std::string name() const override { return "null_reader"; }
+    [[nodiscard]] std::string name() const override { return "null_reader"; }
     boost::system::error_code open() override { return {}; }
     boost::system::error_code close() override { return {}; }
     std::size_t read(void* /*buffer*/, std::size_t size, boost::system::error_code& /*ec*/) override
@@ -78,7 +78,7 @@ class file_writer : public writer
     ~file_writer() override;
 
    public:
-    std::string name() const override;
+    [[nodiscard]] std::string name() const override;
     boost::system::error_code open() override;
     boost::system::error_code close() override;
     std::size_t write(void const* buffer, std::size_t size, boost::system::error_code& ec) override;
@@ -95,7 +95,7 @@ class file_reader : public reader
     ~file_reader() override;
 
    public:
-    std::string name() const override;
+    [[nodiscard]] std::string name() const override;
     boost::system::error_code open() override;
     boost::system::error_code close() override;
     std::size_t read(void* buffer, std::size_t size, boost::system::error_code& ec) override;

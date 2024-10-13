@@ -6,6 +6,7 @@
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include "file_context.h"
+#include "file.h"
 #include "codec.h"
 
 namespace leaf
@@ -53,12 +54,17 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     void error_response(const leaf::error_response&);
 
    private:
+    void open_file();
+    void close_file();
+
+   private:
     std::string id_;
     boost::beast::flat_buffer buffer_;
     boost::asio::ip::tcp::endpoint ed_;
     leaf::codec_handle codec_;
     leaf::file_context::ptr file_;
     bool writing_ = false;
+    std::shared_ptr<leaf::reader> reader_;
     leaf::plain_websocket_client::handle h_;
     std::queue<std::vector<uint8_t>> msg_queue_;
     boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;

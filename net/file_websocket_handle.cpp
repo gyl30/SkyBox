@@ -74,6 +74,7 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
     file_ = std::make_shared<file_context>();
     file_->id = response.file_id;
     file_->name = msg.filename;
+    file_->file_size = msg.file_size;
     leaf::file_block_request request;
     request.file_id = response.file_id;
     commit_message(request);
@@ -110,23 +111,69 @@ void file_websocket_handle::on_delete_file_response(const leaf::delete_file_resp
 }
 void file_websocket_handle::on_file_block_response(const leaf::file_block_response& msg)
 {
+    LOG_INFO("{} on_file_block_response block size {} block count {}", id_, msg.block_size, msg.block_count);
     if (file_->id != msg.file_id)
     {
         LOG_ERROR("{} on_file_block_response file id {} != {}", id_, msg.file_id, file_->id);
         return;
     }
+    if (writer_ != nullptr)
+    {
+        LOG_WARN("{} change write from {} to {}", id_, writer_->name(), file_->name);
+    }
+    writer_ = std::make_shared<leaf::file_writer>(file_->name);
+    auto ec = writer_->open();
+    if (ec)
+    {
+        LOG_ERROR("{} open file {} error {}", id_, file_->name, ec.message());
+        return;
+    }
     file_->block_size = msg.block_size;
     file_->block_count = msg.block_count;
-    LOG_INFO("{} on_file_block_response block size {} block count {}", id_, msg.block_size, msg.block_count);
     leaf::block_data_request request;
     request.file_id = file_->id;
-    request.block_id = file_->recv_block_count;
+    request.block_id = ++file_->recv_block_count;
     commit_message(request);
-    //
 }
 void file_websocket_handle::on_block_data_response(const leaf::block_data_response& msg)
 {
-    LOG_INFO("{} on_block_data_response block id {} file id {}", id_, msg.block_id, msg.file_id);
+    LOG_INFO("{} on_block_data_response block id {} file id {} data size {}",
+             id_,
+             msg.block_id,
+             msg.file_id,
+             msg.data.size());
+
+    if (msg.file_id != file_->id)
+    {
+        LOG_ERROR("{} block data response file id {} != {}", id_, msg.file_id, file_->id);
+        return;
+    }
+    if (msg.block_id != file_->recv_block_count)
+    {
+        LOG_WARN("{} block id {} <= {}", id_, msg.block_id, file_->recv_block_count);
+        return;
+    }
+    boost::system::error_code ec;
+    auto write_size = writer_->write(msg.data.data(), msg.data.size(), ec);
+    if (ec)
+    {
+        LOG_ERROR("{} write error {} {}", id_, ec.message(), ec.value());
+        return;
+    }
+    leaf::block_data_request request;
+    request.file_id = file_->id;
+    request.block_id = ++file_->recv_block_count;
+    LOG_DEBUG("{} write {} bytes file size {}", id_, write_size, writer_->size());
+
+    if (writer_->size() == file_->file_size)
+    {
+        request.block_id = 0;
+        LOG_INFO("{} file {} complete file size {}", id_, file_->name, writer_->size());
+        ec = writer_->close();
+        writer_.reset();
+    }
+
+    commit_message(request);
 }
 void file_websocket_handle::on_error_response(const leaf::error_response& msg)
 {

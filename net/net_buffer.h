@@ -17,8 +17,8 @@ class write_buffer
 
    public:
     void swap(write_buffer& rhs) { buffer_.swap(rhs.buffer_); }
-    std::size_t size() const { return buffer_.size(); }
-    const char* data() const { return buffer_.data(); }
+    [[nodiscard]] std::size_t size() const { return buffer_.size(); }
+    [[nodiscard]] const char* data() const { return buffer_.data(); }
 
     std::size_t copy_to(void* data, std::size_t size)
     {
@@ -76,9 +76,9 @@ class read_buffer
     read_buffer& operator=(const read_buffer&) = delete;
 
    public:
-    std::size_t size() const { return size_ - start_; }
-    const char* peek() const { return data_ + start_; }
-    const char* data() const { return data_ + start_; }
+    [[nodiscard]] std::size_t size() const { return size_ - start_; }
+    [[nodiscard]] const char* peek() const { return data_ + start_; }
+    [[nodiscard]] const char* data() const { return data_ + start_; }
 
     bool read_uint64(uint64_t* val)
     {

@@ -34,8 +34,9 @@ class file_websocket_handle : public websocket_handle
 
    private:
     std::string id_;
-    leaf::file_context::ptr file_;
     leaf::codec_handle handle_;
+    leaf::file_context::ptr file_;
+    std::shared_ptr<leaf::writer> writer_;
 };
 
 }    // namespace leaf

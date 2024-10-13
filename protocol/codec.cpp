@@ -66,8 +66,8 @@ void serialize_block_data_request(const block_data_request &msg, std::vector<uin
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(to_underlying(message_type::block_data_request));
-    w.write_uint32(msg.block_id);
     w.write_uint64(msg.file_id);
+    w.write_uint32(msg.block_id);
     w.copy_to(bytes);
 }
 
@@ -251,6 +251,38 @@ static int decode_file_block_response(leaf::read_buffer &r, codec_handle *handle
     handle->file_block_response(res);
     return 0;
 }
+static int decode_block_data_request(leaf::read_buffer &r, codec_handle *handle)
+{
+    if (r.size() > 2048)
+    {
+        return -1;
+    }
+    uint64_t file_id = 0;
+    r.read_uint64(&file_id);
+    uint32_t block_id = 0;
+    r.read_uint32(&block_id);
+
+    leaf::block_data_request req;
+    req.file_id = file_id;
+    req.block_id = block_id;
+    handle->block_data_request(req);
+    return 0;
+}
+static int decode_block_data_response(leaf::read_buffer &r, codec_handle *handle)
+{
+    uint64_t file_id = 0;
+    r.read_uint64(&file_id);
+    uint32_t block_id = 0;
+    r.read_uint32(&block_id);
+    std::vector<uint8_t> block_data(r.size(), '0');
+    r.read_bytes(block_data.data(), r.size());
+    leaf::block_data_response res;
+    res.file_id = file_id;
+    res.block_id = block_id;
+    res.data.swap(block_data);
+    handle->block_data_response(res);
+    return 0;
+}
 int deserialize_message(const uint8_t *data, uint64_t len, codec_handle *handle)
 {
     leaf::read_buffer r(data, len);
@@ -277,6 +309,14 @@ int deserialize_message(const uint8_t *data, uint64_t len, codec_handle *handle)
     if (msg_type == to_underlying(leaf::message_type::file_block_response))
     {
         return decode_file_block_response(r, handle);
+    }
+    if (msg_type == to_underlying(leaf::message_type::block_data_request))
+    {
+        return decode_block_data_request(r, handle);
+    }
+    if (msg_type == to_underlying(leaf::message_type::block_data_response))
+    {
+        return decode_block_data_response(r, handle);
     }
 
     return -1;
