@@ -1,8 +1,14 @@
 #include <cassert>
 #include "codec.h"
+#include "reflect.hpp"
 #include "net_buffer.h"
 
 #include <type_traits>
+
+namespace reflect
+{
+REFLECT_STRUCT(leaf::create_file_request, (file_size)(filename));
+}
 
 template <typename E>
 constexpr auto to_underlying(E e) noexcept
@@ -23,8 +29,8 @@ void serialize_create_file_request(const create_file_request &msg, std::vector<u
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(to_underlying(message_type::create_file_request));
-    w.write_uint64(msg.file_size);
-    w.write_bytes(msg.filename.data(), msg.filename.size());
+    std::string str = reflect::serialize_struct(const_cast<create_file_request &>(msg));
+    w.write_bytes(str.data(), str.size());
     w.copy_to(bytes);
 }
 void serialize_create_file_response(const create_file_response &msg, std::vector<uint8_t> *bytes)
@@ -162,23 +168,14 @@ static int decode_create_file_request(leaf::read_buffer &r, codec_handle *handle
         return -1;
     }
 
-    //  max size 10G
-    constexpr auto max_file_size = 1024L * 1024 * 1024 * 10;
-    uint64_t file_size = 0;
-    r.read_uint64(&file_size);
-    if (file_size == 0 || file_size > max_file_size)
-    {
-        return -1;
-    }
-    std::string filename;
-    r.read_string(&filename, r.size());
-    if (filename.empty())
+    std::string str;
+    r.read_string(&str, r.size());
+    if (str.empty())
     {
         return -1;
     }
     leaf::create_file_request req;
-    req.file_size = file_size;
-    req.filename = filename;
+    reflect::deserialize_struct(req, str);
     handle->create_file_request(req);
     return 0;
 }
