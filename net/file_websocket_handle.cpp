@@ -77,6 +77,7 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
     file_->file_size = msg.file_size;
     leaf::file_block_request request;
     request.file_id = response.file_id;
+    LOG_DEBUG("{} file_block_request id {}", id_, request.file_id);
     commit_message(request);
 }
 
@@ -133,6 +134,7 @@ void file_websocket_handle::on_file_block_response(const leaf::file_block_respon
     leaf::block_data_request request;
     request.file_id = file_->id;
     request.block_id = ++file_->recv_block_count;
+    LOG_DEBUG("{} block_data_request id {} block id {}", id_, request.file_id, request.block_id);
     commit_message(request);
 }
 void file_websocket_handle::on_block_data_response(const leaf::block_data_response& msg)
@@ -168,13 +170,14 @@ void file_websocket_handle::on_block_data_response(const leaf::block_data_respon
     if (writer_->size() == file_->file_size)
     {
         request.block_id = 0;
-        LOG_INFO("{} file {} complete file size {}", id_, file_->name, writer_->size());
+        LOG_INFO("{} file {} complete size {}", id_, file_->name, writer_->size());
         ec = writer_->close();
         writer_.reset();
     }
-
+    LOG_DEBUG("{} block_data_request id {} block id {}", id_, request.file_id, request.block_id);
     commit_message(request);
 }
+
 void file_websocket_handle::on_error_response(const leaf::error_response& msg)
 {
     LOG_INFO("{} on_error_response {}", id_, msg.error);

@@ -247,6 +247,7 @@ void plain_websocket_client::close_file()
         LOG_ERROR("{} file close error {}", id_, ec.message());
         return;
     }
+    LOG_INFO("{} close file {}", id_, file_->name);
     file_ = nullptr;
 }
 void plain_websocket_client::block_data_request(const leaf::block_data_request& msg)
