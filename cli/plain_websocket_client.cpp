@@ -5,6 +5,7 @@
 #include "socket.h"
 #include "buffer.h"
 #include "message.h"
+#include "blake2b.h"
 #include "plain_websocket_client.h"
 
 namespace leaf
@@ -26,6 +27,7 @@ plain_websocket_client::~plain_websocket_client()
 
 void plain_websocket_client::startup()
 {
+    blake2b_ = std::make_unique<blake2b>();
     auto self = shared_from_this();
     codec_.create_file_response = std::bind(&plain_websocket_client::create_file_response, self, std::placeholders::_1);
     codec_.delete_file_response = std::bind(&plain_websocket_client::delete_file_response, self, std::placeholders::_1);
@@ -222,7 +224,7 @@ void plain_websocket_client::delete_file_response(const leaf::delete_file_respon
 }
 void plain_websocket_client::open_file()
 {
-    if (file_ != nullptr)
+    if (reader_ != nullptr)
     {
         close_file();
     }
@@ -236,19 +238,23 @@ void plain_websocket_client::open_file()
 }
 void plain_websocket_client::close_file()
 {
-    if (file_ != nullptr)
+    assert(file_ != nullptr);
+    if (reader_ == nullptr)
     {
         return;
     }
-    assert(file_ != nullptr);
+    assert(reader_ != nullptr);
     auto ec = reader_->close();
     if (ec)
     {
         LOG_ERROR("{} file close error {}", id_, ec.message());
         return;
     }
-    LOG_INFO("{} close file {}", id_, file_->name);
-    file_ = nullptr;
+    reader_ = nullptr;
+    blake2b_->final();
+    std::string hex = blake2b_->hex();
+    blake2b_ = std::make_unique<blake2b>();
+    LOG_INFO("{} close file {} hex {}", id_, file_->name, hex);
 }
 void plain_websocket_client::block_data_request(const leaf::block_data_request& msg)
 {
@@ -269,7 +275,7 @@ void plain_websocket_client::block_data_request(const leaf::block_data_request& 
     {
         open_file();
     }
-    if (file_ == nullptr)
+    if (reader_ == nullptr)
     {
         LOG_ERROR("{} file not found {}", id_, msg.file_id);
         return;
@@ -282,6 +288,7 @@ void plain_websocket_client::block_data_request(const leaf::block_data_request& 
         LOG_ERROR("{} file read block {} error {}", id_, msg.block_id, ec.message());
         return;
     }
+    blake2b_->update(buffer.data(), read_size);
     buffer.resize(read_size);
     file_->send_block_count = msg.block_id;
     LOG_DEBUG("{} file read block {} size {}", id_, msg.block_id, read_size);

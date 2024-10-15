@@ -8,6 +8,7 @@
 #include "file_context.h"
 #include "file.h"
 #include "codec.h"
+#include "blake2b.h"
 
 namespace leaf
 {
@@ -67,6 +68,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     std::shared_ptr<leaf::reader> reader_;
     leaf::plain_websocket_client::handle h_;
     std::queue<std::vector<uint8_t>> msg_queue_;
+    std::shared_ptr<leaf::blake2b> blake2b_;
     boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;
 };
 }    // namespace leaf
