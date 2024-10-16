@@ -7,7 +7,7 @@
 
 namespace reflect
 {
-REFLECT_STRUCT(leaf::create_file_request, (file_size)(filename));
+REFLECT_STRUCT(leaf::create_file_request, (file_size)(hash)(filename));
 }
 
 template <typename E>

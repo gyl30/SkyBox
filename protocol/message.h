@@ -24,6 +24,7 @@ enum class message_type : uint16_t
 struct create_file_request
 {
     uint64_t file_size = 0;
+    std::string hash;
     std::string filename;
 };
 struct file_block_request
