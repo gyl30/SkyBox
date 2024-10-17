@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "message.h"
 #include "blake2b.h"
+#include "hash_file.h"
 #include "plain_websocket_client.h"
 
 namespace leaf
@@ -149,26 +150,27 @@ void plain_websocket_client::process_file()
     {
         return;
     }
-    std::error_code ec;
-    auto file_size = std::filesystem::file_size(file_->name, ec);
-    if (ec)
+    boost::system::error_code hash_ec;
+    std::string h = leaf::hash_file(file_->name, hash_ec);
+    if (hash_ec)
     {
-        LOG_ERROR("{} file size error {} {}", id_, file_->name, ec.message());
+        LOG_ERROR("{} create_file_request file {} hash error {}", id_, file_->name, hash_ec.message());
         return;
     }
+    std::error_code size_ec;
+    auto file_size = std::filesystem::file_size(file_->name, size_ec);
+    if (size_ec)
+    {
+        LOG_ERROR("{} create_file_request file {} size error {}", id_, file_->name, size_ec.message());
+        return;
+    }
+    LOG_DEBUG("{} create_file_request {} size {} hash {}", id_, file_->name, file_size, h);
     create_file_request create;
     create.file_size = file_size;
+    create.hash = h;
     create.filename = std::filesystem::path(file_->name).filename().string();
     file_->file_size = file_size;
-    codec_message msg = create;
-    std::vector<uint8_t> bytes;
-    if (serialize_message(msg, &bytes) != 0)
-    {
-        LOG_ERROR("{} serialize create file message error {}", id_, ec.message());
-        return;
-    }
-    LOG_DEBUG("{} send create file {} size {} message size {}", id_, file_->name, file_size, bytes.size());
-    this->write(bytes);
+    write_message(create);
 }
 
 void plain_websocket_client::write(const std::vector<uint8_t>& msg)
@@ -222,6 +224,7 @@ void plain_websocket_client::delete_file_response(const leaf::delete_file_respon
 {
     LOG_INFO("{} delete_file_response name {}", id_, msg.filename);
 }
+
 void plain_websocket_client::open_file()
 {
     if (reader_ != nullptr)
@@ -285,13 +288,13 @@ void plain_websocket_client::block_data_request(const leaf::block_data_request& 
     auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
     if (ec)
     {
-        LOG_ERROR("{} file read block {} error {}", id_, msg.block_id, ec.message());
+        LOG_ERROR("{} block_data_request {} error {}", id_, msg.block_id, ec.message());
         return;
     }
     blake2b_->update(buffer.data(), read_size);
     buffer.resize(read_size);
     file_->send_block_count = msg.block_id;
-    LOG_DEBUG("{} file read block {} size {}", id_, msg.block_id, read_size);
+    LOG_DEBUG("{} block_data_request {} size {}", id_, msg.block_id, read_size);
     leaf::block_data_response response;
     response.file_id = msg.file_id;
     response.block_id = msg.block_id;
@@ -316,7 +319,7 @@ void plain_websocket_client::file_block_request(const leaf::file_block_request& 
     response.block_size = kBlockSize;
     response.file_id = file_->id;
     file_->block_size = kBlockSize;
-    LOG_INFO("{} file block request id {} block count {} block size {}", id_, file_->id, block_count, kBlockSize);
+    LOG_INFO("{} file_block_request id {} count {} size {}", id_, file_->id, block_count, kBlockSize);
     write_message(response);
 }
 

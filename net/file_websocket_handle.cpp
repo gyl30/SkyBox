@@ -65,7 +65,7 @@ void file_websocket_handle::shutdown()
 
 void file_websocket_handle::on_create_file_request(const leaf::create_file_request& msg)
 {
-    LOG_INFO("{} on_create_file_request file size {} name {}", id_, msg.file_size, msg.filename);
+    LOG_INFO("{} on_create_file_request file size {} name {} hash {}", id_, msg.file_size, msg.filename, msg.hash);
     leaf::create_file_response response;
     response.filename = msg.filename;
     response.file_id = file_id();
