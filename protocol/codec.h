@@ -18,7 +18,9 @@ struct codec_handle
     std::function<void(const leaf::block_data_request &)> block_data_request;
     std::function<void(const leaf::block_data_response &)> block_data_response;
     std::function<void(const leaf::file_block_response &)> file_block_response;
+    std::function<void(const leaf::block_data_finish &)> block_data_finish;
     std::function<void(const leaf::error_response &)> error_response;
+
     std::queue<std::vector<uint8_t>> msg_queue;
 };
 
@@ -30,6 +32,7 @@ using codec_message = std::variant<leaf::create_file_request,
                                    leaf::block_data_request,
                                    leaf::block_data_response,
                                    leaf::file_block_response,
+                                   leaf::block_data_finish,
                                    leaf::error_response>;
 
 int serialize_message(const codec_message &msg, std::vector<uint8_t> *bytes);

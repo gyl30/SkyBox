@@ -8,7 +8,8 @@
 namespace reflect
 {
 REFLECT_STRUCT(leaf::create_file_request, (file_size)(hash)(filename));
-}
+REFLECT_STRUCT(leaf::block_data_finish, (file_id)(hash)(filename));
+}    // namespace reflect
 
 template <typename E>
 constexpr auto to_underlying(E e) noexcept
@@ -97,6 +98,15 @@ void serialize_block_data_response(const block_data_response &msg, std::vector<u
     w.write_bytes(msg.data.data(), msg.data.size());
     w.copy_to(bytes);
 }
+void serialize_block_data_finish(const block_data_finish &msg, std::vector<uint8_t> *bytes)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(to_underlying(message_type::block_data_finish));
+    std::string str = reflect::serialize_struct(const_cast<block_data_finish &>(msg));
+    w.write_bytes(str.data(), str.size());
+    w.copy_to(bytes);
+}
 
 void serialize_error_response(const error_response &msg, std::vector<uint8_t> *bytes)
 {
@@ -151,6 +161,10 @@ int serialize_message(const codec_message &msg, std::vector<uint8_t> *bytes)
             else if constexpr (std::is_same_v<T, leaf::error_response>)
             {
                 serialize_error_response(arg, bytes);
+            }
+            else if constexpr (std::is_same_v<T, leaf::block_data_finish>)
+            {
+                serialize_block_data_finish(arg, bytes);
             }
             else
             {
@@ -280,6 +294,23 @@ static int decode_block_data_response(leaf::read_buffer &r, codec_handle *handle
     handle->block_data_response(res);
     return 0;
 }
+static int decode_block_data_finish(leaf::read_buffer &r, codec_handle *handle)
+{
+    if (r.size() > 2048)
+    {
+        return -1;
+    }
+    std::string str;
+    r.read_string(&str, r.size());
+    if (str.empty())
+    {
+        return -1;
+    }
+    leaf::block_data_finish res;
+    reflect::deserialize_struct(res, str);
+    handle->block_data_finish(res);
+    return 0;
+}
 int deserialize_message(const uint8_t *data, uint64_t len, codec_handle *handle)
 {
     leaf::read_buffer r(data, len);
@@ -314,6 +345,10 @@ int deserialize_message(const uint8_t *data, uint64_t len, codec_handle *handle)
     if (msg_type == to_underlying(leaf::message_type::block_data_response))
     {
         return decode_block_data_response(r, handle);
+    }
+    if (msg_type == to_underlying(leaf::message_type::block_data_finish))
+    {
+        return decode_block_data_finish(r, handle);
     }
 
     return -1;

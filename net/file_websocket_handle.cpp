@@ -110,9 +110,21 @@ void file_websocket_handle::on_delete_file_response(const leaf::delete_file_resp
 {
     LOG_INFO("{} on_delete_file_response name {}", id_, msg.filename);
 }
+
+void file_websocket_handle::close_file()
+{
+    assert(writer_);
+    auto ec = writer_->close();
+    if (ec)
+    {
+        LOG_ERROR("{} close file {} id {} error {}", id_, file_->name, file_->id, ec.message());
+        return;
+    }
+    writer_ = nullptr;
+}
 void file_websocket_handle::on_file_block_response(const leaf::file_block_response& msg)
 {
-    LOG_INFO("{} on_file_block_response block size {} block count {}", id_, msg.block_size, msg.block_count);
+    LOG_INFO("{} on_file_block_response id {} size {} count {}", id_, msg.file_id, msg.block_size, msg.block_count);
     if (file_->id != msg.file_id)
     {
         LOG_ERROR("{} on_file_block_response file id {} != {}", id_, msg.file_id, file_->id);
@@ -121,6 +133,7 @@ void file_websocket_handle::on_file_block_response(const leaf::file_block_respon
     if (writer_ != nullptr)
     {
         LOG_WARN("{} change write from {} to {}", id_, writer_->name(), file_->name);
+        close_file();
     }
     writer_ = std::make_shared<leaf::file_writer>(file_->name);
     auto ec = writer_->open();
@@ -131,11 +144,31 @@ void file_websocket_handle::on_file_block_response(const leaf::file_block_respon
     }
     file_->block_size = msg.block_size;
     file_->block_count = msg.block_count;
+    block_data_request();
+}
+
+void file_websocket_handle::block_data_request()
+{
     leaf::block_data_request request;
     request.file_id = file_->id;
     request.block_id = ++file_->recv_block_count;
     LOG_DEBUG("{} block_data_request id {} block id {}", id_, request.file_id, request.block_id);
     commit_message(request);
+}
+
+void file_websocket_handle::block_data_finish()
+{
+    leaf::block_data_finish finish;
+    finish.file_id = file_->id;
+    finish.filename = file_->name;
+    commit_message(finish);
+    LOG_INFO("{} block_data_finish file {} size {}", id_, file_->name, writer_->size());
+    auto ec = writer_->close();
+    if (ec)
+    {
+        LOG_ERROR("{} block_data_finish close file {} error {}", id_, file_->name, ec.message());
+        return;
+    }
 }
 void file_websocket_handle::on_block_data_response(const leaf::block_data_response& msg)
 {
@@ -147,35 +180,28 @@ void file_websocket_handle::on_block_data_response(const leaf::block_data_respon
 
     if (msg.file_id != file_->id)
     {
-        LOG_ERROR("{} block data response file id {} != {}", id_, msg.file_id, file_->id);
+        LOG_ERROR("{} on_block_data_response id {} != {}", id_, msg.file_id, file_->id);
         return;
     }
     if (msg.block_id != file_->recv_block_count)
     {
-        LOG_WARN("{} block id {} <= {}", id_, msg.block_id, file_->recv_block_count);
+        LOG_WARN("{} on_block_data_response id {} <= {}", id_, msg.block_id, file_->recv_block_count);
         return;
     }
     boost::system::error_code ec;
     auto write_size = writer_->write(msg.data.data(), msg.data.size(), ec);
     if (ec)
     {
-        LOG_ERROR("{} write error {} {}", id_, ec.message(), ec.value());
+        LOG_ERROR("{} on_block_data_response write error {} {}", id_, ec.message(), ec.value());
         return;
     }
-    leaf::block_data_request request;
-    request.file_id = file_->id;
-    request.block_id = ++file_->recv_block_count;
-    LOG_DEBUG("{} write {} bytes file size {}", id_, write_size, writer_->size());
-
+    LOG_DEBUG("{} on_block_data_response write {} bytes file size {}", id_, write_size, writer_->size());
     if (writer_->size() == file_->file_size)
     {
-        request.block_id = 0;
-        LOG_INFO("{} file {} complete size {}", id_, file_->name, writer_->size());
-        ec = writer_->close();
-        writer_.reset();
+        block_data_finish();
+        return;
     }
-    LOG_DEBUG("{} block_data_request id {} block id {}", id_, request.file_id, request.block_id);
-    commit_message(request);
+    block_data_request();
 }
 
 void file_websocket_handle::on_error_response(const leaf::error_response& msg)

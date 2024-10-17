@@ -28,13 +28,13 @@ plain_websocket_client::~plain_websocket_client()
 
 void plain_websocket_client::startup()
 {
-    blake2b_ = std::make_unique<blake2b>();
     auto self = shared_from_this();
     codec_.create_file_response = std::bind(&plain_websocket_client::create_file_response, self, std::placeholders::_1);
     codec_.delete_file_response = std::bind(&plain_websocket_client::delete_file_response, self, std::placeholders::_1);
     codec_.block_data_request = std::bind(&plain_websocket_client::block_data_request, self, std::placeholders::_1);
     codec_.file_block_request = std::bind(&plain_websocket_client::file_block_request, self, std::placeholders::_1);
     codec_.error_response = std::bind(&plain_websocket_client::error_response, self, std::placeholders::_1);
+    codec_.block_data_finish = std::bind(&plain_websocket_client::block_data_finish, self, std::placeholders::_1);
     boost::asio::dispatch(ws_.get_executor(),
                           boost::beast::bind_front_handler(&plain_websocket_client::safe_startup, self));
 }
@@ -76,8 +76,8 @@ void plain_websocket_client::on_handshake(boost::beast::error_code ec)
         return shutdown();
     }
     do_read();
-    process_file();
 }
+
 void plain_websocket_client::do_read()
 {
     boost::asio::dispatch(ws_.get_executor(),
@@ -142,35 +142,7 @@ void plain_websocket_client::safe_add_file(const leaf::file_context::ptr& file)
     }
 
     file_ = file;
-    process_file();
-}
-void plain_websocket_client::process_file()
-{
-    if (file_ == nullptr)
-    {
-        return;
-    }
-    boost::system::error_code hash_ec;
-    std::string h = leaf::hash_file(file_->name, hash_ec);
-    if (hash_ec)
-    {
-        LOG_ERROR("{} create_file_request file {} hash error {}", id_, file_->name, hash_ec.message());
-        return;
-    }
-    std::error_code size_ec;
-    auto file_size = std::filesystem::file_size(file_->name, size_ec);
-    if (size_ec)
-    {
-        LOG_ERROR("{} create_file_request file {} size error {}", id_, file_->name, size_ec.message());
-        return;
-    }
-    LOG_DEBUG("{} create_file_request {} size {} hash {}", id_, file_->name, file_size, h);
-    create_file_request create;
-    create.file_size = file_size;
-    create.hash = h;
-    create.filename = std::filesystem::path(file_->name).filename().string();
-    file_->file_size = file_size;
-    write_message(create);
+    create_file_request();
 }
 
 void plain_websocket_client::write(const std::vector<uint8_t>& msg)
@@ -225,64 +197,79 @@ void plain_websocket_client::delete_file_response(const leaf::delete_file_respon
     LOG_INFO("{} delete_file_response name {}", id_, msg.filename);
 }
 
+void plain_websocket_client::create_file_request()
+{
+    if (file_ == nullptr)
+    {
+        return;
+    }
+    boost::system::error_code hash_ec;
+    std::string h = leaf::hash_file(file_->name, hash_ec);
+    if (hash_ec)
+    {
+        LOG_ERROR("{} create_file_request file {} hash error {}", id_, file_->name, hash_ec.message());
+        return;
+    }
+    std::error_code size_ec;
+    auto file_size = std::filesystem::file_size(file_->name, size_ec);
+    if (size_ec)
+    {
+        LOG_ERROR("{} create_file_request file {} size error {}", id_, file_->name, size_ec.message());
+        return;
+    }
+    open_file();
+    if (reader_ == nullptr)
+    {
+        return;
+    }
+    LOG_DEBUG("{} create_file_request {} size {} hash {}", id_, file_->name, file_size, h);
+    leaf::create_file_request create;
+    create.file_size = file_size;
+    create.hash = h;
+    create.filename = std::filesystem::path(file_->name).filename().string();
+    file_->file_size = file_size;
+    write_message(create);
+}
 void plain_websocket_client::open_file()
 {
-    if (reader_ != nullptr)
-    {
-        close_file();
-    }
-    reader_ = std::make_unique<leaf::file_reader>(file_->name);
+    assert(file_ && !reader_ && !blake2b_);
+
+    reader_ = std::make_shared<leaf::file_reader>(file_->name);
     auto ec = reader_->open();
     if (ec)
     {
         LOG_ERROR("{} file open error {}", id_, ec.message());
         return;
     }
+    blake2b_ = std::make_shared<leaf::blake2b>();
 }
+
 void plain_websocket_client::close_file()
 {
-    assert(file_ != nullptr);
-    if (reader_ == nullptr)
-    {
-        return;
-    }
-    assert(reader_ != nullptr);
-    auto ec = reader_->close();
+    assert(file_ && reader_ && blake2b_);
+    blake2b_->final();
+    LOG_INFO("{} close file {} hex {}", id_, file_->name, blake2b_->hex());
+    file_ = nullptr;
+    blake2b_.reset();
+    auto r = reader_;
+    reader_ = nullptr;
+    auto ec = r->close();
     if (ec)
     {
-        LOG_ERROR("{} file close error {}", id_, ec.message());
+        LOG_ERROR("{} close file error {}", id_, ec.message());
         return;
     }
-    reader_ = nullptr;
-    blake2b_->final();
-    std::string hex = blake2b_->hex();
-    blake2b_ = std::make_unique<blake2b>();
-    LOG_INFO("{} close file {} hex {}", id_, file_->name, hex);
 }
 void plain_websocket_client::block_data_request(const leaf::block_data_request& msg)
 {
+    assert(file_ && reader_ && blake2b_);
     LOG_INFO("{} block_data_request id {} block {}", id_, msg.file_id, msg.block_id);
-    if (msg.block_id == 0)
-    {
-        close_file();
-        return;
-    }
-
     if (msg.block_id < file_->send_block_count)
     {
         LOG_ERROR("{} block_data_request block {} less than send block {}", id_, msg.block_id, file_->send_block_count);
         return;
     }
 
-    if (msg.block_id == 1)
-    {
-        open_file();
-    }
-    if (reader_ == nullptr)
-    {
-        LOG_ERROR("{} file not found {}", id_, msg.file_id);
-        return;
-    }
     boost::system::error_code ec;
     std::vector<uint8_t> buffer(file_->block_size, '0');
     auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
@@ -321,6 +308,12 @@ void plain_websocket_client::file_block_request(const leaf::file_block_request& 
     file_->block_size = kBlockSize;
     LOG_INFO("{} file_block_request id {} count {} size {}", id_, file_->id, block_count, kBlockSize);
     write_message(response);
+}
+
+void plain_websocket_client::block_data_finish(const leaf::block_data_finish& msg)
+{
+    LOG_INFO("{} block_data_finish id {} file {} hash {}", id_, msg.file_id, msg.filename, msg.hash);
+    close_file();
 }
 
 void plain_websocket_client::write_message(const codec_message& msg)

@@ -17,6 +17,7 @@ enum class message_type : uint16_t
     file_block_response = 0x06,
     block_data_request = 0x07,
     block_data_response = 0x08,
+    block_data_finish = 0x09,
 };
 
 // ------------------------------------------------------------------------------
@@ -40,6 +41,12 @@ struct block_data_request
     // block data request payload(4 bytes block id + random data) == 128k
     uint32_t block_id = 0;
     uint64_t file_id = 0;
+};
+struct block_data_finish
+{
+    uint64_t file_id = 0;
+    std::string hash;
+    std::string filename;
 };
 //
 // ------------------------------------------------------------------------------
