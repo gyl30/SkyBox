@@ -151,7 +151,7 @@ void file_websocket_handle::block_data_request()
 {
     leaf::block_data_request request;
     request.file_id = file_->id;
-    request.block_id = ++file_->recv_block_count;
+    request.block_id = file_->active_block_count;
     LOG_DEBUG("{} block_data_request id {} block id {}", id_, request.file_id, request.block_id);
     commit_message(request);
 }
@@ -183,9 +183,9 @@ void file_websocket_handle::on_block_data_response(const leaf::block_data_respon
         LOG_ERROR("{} on_block_data_response id {} != {}", id_, msg.file_id, file_->id);
         return;
     }
-    if (msg.block_id != file_->recv_block_count)
+    if (msg.block_id != file_->active_block_count)
     {
-        LOG_WARN("{} on_block_data_response id {} <= {}", id_, msg.block_id, file_->recv_block_count);
+        LOG_WARN("{} on_block_data_response id {} != {}", id_, msg.block_id, file_->active_block_count);
         return;
     }
     boost::system::error_code ec;
@@ -201,6 +201,7 @@ void file_websocket_handle::on_block_data_response(const leaf::block_data_respon
         block_data_finish();
         return;
     }
+    file_->active_block_count = msg.block_id + 1;
     block_data_request();
 }
 

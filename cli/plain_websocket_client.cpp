@@ -264,9 +264,10 @@ void plain_websocket_client::block_data_request(const leaf::block_data_request& 
 {
     assert(file_ && reader_ && blake2b_);
     LOG_INFO("{} block_data_request id {} block {}", id_, msg.file_id, msg.block_id);
-    if (msg.block_id < file_->send_block_count)
+    if (msg.block_id != file_->active_block_count)
     {
-        LOG_ERROR("{} block_data_request block {} less than send block {}", id_, msg.block_id, file_->send_block_count);
+        LOG_ERROR(
+            "{} block_data_request block {} less than send block {}", id_, msg.block_id, file_->active_block_count);
         return;
     }
 
@@ -280,13 +281,14 @@ void plain_websocket_client::block_data_request(const leaf::block_data_request& 
     }
     blake2b_->update(buffer.data(), read_size);
     buffer.resize(read_size);
-    file_->send_block_count = msg.block_id;
+    file_->active_block_count = msg.block_id;
     LOG_DEBUG("{} block_data_request {} size {}", id_, msg.block_id, read_size);
     leaf::block_data_response response;
     response.file_id = msg.file_id;
     response.block_id = msg.block_id;
     response.data = std::move(buffer);
     write_message(response);
+    file_->active_block_count = msg.block_id + 1;
 }
 void plain_websocket_client::file_block_request(const leaf::file_block_request& msg)
 {
