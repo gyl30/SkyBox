@@ -29,6 +29,7 @@ plain_websocket_client::~plain_websocket_client()
 void plain_websocket_client::startup()
 {
     auto self = shared_from_this();
+    timer_ = std::make_shared<boost::asio::steady_timer>(ws_.get_executor());
     codec_.create_file_response = std::bind(&plain_websocket_client::create_file_response, self, std::placeholders::_1);
     codec_.delete_file_response = std::bind(&plain_websocket_client::delete_file_response, self, std::placeholders::_1);
     codec_.block_data_request = std::bind(&plain_websocket_client::block_data_request, self, std::placeholders::_1);
@@ -37,6 +38,7 @@ void plain_websocket_client::startup()
     codec_.block_data_finish = std::bind(&plain_websocket_client::block_data_finish, self, std::placeholders::_1);
     boost::asio::dispatch(ws_.get_executor(),
                           boost::beast::bind_front_handler(&plain_websocket_client::safe_startup, self));
+    start_timer();
 }
 
 void plain_websocket_client::safe_startup()
@@ -141,8 +143,7 @@ void plain_websocket_client::safe_add_file(const leaf::file_context::ptr& file)
         LOG_INFO("{} add file {}", id_, file->name);
     }
 
-    file_ = file;
-    create_file_request();
+    padding_files_.push(file);
 }
 
 void plain_websocket_client::write(const std::vector<uint8_t>& msg)
@@ -243,23 +244,35 @@ void plain_websocket_client::open_file()
     }
     blake2b_ = std::make_shared<leaf::blake2b>();
 }
-
-void plain_websocket_client::close_file()
+void plain_websocket_client::start_timer()
 {
-    assert(file_ && reader_ && blake2b_);
-    blake2b_->final();
-    LOG_INFO("{} close file {} hex {}", id_, file_->name, blake2b_->hex());
-    file_ = nullptr;
-    blake2b_.reset();
-    auto r = reader_;
-    reader_ = nullptr;
-    auto ec = r->close();
+    timer_->expires_after(std::chrono::seconds(1));
+    timer_->async_wait(std::bind(&plain_websocket_client::timer_callback, this, std::placeholders::_1));
+    //
+}
+void plain_websocket_client::timer_callback(const boost::system::error_code& ec)
+{
     if (ec)
     {
-        LOG_ERROR("{} close file error {}", id_, ec.message());
+        LOG_ERROR("{} timer error {}", id_, ec.message());
         return;
     }
+    start_timer();
+    if (file_ != nullptr)
+    {
+        return;
+    }
+    if (padding_files_.empty())
+    {
+        LOG_INFO("{} padding files empty", id_);
+        return;
+    }
+    file_ = padding_files_.front();
+    padding_files_.pop();
+    LOG_INFO("{} start_file {} size {}", id_, file_->name, padding_files_.size());
+    boost::asio::post(ws_.get_executor(), std::bind(&plain_websocket_client::create_file_request, this));
 }
+
 void plain_websocket_client::block_data_request(const leaf::block_data_request& msg)
 {
     assert(file_ && reader_ && blake2b_);
@@ -314,8 +327,27 @@ void plain_websocket_client::file_block_request(const leaf::file_block_request& 
 
 void plain_websocket_client::block_data_finish(const leaf::block_data_finish& msg)
 {
-    LOG_INFO("{} block_data_finish id {} file {} hash {}", id_, msg.file_id, msg.filename, msg.hash);
-    close_file();
+    assert(file_ && reader_ && blake2b_);
+    blake2b_->final();
+    LOG_INFO("{} block_data_finish id {} file {} hash {} size {} read size {} read hash {}",
+             id_,
+             msg.file_id,
+             msg.filename,
+             msg.hash,
+             file_->file_size,
+             reader_->size(),
+             blake2b_->hex());
+
+    file_ = nullptr;
+    blake2b_.reset();
+    auto r = reader_;
+    reader_ = nullptr;
+    auto ec = r->close();
+    if (ec)
+    {
+        LOG_ERROR("{} close file error {}", id_, ec.message());
+        return;
+    }
 }
 
 void plain_websocket_client::write_message(const codec_message& msg)

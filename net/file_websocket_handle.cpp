@@ -112,17 +112,6 @@ void file_websocket_handle::on_delete_file_response(const leaf::delete_file_resp
     LOG_INFO("{} on_delete_file_response name {}", id_, msg.filename);
 }
 
-void file_websocket_handle::close_file()
-{
-    assert(writer_);
-    auto ec = writer_->close();
-    if (ec)
-    {
-        LOG_ERROR("{} close file {} id {} error {}", id_, file_->name, file_->id, ec.message());
-        return;
-    }
-    writer_ = nullptr;
-}
 void file_websocket_handle::on_file_block_response(const leaf::file_block_response& msg)
 {
     assert(file_ && !writer_);
@@ -171,6 +160,7 @@ void file_websocket_handle::block_data_finish()
     finish.hash = hash_->hex();
     commit_message(finish);
 
+    file_ = nullptr;
     writer_.reset();
     hash_.reset();
 }

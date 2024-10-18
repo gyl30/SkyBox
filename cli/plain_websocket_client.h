@@ -57,7 +57,8 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
 
    private:
     void open_file();
-    void close_file();
+    void start_timer();
+    void timer_callback(const boost::system::error_code& ec);
 
    private:
     std::string id_;
@@ -70,6 +71,8 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     leaf::plain_websocket_client::handle h_;
     std::queue<std::vector<uint8_t>> msg_queue_;
     std::shared_ptr<leaf::blake2b> blake2b_;
+    std::shared_ptr<boost::asio::steady_timer> timer_;
+    std::queue<leaf::file_context::ptr> padding_files_;
     boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;
 };
 }    // namespace leaf
