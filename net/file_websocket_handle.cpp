@@ -135,6 +135,7 @@ void file_websocket_handle::on_file_block_response(const leaf::file_block_respon
         LOG_WARN("{} change write from {} to {}", id_, writer_->name(), file_->name);
         close_file();
     }
+    hash_ = std::make_shared<leaf::blake2b>();
     writer_ = std::make_shared<leaf::file_writer>(file_->name);
     auto ec = writer_->open();
     if (ec)
@@ -158,17 +159,23 @@ void file_websocket_handle::block_data_request()
 
 void file_websocket_handle::block_data_finish()
 {
-    leaf::block_data_finish finish;
-    finish.file_id = file_->id;
-    finish.filename = file_->name;
-    commit_message(finish);
-    LOG_INFO("{} block_data_finish file {} size {}", id_, file_->name, writer_->size());
     auto ec = writer_->close();
     if (ec)
     {
         LOG_ERROR("{} block_data_finish close file {} error {}", id_, file_->name, ec.message());
         return;
     }
+    hash_->final();
+    LOG_INFO("{} block_data_finish file {} size {} hash {}", id_, file_->name, writer_->size(), hash_->hex());
+
+    leaf::block_data_finish finish;
+    finish.file_id = file_->id;
+    finish.filename = file_->name;
+    finish.hash = hash_->hex();
+    commit_message(finish);
+
+    writer_.reset();
+    hash_.reset();
 }
 void file_websocket_handle::on_block_data_response(const leaf::block_data_response& msg)
 {
@@ -195,6 +202,7 @@ void file_websocket_handle::on_block_data_response(const leaf::block_data_respon
         LOG_ERROR("{} on_block_data_response write error {} {}", id_, ec.message(), ec.value());
         return;
     }
+    hash_->update(msg.data.data(), msg.data.size());
     LOG_DEBUG("{} on_block_data_response write {} bytes file size {}", id_, write_size, writer_->size());
     if (writer_->size() == file_->file_size)
     {

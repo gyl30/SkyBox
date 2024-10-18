@@ -1,6 +1,7 @@
 #include "codec.h"
-#include "file_context.h"
 #include "message.h"
+#include "blake2b.h"
+#include "file_context.h"
 #include "websocket_handle.h"
 
 namespace leaf
@@ -39,6 +40,7 @@ class file_websocket_handle : public websocket_handle
     std::string id_;
     leaf::codec_handle handle_;
     leaf::file_context::ptr file_;
+    std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;
 };
 
