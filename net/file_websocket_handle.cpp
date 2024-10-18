@@ -65,6 +65,7 @@ void file_websocket_handle::shutdown()
 
 void file_websocket_handle::on_create_file_request(const leaf::create_file_request& msg)
 {
+    assert(file_ == nullptr);
     LOG_INFO("{} on_create_file_request file size {} name {} hash {}", id_, msg.file_size, msg.filename, msg.hash);
     leaf::create_file_response response;
     response.filename = msg.filename;
@@ -124,16 +125,12 @@ void file_websocket_handle::close_file()
 }
 void file_websocket_handle::on_file_block_response(const leaf::file_block_response& msg)
 {
+    assert(file_ && !writer_);
     LOG_INFO("{} on_file_block_response id {} size {} count {}", id_, msg.file_id, msg.block_size, msg.block_count);
     if (file_->id != msg.file_id)
     {
         LOG_ERROR("{} on_file_block_response file id {} != {}", id_, msg.file_id, file_->id);
         return;
-    }
-    if (writer_ != nullptr)
-    {
-        LOG_WARN("{} change write from {} to {}", id_, writer_->name(), file_->name);
-        close_file();
     }
     hash_ = std::make_shared<leaf::blake2b>();
     writer_ = std::make_shared<leaf::file_writer>(file_->name);
@@ -179,6 +176,7 @@ void file_websocket_handle::block_data_finish()
 }
 void file_websocket_handle::on_block_data_response(const leaf::block_data_response& msg)
 {
+    assert(file_ && writer_);
     LOG_INFO("{} on_block_data_response block id {} file id {} data size {}",
              id_,
              msg.block_id,
