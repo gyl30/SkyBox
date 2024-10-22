@@ -1,7 +1,9 @@
 #include <atomic>
+#include <filesystem>
 #include "log.h"
 #include "codec.h"
 #include "message.h"
+#include "hash_file.h"
 #include "file_websocket_handle.h"
 
 namespace leaf
@@ -65,6 +67,25 @@ void file_websocket_handle::shutdown()
 
 void file_websocket_handle::on_create_file_request(const leaf::create_file_request& msg)
 {
+    std::error_code ec;
+    bool exist = std::filesystem::exists(msg.filename, ec);
+    if (ec)
+    {
+        LOG_ERROR("{} on_delete_file_request file {} exist failed {}", id_, msg.filename, ec.message());
+        return;
+    }
+    boost::system::error_code hash_ec;
+    std::string hash_hex = leaf::hash_file(msg.filename, hash_ec);
+    if (hash_ec)
+    {
+        LOG_ERROR("{} on_delete_file_request file {} hash failed {}", id_, msg.filename, ec.message());
+        return;
+    }
+    if (exist && hash_hex == msg.hash)
+    {
+        block_data_finish1(0, msg.filename, hash_hex);
+        return;
+    }
     assert(file_ == nullptr);
     LOG_INFO("{} on_create_file_request file size {} name {} hash {}", id_, msg.file_size, msg.filename, msg.hash);
     leaf::create_file_response response;
@@ -154,15 +175,18 @@ void file_websocket_handle::block_data_finish()
     hash_->final();
     LOG_INFO("{} block_data_finish file {} size {} hash {}", id_, file_->name, writer_->size(), hash_->hex());
 
-    leaf::block_data_finish finish;
-    finish.file_id = file_->id;
-    finish.filename = file_->name;
-    finish.hash = hash_->hex();
-    commit_message(finish);
-
+    block_data_finish1(file_->id, file_->name, hash_->hex());
     file_ = nullptr;
     writer_.reset();
     hash_.reset();
+}
+void file_websocket_handle::block_data_finish1(uint64_t file_id, const std::string& filename, const std::string& hash)
+{
+    leaf::block_data_finish finish;
+    finish.file_id = file_id;
+    finish.filename = filename;
+    finish.hash = hash;
+    commit_message(finish);
 }
 void file_websocket_handle::on_block_data_response(const leaf::block_data_response& msg)
 {
