@@ -34,6 +34,7 @@ class file_websocket_handle : public websocket_handle
     void block_data_request();
     void block_data_finish();
     void block_data_finish1(uint64_t file_id, const std::string& filename, const std::string& hash);
+    void create_file_exist(const leaf::create_file_request& msg);
     void commit_message(const leaf::codec_message& msg);
 
    private:

@@ -103,6 +103,13 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
     commit_message(request);
 }
 
+void file_websocket_handle::create_file_exist(const leaf::create_file_request& msg)
+{
+    leaf::create_file_exist exist;
+    exist.filename = msg.filename;
+    exist.hash = msg.hash;
+    commit_message(exist);
+}
 void file_websocket_handle::commit_message(const leaf::codec_message& msg)
 {
     std::vector<uint8_t> bytes2;

@@ -20,11 +20,13 @@ struct codec_handle
     std::function<void(const leaf::file_block_response &)> file_block_response;
     std::function<void(const leaf::block_data_finish &)> block_data_finish;
     std::function<void(const leaf::error_response &)> error_response;
+    std::function<void(const leaf::create_file_exist &)> create_file_exist;
 
     std::queue<std::vector<uint8_t>> msg_queue;
 };
 
 using codec_message = std::variant<leaf::create_file_request,
+                                   leaf::create_file_exist,
                                    leaf::create_file_response,
                                    leaf::delete_file_request,
                                    leaf::file_block_request,

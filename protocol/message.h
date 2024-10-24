@@ -18,6 +18,7 @@ enum class message_type : uint16_t
     block_data_request = 0x07,
     block_data_response = 0x08,
     block_data_finish = 0x09,
+    create_file_exist = 0x10,
 };
 
 // ------------------------------------------------------------------------------
@@ -45,6 +46,12 @@ struct block_data_request
 struct block_data_finish
 {
     uint64_t file_id = 0;
+    std::string hash;
+    std::string filename;
+};
+
+struct create_file_exist
+{
     std::string hash;
     std::string filename;
 };
