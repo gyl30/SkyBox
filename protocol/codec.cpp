@@ -9,6 +9,7 @@ namespace reflect
 {
 REFLECT_STRUCT(leaf::create_file_request, (file_size)(hash)(filename));
 REFLECT_STRUCT(leaf::block_data_finish, (file_id)(hash)(filename));
+REFLECT_STRUCT(leaf::create_file_exist, (hash)(filename));
 }    // namespace reflect
 
 template <typename E>
