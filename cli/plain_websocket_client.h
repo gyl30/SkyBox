@@ -53,6 +53,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     void block_data_request(const leaf::block_data_request&);
     void file_block_request(const leaf::file_block_request&);
     void block_data_finish(const leaf::block_data_finish&);
+    void create_file_exist(const leaf::create_file_exist&);
     void error_response(const leaf::error_response&);
 
    private:

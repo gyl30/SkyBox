@@ -36,6 +36,7 @@ void plain_websocket_client::startup()
     codec_.file_block_request = std::bind(&plain_websocket_client::file_block_request, self, std::placeholders::_1);
     codec_.error_response = std::bind(&plain_websocket_client::error_response, self, std::placeholders::_1);
     codec_.block_data_finish = std::bind(&plain_websocket_client::block_data_finish, self, std::placeholders::_1);
+    codec_.create_file_exist = std::bind(&plain_websocket_client::create_file_exist, self, std::placeholders::_1);
     boost::asio::dispatch(ws_.get_executor(),
                           boost::beast::bind_front_handler(&plain_websocket_client::safe_startup, self));
     start_timer();
@@ -348,6 +349,13 @@ void plain_websocket_client::block_data_finish(const leaf::block_data_finish& ms
         LOG_ERROR("{} close file error {}", id_, ec.message());
         return;
     }
+}
+void plain_websocket_client::create_file_exist(const leaf::create_file_exist& exist)
+{
+    assert(file_ && !reader_ && !blake2b_);
+    assert(file_->name == exist.filename);
+    file_ = nullptr;
+    LOG_INFO("{} create_file_exist {} hash {}", id_, exist.filename, exist.hash);
 }
 
 void plain_websocket_client::write_message(const codec_message& msg)
