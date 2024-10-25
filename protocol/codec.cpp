@@ -34,6 +34,17 @@ void serialize_create_file_request(const create_file_request &msg, std::vector<u
     w.write_bytes(str.data(), str.size());
     w.copy_to(bytes);
 }
+
+void serialize_create_file_exist(const create_file_exist &msg, std::vector<uint8_t> *bytes)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(to_underlying(message_type::create_file_exist));
+    std::string str = reflect::serialize_struct(const_cast<create_file_exist &>(msg));
+    w.write_bytes(str.data(), str.size());
+    w.copy_to(bytes);
+}
+
 void serialize_create_file_response(const create_file_response &msg, std::vector<uint8_t> *bytes)
 {
     leaf::write_buffer w;
@@ -193,6 +204,26 @@ static int decode_create_file_request(leaf::read_buffer &r, codec_handle *handle
     handle->create_file_request(req);
     return 0;
 }
+
+static int decode_create_file_exist(leaf::read_buffer &r, codec_handle *handle)
+{
+    if (r.size() > 2048)
+    {
+        return -1;
+    }
+    std::string str;
+    r.read_string(&str, r.size());
+    if (str.empty())
+    {
+        return -1;
+    }
+
+    leaf::create_file_exist res;
+    reflect::deserialize_struct(res, str);
+    handle->create_file_exist(res);
+    return 0;
+}
+
 static int decode_delete_file_request(leaf::read_buffer &r, codec_handle *handle)
 {
     if (r.size() > 2048)
@@ -349,6 +380,10 @@ int deserialize_message(const uint8_t *data, uint64_t len, codec_handle *handle)
     if (msg_type == to_underlying(leaf::message_type::block_data_finish))
     {
         return decode_block_data_finish(r, handle);
+    }
+    if (msg_type == to_underlying(leaf::message_type::create_file_exist))
+    {
+        return decode_create_file_exist(r, handle);
     }
 
     return -1;
