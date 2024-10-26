@@ -71,20 +71,23 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
     bool exist = std::filesystem::exists(msg.filename, ec);
     if (ec)
     {
-        LOG_ERROR("{} on_delete_file_request file {} exist failed {}", id_, msg.filename, ec.message());
+        LOG_ERROR("{} on_create_file_request file {} exist failed {}", id_, msg.filename, ec.message());
         return;
     }
-    boost::system::error_code hash_ec;
-    std::string hash_hex = leaf::hash_file(msg.filename, hash_ec);
-    if (hash_ec)
+    if (exist)
     {
-        LOG_ERROR("{} on_delete_file_request file {} hash failed {}", id_, msg.filename, ec.message());
-        return;
-    }
-    if (exist && hash_hex == msg.hash)
-    {
-        block_data_finish1(0, msg.filename, hash_hex);
-        return;
+        boost::system::error_code hash_ec;
+        std::string hash_hex = leaf::hash_file(msg.filename, hash_ec);
+        if (hash_ec)
+        {
+            LOG_ERROR("{} on_create_file_request file {} hash failed {}", id_, msg.filename, hash_ec.message());
+            return;
+        }
+        if (hash_hex == msg.hash)
+        {
+            create_file_exist(msg);
+            return;
+        }
     }
     assert(file_ == nullptr);
     LOG_INFO("{} on_create_file_request file size {} name {} hash {}", id_, msg.file_size, msg.filename, msg.hash);
@@ -105,6 +108,7 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
 
 void file_websocket_handle::create_file_exist(const leaf::create_file_request& msg)
 {
+    LOG_INFO("{} on_create_file_request file {} exist hash {}", id_, msg.filename, msg.hash);
     leaf::create_file_exist exist;
     exist.filename = msg.filename;
     exist.hash = msg.hash;

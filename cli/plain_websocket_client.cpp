@@ -296,7 +296,7 @@ void plain_websocket_client::block_data_request(const leaf::block_data_request& 
     blake2b_->update(buffer.data(), read_size);
     buffer.resize(read_size);
     file_->active_block_count = msg.block_id;
-    LOG_DEBUG("{} block_data_request {} size {}", id_, msg.block_id, read_size);
+    LOG_DEBUG("{} block_data_request id {} block {} size {}", id_, msg.file_id, msg.block_id, read_size);
     leaf::block_data_response response;
     response.file_id = msg.file_id;
     response.block_id = msg.block_id;
@@ -352,8 +352,19 @@ void plain_websocket_client::block_data_finish(const leaf::block_data_finish& ms
 }
 void plain_websocket_client::create_file_exist(const leaf::create_file_exist& exist)
 {
-    assert(file_ && !reader_ && !blake2b_);
-    assert(file_->name == exist.filename);
+    assert(file_ && reader_ && blake2b_);
+    auto ec = reader_->close();
+    if (ec)
+    {
+        LOG_ERROR("{} close file error {}", id_, ec.message());
+        return;
+    }
+    reader_.reset();
+    blake2b_->final();
+    blake2b_.reset();
+
+    std::string filename = std::filesystem::path(file_->name).filename().string();
+    assert(filename == exist.filename);
     file_ = nullptr;
     LOG_INFO("{} create_file_exist {} hash {}", id_, exist.filename, exist.hash);
 }

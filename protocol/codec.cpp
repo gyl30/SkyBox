@@ -178,6 +178,10 @@ int serialize_message(const codec_message &msg, std::vector<uint8_t> *bytes)
             {
                 serialize_block_data_finish(arg, bytes);
             }
+            else if constexpr (std::is_same_v<T, leaf::create_file_exist>)
+            {
+                serialize_create_file_exist(arg, bytes);
+            }
             else
             {
                 ret = -1;
