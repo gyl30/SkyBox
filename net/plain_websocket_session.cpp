@@ -136,7 +136,7 @@ void plain_websocket_session::on_write(boost::beast::error_code ec, std::size_t 
         LOG_ERROR("{} write failed {}", id_, ec.message());
         return shutdown();
     }
-    LOG_DEBUG("{} write success {} bytes", id_, bytes_transferred);
+    LOG_TRACE("{} write success {} bytes", id_, bytes_transferred);
     msg_queue_.pop();
     writing_ = false;
     do_write();

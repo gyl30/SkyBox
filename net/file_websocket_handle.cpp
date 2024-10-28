@@ -43,12 +43,10 @@ void file_websocket_handle::startup()
 void file_websocket_handle::on_text_message(const leaf::websocket_session::ptr& /*session*/,
                                             const std::shared_ptr<std::vector<uint8_t>>& msg)
 {
-    LOG_INFO("{} on_text_message {}", id_, msg->size());
 }
 void file_websocket_handle::on_binary_message(const leaf::websocket_session::ptr& session,
                                               const std::shared_ptr<std::vector<uint8_t>>& msg)
 {
-    LOG_INFO("{} on_binary_message {}", id_, msg->size());
     if (leaf::deserialize_message(msg->data(), msg->size(), &handle_) != 0)
     {
         return;
@@ -68,6 +66,7 @@ void file_websocket_handle::shutdown()
 void file_websocket_handle::on_create_file_request(const leaf::create_file_request& msg)
 {
     std::error_code ec;
+    LOG_INFO("{} on_create_file_request file size {} name {} hash {}", id_, msg.file_size, msg.filename, msg.hash);
     bool exist = std::filesystem::exists(msg.filename, ec);
     if (ec)
     {
@@ -90,7 +89,6 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
         }
     }
     assert(file_ == nullptr);
-    LOG_INFO("{} on_create_file_request file size {} name {} hash {}", id_, msg.file_size, msg.filename, msg.hash);
     leaf::create_file_response response;
     response.filename = msg.filename;
     response.file_id = file_id();
@@ -108,7 +106,7 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
 
 void file_websocket_handle::create_file_exist(const leaf::create_file_request& msg)
 {
-    LOG_INFO("{} on_create_file_request file {} exist hash {}", id_, msg.filename, msg.hash);
+    LOG_INFO("{} on_create_file_exist file {} hash {}", id_, msg.filename, msg.hash);
     leaf::create_file_exist exist;
     exist.filename = msg.filename;
     exist.hash = msg.hash;
@@ -185,7 +183,6 @@ void file_websocket_handle::block_data_finish()
     }
     hash_->final();
     LOG_INFO("{} block_data_finish file {} size {} hash {}", id_, file_->name, writer_->size(), hash_->hex());
-
     block_data_finish1(file_->id, file_->name, hash_->hex());
     file_ = nullptr;
     writer_.reset();
@@ -202,11 +199,11 @@ void file_websocket_handle::block_data_finish1(uint64_t file_id, const std::stri
 void file_websocket_handle::on_block_data_response(const leaf::block_data_response& msg)
 {
     assert(file_ && writer_);
-    LOG_INFO("{} on_block_data_response block id {} file id {} data size {}",
-             id_,
-             msg.block_id,
-             msg.file_id,
-             msg.data.size());
+    LOG_DEBUG("{} on_block_data_response block id {} file id {} data size {}",
+              id_,
+              msg.block_id,
+              msg.file_id,
+              msg.data.size());
 
     if (msg.file_id != file_->id)
     {

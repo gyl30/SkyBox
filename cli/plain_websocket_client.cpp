@@ -99,7 +99,7 @@ void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t by
         return shutdown();
     }
 
-    LOG_DEBUG("{} read message size {}", id_, bytes_transferred);
+    LOG_TRACE("{} read message size {}", id_, bytes_transferred);
 
     auto bytes = leaf::buffers_to_vector(buffer_.data());
 
@@ -184,7 +184,7 @@ void plain_websocket_client::on_write(boost::beast::error_code ec, std::size_t b
         LOG_ERROR("{} write failed {}", id_, ec.message());
         return shutdown();
     }
-    LOG_DEBUG("{} write success {} bytes", id_, bytes_transferred);
+    LOG_TRACE("{} write success {} bytes", id_, bytes_transferred);
     writing_ = false;
     msg_queue_.pop();
     do_write();
@@ -277,7 +277,7 @@ void plain_websocket_client::timer_callback(const boost::system::error_code& ec)
 void plain_websocket_client::block_data_request(const leaf::block_data_request& msg)
 {
     assert(file_ && reader_ && blake2b_);
-    LOG_INFO("{} block_data_request id {} block {}", id_, msg.file_id, msg.block_id);
+    LOG_DEBUG("{} block_data_request id {} block {}", id_, msg.file_id, msg.block_id);
     if (msg.block_id != file_->active_block_count)
     {
         LOG_ERROR(
@@ -377,7 +377,7 @@ void plain_websocket_client::write_message(const codec_message& msg)
         LOG_ERROR("{} serialize message failed", id_);
         return;
     }
-    LOG_DEBUG("{} send message size {}", id_, bytes.size());
+    LOG_TRACE("{} send message size {}", id_, bytes.size());
     write(bytes);
 }
 
