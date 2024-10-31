@@ -93,15 +93,17 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
     response.filename = msg.filename;
     response.file_id = file_id();
     commit_message(response);
-    //
-    file_ = std::make_shared<file_context>();
-    file_->id = response.file_id;
-    file_->name = msg.filename;
-    file_->file_size = msg.file_size;
-    leaf::file_block_request request;
-    request.file_id = response.file_id;
-    LOG_DEBUG("{} file_block_request id {}", id_, request.file_id);
-    commit_message(request);
+    if (msg.op == leaf::to_underlying(op_type::upload))
+    {
+        file_ = std::make_shared<file_context>();
+        file_->id = response.file_id;
+        file_->name = msg.filename;
+        file_->file_size = msg.file_size;
+        leaf::file_block_request request;
+        request.file_id = response.file_id;
+        LOG_DEBUG("{} file_block_request id {}", id_, request.file_id);
+        commit_message(request);
+    }
 }
 
 void file_websocket_handle::create_file_exist(const leaf::create_file_request& msg)

@@ -47,7 +47,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     void write_message(const codec_message& msg);
 
    private:
-    void create_file_request();
+    void create_upload_file_request();
     void create_file_response(const leaf::create_file_response&);
     void delete_file_response(const leaf::delete_file_response&);
     void block_data_request(const leaf::block_data_request&);
@@ -73,7 +73,8 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     std::queue<std::vector<uint8_t>> msg_queue_;
     std::shared_ptr<leaf::blake2b> blake2b_;
     std::shared_ptr<boost::asio::steady_timer> timer_;
-    std::queue<leaf::file_context::ptr> padding_files_;
+    std::queue<leaf::file_context::ptr> upload_padding_files_;
+    std::queue<leaf::file_context::ptr> download_padding_files_;
     boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;
 };
 }    // namespace leaf

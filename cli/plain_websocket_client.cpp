@@ -144,7 +144,7 @@ void plain_websocket_client::safe_add_file(const leaf::file_context::ptr& file)
         LOG_INFO("{} add file {}", id_, file->name);
     }
 
-    padding_files_.push(file);
+    upload_padding_files_.push(file);
 }
 
 void plain_websocket_client::write(const std::vector<uint8_t>& msg)
@@ -199,7 +199,7 @@ void plain_websocket_client::delete_file_response(const leaf::delete_file_respon
     LOG_INFO("{} delete_file_response name {}", id_, msg.filename);
 }
 
-void plain_websocket_client::create_file_request()
+void plain_websocket_client::create_upload_file_request()
 {
     if (file_ == nullptr)
     {
@@ -228,6 +228,7 @@ void plain_websocket_client::create_file_request()
     leaf::create_file_request create;
     create.file_size = file_size;
     create.hash = h;
+    create.op = leaf::to_underlying(op_type::upload);
     create.filename = std::filesystem::path(file_->name).filename().string();
     file_->file_size = file_size;
     write_message(create);
@@ -263,15 +264,15 @@ void plain_websocket_client::timer_callback(const boost::system::error_code& ec)
     {
         return;
     }
-    if (padding_files_.empty())
+    if (upload_padding_files_.empty())
     {
         LOG_INFO("{} padding files empty", id_);
         return;
     }
-    file_ = padding_files_.front();
-    padding_files_.pop();
-    LOG_INFO("{} start_file {} size {}", id_, file_->name, padding_files_.size());
-    boost::asio::post(ws_.get_executor(), std::bind(&plain_websocket_client::create_file_request, this));
+    file_ = upload_padding_files_.front();
+    upload_padding_files_.pop();
+    LOG_INFO("{} start_file {} size {}", id_, file_->name, upload_padding_files_.size());
+    boost::asio::post(ws_.get_executor(), std::bind(&plain_websocket_client::create_upload_file_request, this));
 }
 
 void plain_websocket_client::block_data_request(const leaf::block_data_request& msg)
