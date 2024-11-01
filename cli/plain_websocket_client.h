@@ -5,10 +5,9 @@
 #include <functional>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
-#include "file_context.h"
-#include "file.h"
 #include "codec.h"
-#include "blake2b.h"
+#include "file_context.h"
+#include "upload_session.h"
 
 namespace leaf
 {
@@ -47,34 +46,19 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     void write_message(const codec_message& msg);
 
    private:
-    void create_upload_file_request();
-    void create_file_response(const leaf::create_file_response&);
-    void delete_file_response(const leaf::delete_file_response&);
-    void block_data_request(const leaf::block_data_request&);
-    void file_block_request(const leaf::file_block_request&);
-    void block_data_finish(const leaf::block_data_finish&);
-    void create_file_exist(const leaf::create_file_exist&);
-    void error_response(const leaf::error_response&);
-
-   private:
     void open_file();
     void start_timer();
     void timer_callback(const boost::system::error_code& ec);
 
    private:
     std::string id_;
+    bool writing_ = false;
+    leaf::codec_handle codec_;
     boost::beast::flat_buffer buffer_;
     boost::asio::ip::tcp::endpoint ed_;
-    leaf::codec_handle codec_;
-    leaf::file_context::ptr file_;
-    bool writing_ = false;
-    std::shared_ptr<leaf::reader> reader_;
-    leaf::plain_websocket_client::handle h_;
+    std::shared_ptr<upload_session> uploader_;
     std::queue<std::vector<uint8_t>> msg_queue_;
-    std::shared_ptr<leaf::blake2b> blake2b_;
     std::shared_ptr<boost::asio::steady_timer> timer_;
-    std::queue<leaf::file_context::ptr> upload_padding_files_;
-    std::queue<leaf::file_context::ptr> download_padding_files_;
     boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;
 };
 }    // namespace leaf

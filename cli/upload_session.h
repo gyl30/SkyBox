@@ -1,0 +1,48 @@
+#ifndef LEAF_UPLOAD_SESSION_H
+#define LEAF_UPLOAD_SESSION_H
+
+#include "codec.h"
+#include "blake2b.h"
+#include "file_context.h"
+
+namespace leaf
+{
+class upload_session
+{
+   public:
+explicit    upload_session(std::string id);
+    ~upload_session();
+
+   public:
+    void startup();
+    void shutdown();
+    void update();
+
+   public:
+    void add_file(const leaf::file_context::ptr &file);
+    void on_message(const leaf::codec_message &msg);
+    void set_message_cb(std::function<void(const leaf::codec_message &)> cb);
+
+   private:
+    void open_file();
+    void create_file_request();
+    void create_file_response(const leaf::create_file_response &);
+    void delete_file_response(const leaf::delete_file_response &);
+    void block_data_request(const leaf::block_data_request &);
+    void file_block_request(const leaf::file_block_request &);
+    void block_data_finish(const leaf::block_data_finish &);
+    void create_file_exist(const leaf::create_file_exist &);
+    void error_response(const leaf::error_response &);
+    void write_message(const codec_message &msg);
+
+   private:
+    std::string id_;
+    leaf::file_context::ptr file_;
+    std::shared_ptr<leaf::reader> reader_;
+    std::shared_ptr<leaf::blake2b> blake2b_;
+    std::queue<leaf::file_context::ptr> padding_files_;
+    std::function<void(const leaf::codec_message &)> cb_;
+};
+}    // namespace leaf
+
+#endif
