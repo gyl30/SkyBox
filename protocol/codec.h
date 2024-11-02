@@ -38,7 +38,6 @@ using codec_message = std::variant<leaf::create_file_request,
                                    leaf::error_response>;
 
 uint16_t to_underlying(leaf::message_type type);
-uint16_t to_underlying(leaf::op_type type);
 int serialize_message(const codec_message &msg, std::vector<uint8_t> *bytes);
 int deserialize_message(const uint8_t *data, uint64_t len, codec_handle *handle);
 

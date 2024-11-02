@@ -7,7 +7,7 @@
 
 namespace reflect
 {
-REFLECT_STRUCT(leaf::create_file_request, (file_size)(op)(hash)(filename));
+REFLECT_STRUCT(leaf::create_file_request, (file_size)(hash)(filename));
 REFLECT_STRUCT(leaf::block_data_finish, (file_id)(hash)(filename));
 REFLECT_STRUCT(leaf::create_file_exist, (hash)(filename));
 }    // namespace reflect
@@ -20,7 +20,6 @@ constexpr auto to_underlying(E e) noexcept
 namespace leaf
 {
 uint16_t to_underlying(leaf::message_type type) { return ::to_underlying(type); }
-uint16_t to_underlying(leaf::op_type type) { return ::to_underlying(type); }
 }    // namespace leaf
 
 static void write_padding(leaf::write_buffer &w)
@@ -35,7 +34,6 @@ void serialize_create_file_request(const create_file_request &msg, std::vector<u
 {
     leaf::write_buffer w;
     write_padding(w);
-    w.write_uint16(msg.op);
     w.write_uint16(leaf::to_underlying(message_type::create_file_request));
     std::string str = reflect::serialize_struct(const_cast<create_file_request &>(msg));
     w.write_bytes(str.data(), str.size());

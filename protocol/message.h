@@ -6,11 +6,6 @@
 
 namespace leaf
 {
-enum class op_type : uint16_t
-{
-    upload = 0x01,
-    download = 0x02
-};
 enum class message_type : uint16_t
 {
     error = 0x00,
@@ -30,7 +25,6 @@ enum class message_type : uint16_t
 // request 4 bytes length + 2 bytes type + payload
 struct create_file_request
 {
-    uint16_t op = 0;
     uint64_t file_size = 0;
     std::string hash;
     std::string filename;

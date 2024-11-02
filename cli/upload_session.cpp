@@ -9,7 +9,7 @@ namespace leaf
 {
 upload_session::upload_session(std::string id) : id_(std::move(id)) {}
 
-upload_session::~upload_session() {}
+upload_session::~upload_session() = default;
 
 void upload_session::startup() {}
 void upload_session::shutdown() {}
@@ -95,10 +95,8 @@ void upload_session::create_file_request()
     leaf::create_file_request create;
     create.file_size = file_size;
     create.hash = h;
-    create.op = leaf::to_underlying(op_type::upload);
     create.filename = std::filesystem::path(file_->name).filename().string();
     file_->file_size = file_size;
-
     write_message(create);
 }
 void upload_session::write_message(const codec_message& msg)

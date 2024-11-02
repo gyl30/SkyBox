@@ -27,7 +27,6 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
    public:
     void startup();
     void shutdown();
-    void write(const std::vector<uint8_t>& msg);
     void add_file(const leaf::file_context::ptr& file);
 
    private:
@@ -41,9 +40,11 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
 
     void safe_add_file(const leaf::file_context::ptr& file);
     void safe_write(const std::vector<uint8_t>& msg);
+    void write(const std::vector<uint8_t>& msg);
     void do_write();
     void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
     void write_message(const codec_message& msg);
+    void safe_write_message(const codec_message& msg);
 
    private:
     void open_file();

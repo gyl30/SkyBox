@@ -26,6 +26,7 @@ void plain_websocket_client::startup()
 {
     auto self = shared_from_this();
     uploader_ = std::make_shared<leaf::upload_session>(id_);
+    uploader_->set_message_cb(std::bind(&plain_websocket_client::write_message, self, std::placeholders::_1));
     timer_ = std::make_shared<boost::asio::steady_timer>(ws_.get_executor());
     uploader_->startup();
     codec_.create_file_response = std::bind(&upload_session::on_message, uploader_, std::placeholders::_1);
@@ -193,7 +194,7 @@ void plain_websocket_client::timer_callback(const boost::system::error_code& ec)
     start_timer();
 }
 
-void plain_websocket_client::write_message(const codec_message& msg)
+void plain_websocket_client::safe_write_message(const codec_message& msg)
 {
     std::vector<uint8_t> bytes;
     if (serialize_message(msg, &bytes) != 0)
@@ -203,6 +204,12 @@ void plain_websocket_client::write_message(const codec_message& msg)
     }
     LOG_TRACE("{} send message size {}", id_, bytes.size());
     write(bytes);
+}
+void plain_websocket_client::write_message(const codec_message& msg)
+{
+    boost::asio::dispatch(
+        ws_.get_executor(),
+        boost::beast::bind_front_handler(&plain_websocket_client::safe_write_message, shared_from_this(), msg));
 }
 
 }    // namespace leaf
