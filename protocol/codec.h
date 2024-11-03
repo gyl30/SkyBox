@@ -10,7 +10,7 @@ namespace leaf
 {
 struct codec_handle
 {
-    std::function<void(const leaf::create_file_request &)> create_file_request;
+    std::function<void(const leaf::upload_file_request &)> create_file_request;
     std::function<void(const leaf::create_file_response &)> create_file_response;
     std::function<void(const leaf::delete_file_request &)> delete_file_request;
     std::function<void(const leaf::file_block_request &)> file_block_request;
@@ -25,7 +25,7 @@ struct codec_handle
     std::queue<std::vector<uint8_t>> msg_queue;
 };
 
-using codec_message = std::variant<leaf::create_file_request,
+using codec_message = std::variant<leaf::upload_file_request,
                                    leaf::create_file_exist,
                                    leaf::create_file_response,
                                    leaf::delete_file_request,

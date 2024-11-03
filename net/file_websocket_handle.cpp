@@ -16,7 +16,7 @@ static uint64_t file_id()
 file_websocket_handle::file_websocket_handle(std::string id) : id_(std::move(id))
 {
     // clang-format off
-    handle_.create_file_request = std::bind(&file_websocket_handle::on_create_file_request, this, std::placeholders::_1);
+    handle_.create_file_request = std::bind(&file_websocket_handle::on_upload_file_request, this, std::placeholders::_1);
     handle_.delete_file_request = std::bind(&file_websocket_handle::on_delete_file_request, this, std::placeholders::_1);
     handle_.file_block_request = std::bind(&file_websocket_handle::on_file_block_request, this, std::placeholders::_1);
     handle_.block_data_request = std::bind(&file_websocket_handle::on_block_data_request, this, std::placeholders::_1);
@@ -63,7 +63,7 @@ void file_websocket_handle::shutdown()
     LOG_INFO("shutdown {}", id_);
 }
 
-void file_websocket_handle::on_create_file_request(const leaf::create_file_request& msg)
+void file_websocket_handle::on_upload_file_request(const leaf::upload_file_request& msg)
 {
     std::error_code ec;
     LOG_INFO("{} on_create_file_request file size {} name {} hash {}", id_, msg.file_size, msg.filename, msg.hash);
@@ -84,7 +84,7 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
         }
         if (hash_hex == msg.hash)
         {
-            create_file_exist(msg);
+            upload_file_exist(msg);
             return;
         }
     }
@@ -103,7 +103,7 @@ void file_websocket_handle::on_create_file_request(const leaf::create_file_reque
     commit_message(request);
 }
 
-void file_websocket_handle::create_file_exist(const leaf::create_file_request& msg)
+void file_websocket_handle::upload_file_exist(const leaf::upload_file_request& msg)
 {
     LOG_INFO("{} on_create_file_exist file {} hash {}", id_, msg.filename, msg.hash);
     leaf::create_file_exist exist;

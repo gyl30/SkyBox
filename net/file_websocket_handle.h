@@ -22,7 +22,7 @@ class file_websocket_handle : public websocket_handle
     void shutdown() override;
 
    private:
-    void on_create_file_request(const leaf::create_file_request& msg);
+    void on_upload_file_request(const leaf::upload_file_request& msg);
     void on_delete_file_request(const leaf::delete_file_request& msg);
     void on_file_block_request(const leaf::file_block_request& msg);
     void on_block_data_request(const leaf::block_data_request& msg);
@@ -34,7 +34,7 @@ class file_websocket_handle : public websocket_handle
     void block_data_request();
     void block_data_finish();
     void block_data_finish1(uint64_t file_id, const std::string& filename, const std::string& hash);
-    void create_file_exist(const leaf::create_file_request& msg);
+    void upload_file_exist(const leaf::upload_file_request& msg);
     void commit_message(const leaf::codec_message& msg);
 
    private:

@@ -92,7 +92,7 @@ void upload_session::create_file_request()
         return;
     }
     LOG_DEBUG("{} create_file_request {} size {} hash {}", id_, file_->name, file_size, h);
-    leaf::create_file_request create;
+    leaf::upload_file_request create;
     create.file_size = file_size;
     create.hash = h;
     create.filename = std::filesystem::path(file_->name).filename().string();

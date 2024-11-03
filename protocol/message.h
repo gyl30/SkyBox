@@ -9,8 +9,8 @@ namespace leaf
 enum class message_type : uint16_t
 {
     error = 0x00,
-    create_file_request = 0x01,
-    create_file_response = 0x02,
+    upload_file_request = 0x01,
+    upload_file_response = 0x02,
     delete_file_request = 0x03,
     delete_file_response = 0x04,
     file_block_request = 0x05,
@@ -18,12 +18,12 @@ enum class message_type : uint16_t
     block_data_request = 0x07,
     block_data_response = 0x08,
     block_data_finish = 0x09,
-    create_file_exist = 0x10,
+    upload_file_exist = 0x10,
 };
 
 // ------------------------------------------------------------------------------
 // request 4 bytes length + 2 bytes type + payload
-struct create_file_request
+struct upload_file_request
 {
     uint64_t file_size = 0;
     std::string hash;
