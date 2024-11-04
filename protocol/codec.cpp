@@ -132,6 +132,7 @@ void serialize_error_response(const error_response &msg, std::vector<uint8_t> *b
     w.write_uint32(msg.error);
     w.copy_to(bytes);
 }
+
 int serialize_message(const codec_message &msg, std::vector<uint8_t> *bytes)
 {
     //
@@ -195,96 +196,97 @@ int serialize_message(const codec_message &msg, std::vector<uint8_t> *bytes)
     return ret;
 }
 
-static int decode_create_file_request(leaf::read_buffer &r, codec_handle *handle)
+static std::optional<leaf::upload_file_request> decode_create_file_request(leaf::read_buffer &r)
 {
     if (r.size() > 2048)
     {
-        return -1;
+        return {};
     }
 
     std::string str;
     r.read_string(&str, r.size());
     if (str.empty())
     {
-        return -1;
+        return {};
     }
     leaf::upload_file_request req;
-    reflect::deserialize_struct(req, str);
-    handle->create_file_request(req);
-    return 0;
+    if (!reflect::deserialize_struct(req, str))
+    {
+        return {};
+    }
+    return req;
 }
 
-static int decode_create_file_exist(leaf::read_buffer &r, codec_handle *handle)
+static std::optional<leaf::create_file_exist> decode_create_file_exist(leaf::read_buffer &r)
 {
     if (r.size() > 2048)
     {
-        return -1;
+        return {};
     }
     std::string str;
     r.read_string(&str, r.size());
     if (str.empty())
     {
-        return -1;
+        return {};
     }
 
-    leaf::create_file_exist res;
-    reflect::deserialize_struct(res, str);
-    handle->create_file_exist(res);
-    return 0;
+    leaf::create_file_exist create;
+    if (!reflect::deserialize_struct(create, str))
+    {
+        return {};
+    }
+    return create;
 }
 
-static int decode_delete_file_request(leaf::read_buffer &r, codec_handle *handle)
+static std::optional<leaf::delete_file_request> decode_delete_file_request(leaf::read_buffer &r)
 {
     if (r.size() > 2048)
     {
-        return -1;
+        return {};
     }
     std::string filename;
     r.read_string(&filename, r.size());
     if (filename.empty())
     {
-        return -1;
+        return {};
     }
     leaf::delete_file_request req;
     req.filename = filename;
-    handle->delete_file_request(req);
-    return 0;
+    return req;
 }
-static int decode_create_file_response(leaf::read_buffer &r, codec_handle *handle)
+static std::optional<leaf::create_file_response> decode_create_file_response(leaf::read_buffer &r)
 {
     if (r.size() > 2048)
     {
-        return -1;
+        return {};
     }
     uint64_t file_id = 0;
     r.read_uint64(&file_id);
     std::string filename;
     r.read_string(&filename, r.size());
-    leaf::create_file_response res;
-    res.filename = filename;
-    res.file_id = file_id;
-    handle->create_file_response(res);
-    return 0;
+    leaf::create_file_response create;
+    create.filename = filename;
+    create.file_id = file_id;
+    return create;
 }
-static int decode_file_block_request(leaf::read_buffer &r, codec_handle *handle)
+static std::optional<leaf::file_block_request> decode_file_block_request(leaf::read_buffer &r)
 {
     if (r.size() > 2048)
     {
-        return -1;
+        return {};
     }
     uint64_t file_id = 0;
     r.read_uint64(&file_id);
     leaf::file_block_request req;
     req.file_id = file_id;
-    handle->file_block_request(req);
-    return 0;
+    return req;
 }
 
-static int decode_file_block_response(leaf::read_buffer &r, codec_handle *handle)
+static std::optional<leaf::file_block_response> decode_file_block_response(leaf::read_buffer &r)
 {
     if (r.size() > 2048)
     {
-        return -1;
+        return {};
     }
     uint64_t file_id = 0;
     r.read_uint64(&file_id);
@@ -299,14 +301,13 @@ static int decode_file_block_response(leaf::read_buffer &r, codec_handle *handle
     res.file_id = file_id;
     res.block_count = block_count;
     res.block_size = block_size;
-    handle->file_block_response(res);
-    return 0;
+    return res;
 }
-static int decode_block_data_request(leaf::read_buffer &r, codec_handle *handle)
+static std::optional<leaf::block_data_request> decode_block_data_request(leaf::read_buffer &r)
 {
     if (r.size() > 2048)
     {
-        return -1;
+        return {};
     }
     uint64_t file_id = 0;
     r.read_uint64(&file_id);
@@ -316,10 +317,9 @@ static int decode_block_data_request(leaf::read_buffer &r, codec_handle *handle)
     leaf::block_data_request req;
     req.file_id = file_id;
     req.block_id = block_id;
-    handle->block_data_request(req);
-    return 0;
+    return req;
 }
-static int decode_block_data_response(leaf::read_buffer &r, codec_handle *handle)
+static std::optional<leaf::block_data_response> decode_block_data_response(leaf::read_buffer &r)
 {
     uint64_t file_id = 0;
     r.read_uint64(&file_id);
@@ -327,31 +327,33 @@ static int decode_block_data_response(leaf::read_buffer &r, codec_handle *handle
     r.read_uint32(&block_id);
     std::vector<uint8_t> block_data(r.size(), '0');
     r.read_bytes(block_data.data(), r.size());
-    leaf::block_data_response res;
-    res.file_id = file_id;
-    res.block_id = block_id;
-    res.data.swap(block_data);
-    handle->block_data_response(res);
-    return 0;
+    leaf::block_data_response block;
+    block.file_id = file_id;
+    block.block_id = block_id;
+    block.data.swap(block_data);
+    return block;
 }
-static int decode_block_data_finish(leaf::read_buffer &r, codec_handle *handle)
+static std::optional<leaf::block_data_finish> decode_block_data_finish(leaf::read_buffer &r)
 {
     if (r.size() > 2048)
     {
-        return -1;
+        return {};
     }
     std::string str;
     r.read_string(&str, r.size());
     if (str.empty())
     {
-        return -1;
+        return {};
     }
-    leaf::block_data_finish res;
-    reflect::deserialize_struct(res, str);
-    handle->block_data_finish(res);
-    return 0;
+    leaf::block_data_finish finish;
+    if (!reflect::deserialize_struct(finish, str))
+    {
+        return {};
+    }
+    return finish;
 }
-int deserialize_message(const uint8_t *data, uint64_t len, codec_handle *handle)
+
+std::optional<codec_message> deserialize_message(const uint8_t *data, uint64_t len)
 {
     leaf::read_buffer r(data, len);
     uint64_t msg_padding = 0;
@@ -360,42 +362,42 @@ int deserialize_message(const uint8_t *data, uint64_t len, codec_handle *handle)
     r.read_uint16(&msg_type);
     if (msg_type == leaf::to_underlying(leaf::message_type::upload_file_request))
     {
-        return decode_create_file_request(r, handle);
+        return decode_create_file_request(r);
     }
     if (msg_type == leaf::to_underlying(leaf::message_type::delete_file_request))
     {
-        return decode_delete_file_request(r, handle);
+        return decode_delete_file_request(r);
     }
     if (msg_type == leaf::to_underlying(leaf::message_type::upload_file_response))
     {
-        return decode_create_file_response(r, handle);
+        return decode_create_file_response(r);
     }
     if (msg_type == leaf::to_underlying(leaf::message_type::file_block_request))
     {
-        return decode_file_block_request(r, handle);
+        return decode_file_block_request(r);
     }
     if (msg_type == leaf::to_underlying(leaf::message_type::file_block_response))
     {
-        return decode_file_block_response(r, handle);
+        return decode_file_block_response(r);
     }
     if (msg_type == leaf::to_underlying(leaf::message_type::block_data_request))
     {
-        return decode_block_data_request(r, handle);
+        return decode_block_data_request(r);
     }
     if (msg_type == leaf::to_underlying(leaf::message_type::block_data_response))
     {
-        return decode_block_data_response(r, handle);
+        return decode_block_data_response(r);
     }
     if (msg_type == leaf::to_underlying(leaf::message_type::block_data_finish))
     {
-        return decode_block_data_finish(r, handle);
+        return decode_block_data_finish(r);
     }
     if (msg_type == leaf::to_underlying(leaf::message_type::upload_file_exist))
     {
-        return decode_create_file_exist(r, handle);
+        return decode_create_file_exist(r);
     }
 
-    return -1;
+    return {};
 }
 
 }    // namespace leaf

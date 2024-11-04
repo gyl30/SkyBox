@@ -54,7 +54,6 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
    private:
     std::string id_;
     bool writing_ = false;
-    leaf::codec_handle codec_;
     boost::beast::flat_buffer buffer_;
     boost::asio::ip::tcp::endpoint ed_;
     std::shared_ptr<upload_session> uploader_;

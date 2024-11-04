@@ -1,5 +1,6 @@
 #include <atomic>
 #include <filesystem>
+#include <utility>
 #include "log.h"
 #include "codec.h"
 #include "message.h"
@@ -13,21 +14,9 @@ static uint64_t file_id()
     static std::atomic<uint64_t> id = 0xff1;
     return ++id;
 }
-file_websocket_handle::file_websocket_handle(std::string id) : id_(std::move(id))
-{
-    // clang-format off
-    handle_.create_file_request = std::bind(&file_websocket_handle::on_upload_file_request, this, std::placeholders::_1);
-    handle_.delete_file_request = std::bind(&file_websocket_handle::on_delete_file_request, this, std::placeholders::_1);
-    handle_.file_block_request = std::bind(&file_websocket_handle::on_file_block_request, this, std::placeholders::_1);
-    handle_.block_data_request = std::bind(&file_websocket_handle::on_block_data_request, this, std::placeholders::_1);
-    handle_.create_file_response = std::bind(&file_websocket_handle::on_create_file_response, this, std::placeholders::_1);
-    handle_.delete_file_response = std::bind(&file_websocket_handle::on_delete_file_response, this, std::placeholders::_1);
-    handle_.file_block_response = std::bind(&file_websocket_handle::on_file_block_response, this, std::placeholders::_1);
-    handle_.block_data_response = std::bind(&file_websocket_handle::on_block_data_response, this, std::placeholders::_1);
-    handle_.error_response = std::bind(&file_websocket_handle::on_error_response, this, std::placeholders::_1);
-    // clang-format on
-    LOG_INFO("create {}", id_);
-}
+
+file_websocket_handle::file_websocket_handle(std::string id) : id_(std::move(id)) { LOG_INFO("create {}", id_); }
+
 file_websocket_handle::~file_websocket_handle()
 {
     //
@@ -41,22 +30,65 @@ void file_websocket_handle::startup()
 }
 
 void file_websocket_handle::on_text_message(const leaf::websocket_session::ptr& /*session*/,
-                                            const std::shared_ptr<std::vector<uint8_t>>& msg)
+                                            const std::shared_ptr<std::vector<uint8_t>>& bytes)
 {
 }
 void file_websocket_handle::on_binary_message(const leaf::websocket_session::ptr& session,
-                                              const std::shared_ptr<std::vector<uint8_t>>& msg)
+                                              const std::shared_ptr<std::vector<uint8_t>>& bytes)
 {
-    if (leaf::deserialize_message(msg->data(), msg->size(), &handle_) != 0)
+    auto msg = leaf::deserialize_message(bytes->data(), bytes->size());
+    if (!msg)
     {
         return;
     }
-    while (!handle_.msg_queue.empty())
+    on_message(msg.value());
+    while (!msg_queue_.empty())
     {
-        session->write(handle_.msg_queue.front());
-        handle_.msg_queue.pop();
+        session->write(msg_queue_.front());
+        msg_queue_.pop();
     }
 }
+
+void file_websocket_handle::on_message(const leaf::codec_message& msg)
+{
+    std::visit(
+        [this](auto&& arg)
+        {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, leaf::file_block_request>)
+            {
+                on_file_block_request(arg);
+            }
+            if constexpr (std::is_same_v<T, leaf::block_data_response>)
+            {
+                on_block_data_response(arg);
+            }
+            else if constexpr (std::is_same_v<T, leaf::upload_file_request>)
+            {
+                on_upload_file_request(arg);
+            }
+            else if constexpr (std::is_same_v<T, leaf::delete_file_response>)
+            {
+                on_delete_file_response(arg);
+            }
+            if constexpr (std::is_same_v<T, leaf::error_response>)
+            {
+                on_error_response(arg);
+            }
+        },
+        msg);
+}
+
+void file_websocket_handle::commit_message(const leaf::codec_message& msg)
+{
+    std::vector<uint8_t> bytes2;
+    if (leaf::serialize_message(msg, &bytes2) != 0)
+    {
+        return;
+    }
+    msg_queue_.push(bytes2);
+}
+
 void file_websocket_handle::shutdown()
 {
     //
@@ -111,15 +143,7 @@ void file_websocket_handle::upload_file_exist(const leaf::upload_file_request& m
     exist.hash = msg.hash;
     commit_message(exist);
 }
-void file_websocket_handle::commit_message(const leaf::codec_message& msg)
-{
-    std::vector<uint8_t> bytes2;
-    if (leaf::serialize_message(msg, &bytes2) != 0)
-    {
-        return;
-    }
-    handle_.msg_queue.push(bytes2);
-}
+
 void file_websocket_handle::on_delete_file_request(const leaf::delete_file_request& msg)
 {
     LOG_INFO("{} on_delete_file_request name {}", id_, msg.filename);

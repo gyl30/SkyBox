@@ -29,13 +29,6 @@ void plain_websocket_client::startup()
     uploader_->set_message_cb(std::bind(&plain_websocket_client::write_message, self, std::placeholders::_1));
     timer_ = std::make_shared<boost::asio::steady_timer>(ws_.get_executor());
     uploader_->startup();
-    codec_.create_file_response = std::bind(&upload_session::on_message, uploader_, std::placeholders::_1);
-    codec_.delete_file_response = std::bind(&upload_session::on_message, uploader_, std::placeholders::_1);
-    codec_.block_data_request = std::bind(&upload_session::on_message, uploader_, std::placeholders::_1);
-    codec_.file_block_request = std::bind(&upload_session::on_message, uploader_, std::placeholders::_1);
-    codec_.error_response = std::bind(&upload_session::on_message, uploader_, std::placeholders::_1);
-    codec_.block_data_finish = std::bind(&upload_session::on_message, uploader_, std::placeholders::_1);
-    codec_.create_file_exist = std::bind(&upload_session::on_message, uploader_, std::placeholders::_1);
     boost::asio::dispatch(ws_.get_executor(),
                           boost::beast::bind_front_handler(&plain_websocket_client::safe_startup, self));
     start_timer();
@@ -104,11 +97,12 @@ void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t by
 
     buffer_.consume(buffer_.size());
 
-    if (deserialize_message(bytes->data(), bytes->size(), &codec_) != 0)
+    auto msg = deserialize_message(bytes->data(), bytes->size());
+    if (!msg)
     {
         LOG_ERROR("{} deserialize message error {}", id_, bytes_transferred);
     }
-
+    uploader_->on_message(msg.value());
     do_read();
 }
 

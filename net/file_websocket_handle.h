@@ -1,3 +1,4 @@
+#include <queue>
 #include "codec.h"
 #include "message.h"
 #include "blake2b.h"
@@ -16,9 +17,9 @@ class file_websocket_handle : public websocket_handle
    public:
     void startup() override;
     void on_text_message(const leaf::websocket_session::ptr& session,
-                         const std::shared_ptr<std::vector<uint8_t>>& msg) override;
+                         const std::shared_ptr<std::vector<uint8_t>>& bytes) override;
     void on_binary_message(const leaf::websocket_session::ptr& session,
-                           const std::shared_ptr<std::vector<uint8_t>>& msg) override;
+                           const std::shared_ptr<std::vector<uint8_t>>& bytes) override;
     void shutdown() override;
 
    private:
@@ -35,14 +36,15 @@ class file_websocket_handle : public websocket_handle
     void block_data_finish();
     void block_data_finish1(uint64_t file_id, const std::string& filename, const std::string& hash);
     void upload_file_exist(const leaf::upload_file_request& msg);
+    void on_message(const leaf::codec_message& msg);
     void commit_message(const leaf::codec_message& msg);
 
    private:
     std::string id_;
-    leaf::codec_handle handle_;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;
+    std::queue<std::vector<uint8_t>> msg_queue_;
 };
 
 }    // namespace leaf
