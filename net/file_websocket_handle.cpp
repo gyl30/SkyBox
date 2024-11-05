@@ -81,12 +81,12 @@ void file_websocket_handle::on_message(const leaf::codec_message& msg)
 
 void file_websocket_handle::commit_message(const leaf::codec_message& msg)
 {
-    std::vector<uint8_t> bytes2;
-    if (leaf::serialize_message(msg, &bytes2) != 0)
+    std::vector<uint8_t> bytes = leaf::serialize_message(msg);
+    if (bytes.empty())
     {
         return;
     }
-    msg_queue_.push(bytes2);
+    msg_queue_.push(bytes);
 }
 
 void file_websocket_handle::shutdown()
@@ -98,11 +98,11 @@ void file_websocket_handle::shutdown()
 void file_websocket_handle::on_upload_file_request(const leaf::upload_file_request& msg)
 {
     std::error_code ec;
-    LOG_INFO("{} on_create_file_request file size {} name {} hash {}", id_, msg.file_size, msg.filename, msg.hash);
+    LOG_INFO("{} on_upload_file_request file size {} name {} hash {}", id_, msg.file_size, msg.filename, msg.hash);
     bool exist = std::filesystem::exists(msg.filename, ec);
     if (ec)
     {
-        LOG_ERROR("{} on_create_file_request file {} exist failed {}", id_, msg.filename, ec.message());
+        LOG_ERROR("{} on_upload_file_request file {} exist failed {}", id_, msg.filename, ec.message());
         return;
     }
     if (exist)
@@ -111,7 +111,7 @@ void file_websocket_handle::on_upload_file_request(const leaf::upload_file_reque
         std::string hash_hex = leaf::hash_file(msg.filename, hash_ec);
         if (hash_ec)
         {
-            LOG_ERROR("{} on_create_file_request file {} hash failed {}", id_, msg.filename, hash_ec.message());
+            LOG_ERROR("{} on_upload_file_request file {} hash failed {}", id_, msg.filename, hash_ec.message());
             return;
         }
         if (hash_hex == msg.hash)
@@ -121,7 +121,7 @@ void file_websocket_handle::on_upload_file_request(const leaf::upload_file_reque
         }
     }
     assert(file_ == nullptr);
-    leaf::create_file_response response;
+    leaf::upload_file_response response;
     response.filename = msg.filename;
     response.file_id = file_id();
     commit_message(response);
@@ -137,8 +137,8 @@ void file_websocket_handle::on_upload_file_request(const leaf::upload_file_reque
 
 void file_websocket_handle::upload_file_exist(const leaf::upload_file_request& msg)
 {
-    LOG_INFO("{} on_create_file_exist file {} hash {}", id_, msg.filename, msg.hash);
-    leaf::create_file_exist exist;
+    LOG_INFO("{} on_upload_file_exist file {} hash {}", id_, msg.filename, msg.hash);
+    leaf::upload_file_exist exist;
     exist.filename = msg.filename;
     exist.hash = msg.hash;
     commit_message(exist);
@@ -156,9 +156,9 @@ void file_websocket_handle::on_block_data_request(const leaf::block_data_request
 {
     LOG_INFO("{} on_block_data_request block id {} file id {}", id_, msg.block_id, msg.file_id);
 }
-void file_websocket_handle::on_create_file_response(const leaf::create_file_response& msg)
+void file_websocket_handle::on_upload_file_response(const leaf::upload_file_response& msg)
 {
-    LOG_INFO("{} on_create_file_response file id {} name {}", id_, msg.file_id, msg.filename);
+    LOG_INFO("{} on_upload_file_response file id {} name {}", id_, msg.file_id, msg.filename);
 }
 void file_websocket_handle::on_delete_file_response(const leaf::delete_file_response& msg)
 {

@@ -27,7 +27,7 @@ class file_websocket_handle : public websocket_handle
     void on_delete_file_request(const leaf::delete_file_request& msg);
     void on_file_block_request(const leaf::file_block_request& msg);
     void on_block_data_request(const leaf::block_data_request& msg);
-    void on_create_file_response(const leaf::create_file_response& msg);
+    void on_upload_file_response(const leaf::upload_file_response& msg);
     void on_delete_file_response(const leaf::delete_file_response& msg);
     void on_file_block_response(const leaf::file_block_response& msg);
     void on_block_data_response(const leaf::block_data_response& msg);

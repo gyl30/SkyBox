@@ -190,8 +190,8 @@ void plain_websocket_client::timer_callback(const boost::system::error_code& ec)
 
 void plain_websocket_client::safe_write_message(const codec_message& msg)
 {
-    std::vector<uint8_t> bytes;
-    if (serialize_message(msg, &bytes) != 0)
+    std::vector<uint8_t> bytes = serialize_message(msg);
+    if (bytes.empty())
     {
         LOG_ERROR("{} serialize message failed", id_);
         return;

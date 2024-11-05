@@ -9,7 +9,7 @@ namespace reflect
 {
 REFLECT_STRUCT(leaf::upload_file_request, (file_size)(hash)(filename));
 REFLECT_STRUCT(leaf::block_data_finish, (file_id)(hash)(filename));
-REFLECT_STRUCT(leaf::create_file_exist, (hash)(filename));
+REFLECT_STRUCT(leaf::upload_file_exist, (hash)(filename));
 }    // namespace reflect
 
 template <typename E>
@@ -30,71 +30,85 @@ static void write_padding(leaf::write_buffer &w)
 
 namespace leaf
 {
-void serialize_create_file_request(const upload_file_request &msg, std::vector<uint8_t> *bytes)
+std::vector<uint8_t> serialize_upload_file_request(const upload_file_request &msg)
 {
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::upload_file_request));
-    std::string str = reflect::serialize_struct(const_cast<upload_file_request &>(msg));
+    std::string str = reflect::serialize_struct(msg);
     w.write_bytes(str.data(), str.size());
-    w.copy_to(bytes);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
 }
 
-void serialize_create_file_exist(const create_file_exist &msg, std::vector<uint8_t> *bytes)
+std::vector<uint8_t> serialize_upload_file_exist(const upload_file_exist &msg)
 {
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::upload_file_exist));
-    std::string str = reflect::serialize_struct(const_cast<create_file_exist &>(msg));
+    std::string str = reflect::serialize_struct(msg);
     w.write_bytes(str.data(), str.size());
-    w.copy_to(bytes);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
 }
 
-void serialize_create_file_response(const create_file_response &msg, std::vector<uint8_t> *bytes)
+std::vector<uint8_t> serialize_upload_file_response(const upload_file_response &msg)
 {
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::upload_file_response));
     w.write_uint64(msg.file_id);
     w.write_bytes(msg.filename.data(), msg.filename.size());
-    w.copy_to(bytes);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
 }
 
-void serialize_delete_file_request(const delete_file_request &msg, std::vector<uint8_t> *bytes)
+std::vector<uint8_t> serialize_delete_file_request(const delete_file_request &msg)
 {
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::delete_file_request));
     w.write_bytes(msg.filename.data(), msg.filename.size());
-    w.copy_to(bytes);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
 }
-void serialize_file_block_request(const file_block_request &msg, std::vector<uint8_t> *bytes)
+std::vector<uint8_t> serialize_file_block_request(const file_block_request &msg)
 {
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::file_block_request));
     w.write_uint64(msg.file_id);
-    w.copy_to(bytes);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
 }
-void serialize_delete_file_response(const delete_file_response &msg, std::vector<uint8_t> *bytes)
+std::vector<uint8_t> serialize_delete_file_response(const delete_file_response &msg)
 {
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::delete_file_response));
     w.write_bytes(msg.filename.data(), msg.filename.size());
-    w.copy_to(bytes);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
 }
-void serialize_block_data_request(const block_data_request &msg, std::vector<uint8_t> *bytes)
+std::vector<uint8_t> serialize_block_data_request(const block_data_request &msg)
 {
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::block_data_request));
     w.write_uint64(msg.file_id);
     w.write_uint32(msg.block_id);
-    w.copy_to(bytes);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
 }
 
-void serialize_file_block_response(const file_block_response &msg, std::vector<uint8_t> *bytes)
+std::vector<uint8_t> serialize_file_block_response(const file_block_response &msg)
 {
     leaf::write_buffer w;
     write_padding(w);
@@ -102,9 +116,11 @@ void serialize_file_block_response(const file_block_response &msg, std::vector<u
     w.write_uint64(msg.file_id);
     w.write_uint32(msg.block_size);
     w.write_uint32(msg.block_count);
-    w.copy_to(bytes);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
 }
-void serialize_block_data_response(const block_data_response &msg, std::vector<uint8_t> *bytes)
+std::vector<uint8_t> serialize_block_data_response(const block_data_response &msg)
 {
     leaf::write_buffer w;
     write_padding(w);
@@ -112,91 +128,34 @@ void serialize_block_data_response(const block_data_response &msg, std::vector<u
     w.write_uint64(msg.file_id);
     w.write_uint32(msg.block_id);
     w.write_bytes(msg.data.data(), msg.data.size());
-    w.copy_to(bytes);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
 }
-void serialize_block_data_finish(const block_data_finish &msg, std::vector<uint8_t> *bytes)
+std::vector<uint8_t> serialize_block_data_finish(const block_data_finish &msg)
 {
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::block_data_finish));
-    std::string str = reflect::serialize_struct(const_cast<block_data_finish &>(msg));
+    std::string str = reflect::serialize_struct(msg);
     w.write_bytes(str.data(), str.size());
-    w.copy_to(bytes);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
 }
 
-void serialize_error_response(const error_response &msg, std::vector<uint8_t> *bytes)
+std::vector<uint8_t> serialize_error_response(const error_response &msg)
 {
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::error));
     w.write_uint32(msg.error);
-    w.copy_to(bytes);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
 }
 
-int serialize_message(const codec_message &msg, std::vector<uint8_t> *bytes)
-{
-    //
-
-    int ret = 0;
-    std::visit(
-        [&](auto &&arg)
-        {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, leaf::upload_file_request>)
-            {
-                serialize_create_file_request(arg, bytes);
-            }
-            else if constexpr (std::is_same_v<T, leaf::delete_file_request>)
-            {
-                serialize_delete_file_request(arg, bytes);
-            }
-            else if constexpr (std::is_same_v<T, leaf::file_block_request>)
-            {
-                serialize_file_block_request(arg, bytes);
-            }
-            else if constexpr (std::is_same_v<T, leaf::block_data_request>)
-            {
-                serialize_block_data_request(arg, bytes);
-            }
-
-            else if constexpr (std::is_same_v<T, leaf::create_file_response>)
-            {
-                serialize_create_file_response(arg, bytes);
-            }
-            else if constexpr (std::is_same_v<T, leaf::delete_file_response>)
-            {
-                serialize_delete_file_response(arg, bytes);
-            }
-            else if constexpr (std::is_same_v<T, leaf::file_block_response>)
-            {
-                serialize_file_block_response(arg, bytes);
-            }
-            else if constexpr (std::is_same_v<T, leaf::block_data_response>)
-            {
-                serialize_block_data_response(arg, bytes);
-            }
-            else if constexpr (std::is_same_v<T, leaf::error_response>)
-            {
-                serialize_error_response(arg, bytes);
-            }
-            else if constexpr (std::is_same_v<T, leaf::block_data_finish>)
-            {
-                serialize_block_data_finish(arg, bytes);
-            }
-            else if constexpr (std::is_same_v<T, leaf::create_file_exist>)
-            {
-                serialize_create_file_exist(arg, bytes);
-            }
-            else
-            {
-                ret = -1;
-            }
-        },
-        msg);
-    return ret;
-}
-
-static std::optional<leaf::upload_file_request> decode_create_file_request(leaf::read_buffer &r)
+static std::optional<leaf::upload_file_request> decode_upload_file_request(leaf::read_buffer &r)
 {
     if (r.size() > 2048)
     {
@@ -217,7 +176,7 @@ static std::optional<leaf::upload_file_request> decode_create_file_request(leaf:
     return req;
 }
 
-static std::optional<leaf::create_file_exist> decode_create_file_exist(leaf::read_buffer &r)
+static std::optional<leaf::upload_file_exist> decode_upload_file_exist(leaf::read_buffer &r)
 {
     if (r.size() > 2048)
     {
@@ -230,7 +189,7 @@ static std::optional<leaf::create_file_exist> decode_create_file_exist(leaf::rea
         return {};
     }
 
-    leaf::create_file_exist create;
+    leaf::upload_file_exist create;
     if (!reflect::deserialize_struct(create, str))
     {
         return {};
@@ -254,7 +213,7 @@ static std::optional<leaf::delete_file_request> decode_delete_file_request(leaf:
     req.filename = filename;
     return req;
 }
-static std::optional<leaf::create_file_response> decode_create_file_response(leaf::read_buffer &r)
+static std::optional<leaf::upload_file_response> decode_upload_file_response(leaf::read_buffer &r)
 {
     if (r.size() > 2048)
     {
@@ -264,7 +223,7 @@ static std::optional<leaf::create_file_response> decode_create_file_response(lea
     r.read_uint64(&file_id);
     std::string filename;
     r.read_string(&filename, r.size());
-    leaf::create_file_response create;
+    leaf::upload_file_response create;
     create.filename = filename;
     create.file_id = file_id;
     return create;
@@ -352,51 +311,61 @@ static std::optional<leaf::block_data_finish> decode_block_data_finish(leaf::rea
     }
     return finish;
 }
+std::vector<uint8_t> serialize_message(const codec_message &msg)
+{
+    struct message_serializer
+    {
+#define XXX(xx) \
+    std::vector<uint8_t> operator()(const leaf::xx &arg) const { return serialize_##xx(arg); }
+        XXX(upload_file_request)
+        XXX(delete_file_request)
+        XXX(file_block_request)
+        XXX(block_data_request)
+        XXX(upload_file_response)
+        XXX(delete_file_response)
+        XXX(file_block_response)
+        XXX(block_data_response)
+        XXX(error_response)
+        XXX(block_data_finish)
+        XXX(upload_file_exist)
+#undef XXX
+    };
+    return std::visit(message_serializer{}, msg);
+}
 
 std::optional<codec_message> deserialize_message(const uint8_t *data, uint64_t len)
 {
     leaf::read_buffer r(data, len);
-    uint64_t msg_padding = 0;
-    r.read_uint64(&msg_padding);
-    uint16_t msg_type = 0;
-    r.read_uint16(&msg_type);
-    if (msg_type == leaf::to_underlying(leaf::message_type::upload_file_request))
-    {
-        return decode_create_file_request(r);
-    }
-    if (msg_type == leaf::to_underlying(leaf::message_type::delete_file_request))
-    {
-        return decode_delete_file_request(r);
-    }
-    if (msg_type == leaf::to_underlying(leaf::message_type::upload_file_response))
-    {
-        return decode_create_file_response(r);
-    }
-    if (msg_type == leaf::to_underlying(leaf::message_type::file_block_request))
-    {
-        return decode_file_block_request(r);
-    }
-    if (msg_type == leaf::to_underlying(leaf::message_type::file_block_response))
-    {
-        return decode_file_block_response(r);
-    }
-    if (msg_type == leaf::to_underlying(leaf::message_type::block_data_request))
-    {
-        return decode_block_data_request(r);
-    }
-    if (msg_type == leaf::to_underlying(leaf::message_type::block_data_response))
-    {
-        return decode_block_data_response(r);
-    }
-    if (msg_type == leaf::to_underlying(leaf::message_type::block_data_finish))
-    {
-        return decode_block_data_finish(r);
-    }
-    if (msg_type == leaf::to_underlying(leaf::message_type::upload_file_exist))
-    {
-        return decode_create_file_exist(r);
-    }
+    uint64_t padding = 0;
+    r.read_uint64(&padding);
 
+    uint16_t type = 0;
+    r.read_uint16(&type);
+
+    switch (static_cast<leaf::message_type>(type))
+    {
+        case leaf::message_type::upload_file_request:
+            return decode_upload_file_request(r);
+        case leaf::message_type::delete_file_request:
+            return decode_delete_file_request(r);
+        case leaf::message_type::upload_file_response:
+            return decode_upload_file_response(r);
+        case leaf::message_type::file_block_request:
+            return decode_file_block_request(r);
+        case leaf::message_type::file_block_response:
+            return decode_file_block_response(r);
+        case leaf::message_type::block_data_request:
+            return decode_block_data_request(r);
+        case leaf::message_type::block_data_response:
+            return decode_block_data_response(r);
+        case leaf::message_type::block_data_finish:
+            return decode_block_data_finish(r);
+        case leaf::message_type::upload_file_exist:
+            return decode_upload_file_exist(r);
+        case leaf::message_type::delete_file_response:
+        case leaf::message_type::error:
+            return {};
+    }
     return {};
 }
 

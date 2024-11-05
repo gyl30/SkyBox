@@ -30,9 +30,9 @@ void upload_session::on_message(const leaf::codec_message& msg)
             {
                 block_data_request(arg);
             }
-            else if constexpr (std::is_same_v<T, leaf::create_file_response>)
+            else if constexpr (std::is_same_v<T, leaf::upload_file_response>)
             {
-                create_file_response(arg);
+                upload_file_response(arg);
             }
             else if constexpr (std::is_same_v<T, leaf::delete_file_response>)
             {
@@ -42,9 +42,9 @@ void upload_session::on_message(const leaf::codec_message& msg)
             {
                 block_data_finish(arg);
             }
-            else if constexpr (std::is_same_v<T, leaf::create_file_exist>)
+            else if constexpr (std::is_same_v<T, leaf::upload_file_exist>)
             {
-                create_file_exist(arg);
+                upload_file_exist(arg);
             }
             else if constexpr (std::is_same_v<T, leaf::error_response>)
             {
@@ -56,17 +56,17 @@ void upload_session::on_message(const leaf::codec_message& msg)
         },
         msg);
 }
-void upload_session::create_file_response(const leaf::create_file_response& msg)
+void upload_session::upload_file_response(const leaf::upload_file_response& msg)
 {
     file_->id = msg.file_id;
-    LOG_INFO("{} create_file_response id {} name {}", id_, msg.file_id, msg.filename);
+    LOG_INFO("{} upload_file_response id {} name {}", id_, msg.file_id, msg.filename);
 }
 void upload_session::delete_file_response(const leaf::delete_file_response& msg)
 {
     LOG_INFO("{} delete_file_response name {}", id_, msg.filename);
 }
 
-void upload_session::create_file_request()
+void upload_session::upload_file_request()
 {
     if (file_ == nullptr)
     {
@@ -76,14 +76,14 @@ void upload_session::create_file_request()
     std::string h = leaf::hash_file(file_->name, hash_ec);
     if (hash_ec)
     {
-        LOG_ERROR("{} create_file_request file {} hash error {}", id_, file_->name, hash_ec.message());
+        LOG_ERROR("{} upload_file_request file {} hash error {}", id_, file_->name, hash_ec.message());
         return;
     }
     std::error_code size_ec;
     auto file_size = std::filesystem::file_size(file_->name, size_ec);
     if (size_ec)
     {
-        LOG_ERROR("{} create_file_request file {} size error {}", id_, file_->name, size_ec.message());
+        LOG_ERROR("{} upload_file_request file {} size error {}", id_, file_->name, size_ec.message());
         return;
     }
     open_file();
@@ -91,7 +91,7 @@ void upload_session::create_file_request()
     {
         return;
     }
-    LOG_DEBUG("{} create_file_request {} size {} hash {}", id_, file_->name, file_size, h);
+    LOG_DEBUG("{} upload_file_request {} size {} hash {}", id_, file_->name, file_size, h);
     leaf::upload_file_request create;
     create.file_size = file_size;
     create.hash = h;
@@ -147,7 +147,7 @@ void upload_session::update()
     file_ = padding_files_.front();
     padding_files_.pop();
     LOG_INFO("{} start_file {} size {}", id_, file_->name, padding_files_.size());
-    create_file_request();
+    upload_file_request();
 }
 
 void upload_session::block_data_request(const leaf::block_data_request& msg)
@@ -226,7 +226,7 @@ void upload_session::block_data_finish(const leaf::block_data_finish& msg)
         return;
     }
 }
-void upload_session::create_file_exist(const leaf::create_file_exist& exist)
+void upload_session::upload_file_exist(const leaf::upload_file_exist& exist)
 {
     assert(file_ && reader_ && blake2b_);
     auto ec = reader_->close();
@@ -242,7 +242,7 @@ void upload_session::create_file_exist(const leaf::create_file_exist& exist)
     std::string filename = std::filesystem::path(file_->name).filename().string();
     assert(filename == exist.filename);
     file_ = nullptr;
-    LOG_INFO("{} create_file_exist {} hash {}", id_, exist.filename, exist.hash);
+    LOG_INFO("{} upload_file_exist {} hash {}", id_, exist.filename, exist.hash);
 }
 void upload_session::error_response(const leaf::error_response& msg) { LOG_ERROR("{} error {}", id_, msg.error); }
 }    // namespace leaf

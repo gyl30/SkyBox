@@ -11,7 +11,7 @@ namespace leaf
 class upload_session
 {
    public:
-explicit    upload_session(std::string id);
+    explicit upload_session(std::string id);
     ~upload_session();
 
    public:
@@ -26,13 +26,13 @@ explicit    upload_session(std::string id);
 
    private:
     void open_file();
-    void create_file_request();
-    void create_file_response(const leaf::create_file_response &);
+    void upload_file_request();
+    void upload_file_response(const leaf::upload_file_response &);
+    void upload_file_exist(const leaf::upload_file_exist &);
     void delete_file_response(const leaf::delete_file_response &);
     void block_data_request(const leaf::block_data_request &);
     void file_block_request(const leaf::file_block_request &);
     void block_data_finish(const leaf::block_data_finish &);
-    void create_file_exist(const leaf::create_file_exist &);
     void error_response(const leaf::error_response &);
     void write_message(const codec_message &msg);
 

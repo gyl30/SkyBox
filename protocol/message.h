@@ -50,7 +50,7 @@ struct block_data_finish
     std::string filename;
 };
 
-struct create_file_exist
+struct upload_file_exist
 {
     std::string hash;
     std::string filename;
@@ -62,7 +62,7 @@ struct error_response
     uint32_t error = 0;
 };
 // response 4 bytes length + 2 bytes id
-struct create_file_response
+struct upload_file_response
 {
     uint64_t file_id = 0;
     std::string filename;

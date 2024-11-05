@@ -40,7 +40,8 @@ struct JsonReader
 
 struct JsonWriter
 {
-    using W = rapidjson::Writer<rapidjson::StringBuffer, rapidjson::UTF8<char>, rapidjson::UTF8<char>, rapidjson::CrtAllocator, 0>;
+    using W = rapidjson::
+        Writer<rapidjson::StringBuffer, rapidjson::UTF8<char>, rapidjson::UTF8<char>, rapidjson::CrtAllocator, 0>;
 
     W *m;
 
@@ -294,12 +295,14 @@ inline bool deserialize_struct(T &t, const char *msg, std::size_t lenght)
 }
 
 template <typename T>
-inline std::string serialize_struct(T &t)
+inline std::string serialize_struct(const T &t)
 {
+    using non_const_t = typename std::remove_const<T>::type;
+    auto &nt = const_cast<non_const_t &>(t);
     rapidjson::StringBuffer sb;
     rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
     JsonWriter json_writer(&writer);
-    reflect(json_writer, t);
+    reflect(json_writer, nt);
     return sb.GetString();
 }
 
