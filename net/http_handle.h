@@ -21,7 +21,7 @@ class http_handle
 
    public:
     virtual void handle(const leaf::http_session::ptr &session, const leaf::http_session::http_request_ptr &req) = 0;
-    virtual leaf::websocket_handle::ptr websocket_handle(const std::string &) = 0;
+    virtual leaf::websocket_handle::ptr websocket_handle(const std::string &, const std::string &) = 0;
 };
 
 }    // namespace leaf

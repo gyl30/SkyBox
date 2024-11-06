@@ -1,10 +1,19 @@
+#include <boost/algorithm/string.hpp>
+
 #include "file_http_handle.h"
-#include "file_websocket_handle.h"
+#include "upload_file_handle.h"
 
 namespace leaf
 {
 
-leaf::websocket_handle::ptr file_http_handle::websocket_handle(const std::string &id) { return std::make_shared<file_websocket_handle>(id); }
+leaf::websocket_handle::ptr file_http_handle::websocket_handle(const std::string &id, const std::string &target)
+{
+    if (boost::ends_with(target, "/upload"))
+    {
+        return std::make_shared<upload_file_handle>(id);
+    }
+    return nullptr;
+}
 
 void file_http_handle::handle(const leaf::http_session::ptr &session, const leaf::http_session::http_request_ptr &req)
 {

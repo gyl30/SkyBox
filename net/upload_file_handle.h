@@ -8,11 +8,11 @@
 namespace leaf
 {
 
-class file_websocket_handle : public websocket_handle
+class upload_file_handle : public websocket_handle
 {
    public:
-    explicit file_websocket_handle(std::string id);
-    ~file_websocket_handle() override;
+    explicit upload_file_handle(std::string id);
+    ~upload_file_handle() override;
 
    public:
     void startup() override;

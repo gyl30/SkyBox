@@ -15,7 +15,7 @@ class file_http_handle : public http_handle
 
    public:
     void handle(const leaf::http_session::ptr &session, const leaf::http_session::http_request_ptr &req) override;
-    leaf::websocket_handle::ptr websocket_handle(const std::string & id) override;
+    leaf::websocket_handle::ptr websocket_handle(const std::string & id,const std::string& target) override;
 };
 
 }    // namespace leaf

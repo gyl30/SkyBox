@@ -113,15 +113,6 @@ void ssl_websocket_session::do_write()
         return;
     }
     auto& msg = msg_queue_.front();
-    if (msg.back() == '0')
-    {
-        ws_.text(true);
-    }
-    else if (msg.back() == '1')
-    {
-        ws_.binary(true);
-    }
-
     ws_.async_write(boost::asio::buffer(msg.data(), msg.size() - 1),
                     boost::beast::bind_front_handler(&ssl_websocket_session::on_write, this));
 }
