@@ -59,6 +59,10 @@ void file_websocket_handle::on_message(const leaf::codec_message& msg)
             {
                 on_file_block_request(arg);
             }
+            if constexpr (std::is_same_v<T, leaf::file_block_response>)
+            {
+                on_file_block_response(arg);
+            }
             if constexpr (std::is_same_v<T, leaf::block_data_response>)
             {
                 on_block_data_response(arg);
