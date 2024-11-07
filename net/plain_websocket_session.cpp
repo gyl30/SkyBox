@@ -85,18 +85,18 @@ void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t b
         LOG_ERROR("{} read failed {}", id_, ec.message());
         return shutdown();
     }
+
     auto bytes = leaf::buffers_to_vector(buffer_.data());
 
     buffer_.consume(buffer_.size());
 
-    if (ws_.got_binary())
+    if (!ws_.got_binary())
     {
-        h_->on_binary_message(shared_from_this(), bytes);
+        return shutdown();
     }
-    else
-    {
-        h_->on_text_message(shared_from_this(), bytes);
-    }
+
+    h_->on_message(shared_from_this(), bytes);
+
     do_read();
 }
 

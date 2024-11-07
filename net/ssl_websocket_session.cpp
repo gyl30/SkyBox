@@ -84,14 +84,13 @@ void ssl_websocket_session::on_read(boost::beast::error_code ec, std::size_t byt
 
     buffer_.consume(buffer_.size());
 
-    if (ws_.binary())
+    if (!ws_.binary())
     {
-        h_->on_binary_message(shared_from_this(), bytes);
+        return shutdown();
     }
-    else
-    {
-        h_->on_text_message(shared_from_this(), bytes);
-    }
+
+    h_->on_message(shared_from_this(), bytes);
+
     do_read();
 }
 void ssl_websocket_session::write(const std::vector<uint8_t>& msg)

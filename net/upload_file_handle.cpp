@@ -29,12 +29,8 @@ void upload_file_handle::startup()
     LOG_INFO("startup {}", id_);
 }
 
-void upload_file_handle::on_text_message(const leaf::websocket_session::ptr& /*session*/,
-                                            const std::shared_ptr<std::vector<uint8_t>>& bytes)
-{
-}
-void upload_file_handle::on_binary_message(const leaf::websocket_session::ptr& session,
-                                              const std::shared_ptr<std::vector<uint8_t>>& bytes)
+void upload_file_handle::on_message(const leaf::websocket_session::ptr& session,
+                                    const std::shared_ptr<std::vector<uint8_t>>& bytes)
 {
     auto msg = leaf::deserialize_message(bytes->data(), bytes->size());
     if (!msg)
@@ -55,10 +51,6 @@ void upload_file_handle::on_message(const leaf::codec_message& msg)
         [this](auto&& arg)
         {
             using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, leaf::file_block_request>)
-            {
-                on_file_block_request(arg);
-            }
             if constexpr (std::is_same_v<T, leaf::file_block_response>)
             {
                 on_file_block_response(arg);
@@ -67,13 +59,9 @@ void upload_file_handle::on_message(const leaf::codec_message& msg)
             {
                 on_block_data_response(arg);
             }
-            else if constexpr (std::is_same_v<T, leaf::upload_file_request>)
+            if constexpr (std::is_same_v<T, leaf::upload_file_request>)
             {
                 on_upload_file_request(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::delete_file_response>)
-            {
-                on_delete_file_response(arg);
             }
             if constexpr (std::is_same_v<T, leaf::error_response>)
             {
@@ -151,22 +139,6 @@ void upload_file_handle::upload_file_exist(const leaf::upload_file_request& msg)
 void upload_file_handle::on_delete_file_request(const leaf::delete_file_request& msg)
 {
     LOG_INFO("{} on_delete_file_request name {}", id_, msg.filename);
-}
-void upload_file_handle::on_file_block_request(const leaf::file_block_request& msg)
-{
-    LOG_INFO("{} on_file_block_request file id {}", id_, msg.file_id);
-}
-void upload_file_handle::on_block_data_request(const leaf::block_data_request& msg)
-{
-    LOG_INFO("{} on_block_data_request block id {} file id {}", id_, msg.block_id, msg.file_id);
-}
-void upload_file_handle::on_upload_file_response(const leaf::upload_file_response& msg)
-{
-    LOG_INFO("{} on_upload_file_response file id {} name {}", id_, msg.file_id, msg.filename);
-}
-void upload_file_handle::on_delete_file_response(const leaf::delete_file_response& msg)
-{
-    LOG_INFO("{} on_delete_file_response name {}", id_, msg.filename);
 }
 
 void upload_file_handle::on_file_block_response(const leaf::file_block_response& msg)
