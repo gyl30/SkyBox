@@ -29,6 +29,13 @@ struct upload_file_request
     std::string hash;
     std::string filename;
 };
+
+struct download_file_request
+{
+    std::string filename;
+};
+
+
 struct file_block_request
 {
     uint64_t file_id = 0;
