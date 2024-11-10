@@ -10,6 +10,8 @@ namespace leaf
 using codec_message = std::variant<leaf::upload_file_request,
                                    leaf::upload_file_exist,
                                    leaf::upload_file_response,
+                                   leaf::download_file_request,
+                                   leaf::download_file_response,
                                    leaf::delete_file_request,
                                    leaf::file_block_request,
                                    leaf::delete_file_response,

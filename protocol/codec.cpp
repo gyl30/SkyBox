@@ -10,6 +10,7 @@ namespace reflect
 REFLECT_STRUCT(leaf::upload_file_request, (file_size)(hash)(filename));
 REFLECT_STRUCT(leaf::block_data_finish, (file_id)(hash)(filename));
 REFLECT_STRUCT(leaf::upload_file_exist, (hash)(filename));
+REFLECT_STRUCT(leaf::download_file_response, (hash)(filename)(file_size)(file_id));
 }    // namespace reflect
 
 template <typename E>
@@ -41,7 +42,6 @@ std::vector<uint8_t> serialize_upload_file_request(const upload_file_request &ms
     w.copy_to(&bytes);
     return bytes;
 }
-
 std::vector<uint8_t> serialize_upload_file_exist(const upload_file_exist &msg)
 {
     leaf::write_buffer w;
@@ -61,6 +61,27 @@ std::vector<uint8_t> serialize_upload_file_response(const upload_file_response &
     w.write_uint16(leaf::to_underlying(message_type::upload_file_response));
     w.write_uint64(msg.file_id);
     w.write_bytes(msg.filename.data(), msg.filename.size());
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
+}
+std::vector<uint8_t> serialize_download_file_request(const download_file_request &msg)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(leaf::to_underlying(message_type::download_file_request));
+    w.write_bytes(msg.filename.data(), msg.filename.size());
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
+}
+std::vector<uint8_t> serialize_download_file_response(const download_file_response &msg)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(leaf::to_underlying(message_type::download_file_response));
+    std::string str = reflect::serialize_struct(msg);
+    w.write_bytes(str.data(), str.size());
     std::vector<uint8_t> bytes;
     w.copy_to(&bytes);
     return bytes;
@@ -328,6 +349,8 @@ std::vector<uint8_t> serialize_message(const codec_message &msg)
         XXX(error_response)
         XXX(block_data_finish)
         XXX(upload_file_exist)
+        XXX(download_file_request)
+        XXX(download_file_response)
 #undef XXX
     };
     return std::visit(message_serializer{}, msg);
@@ -362,6 +385,8 @@ std::optional<codec_message> deserialize_message(const uint8_t *data, uint64_t l
             return decode_block_data_finish(r);
         case leaf::message_type::upload_file_exist:
             return decode_upload_file_exist(r);
+        case leaf::message_type::download_file_request:
+        case leaf::message_type::download_file_response:
         case leaf::message_type::delete_file_response:
         case leaf::message_type::error:
             return {};

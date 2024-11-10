@@ -19,6 +19,8 @@ enum class message_type : uint16_t
     block_data_response = 0x08,
     block_data_finish = 0x09,
     upload_file_exist = 0x10,
+    download_file_request = 0x11,
+    download_file_response = 0x12
 };
 
 // ------------------------------------------------------------------------------
@@ -35,6 +37,13 @@ struct download_file_request
     std::string filename;
 };
 
+struct download_file_response
+{
+    uint64_t file_id = 0;
+    uint64_t file_size = 0;
+    std::string hash;
+    std::string filename;
+};
 
 struct file_block_request
 {
