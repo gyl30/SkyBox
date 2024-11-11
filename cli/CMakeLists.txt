@@ -13,6 +13,7 @@ add_executable(cli
     cli.cpp 
     plain_websocket_client.cpp 
     upload_session.cpp
+    download_session.cpp
     ${CLI_SOURCE_FILE})
 list(APPEND 
     CLI_INCLUDE_DIRS 
