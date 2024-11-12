@@ -8,6 +8,7 @@
 #include "codec.h"
 #include "file_context.h"
 #include "upload_session.h"
+#include "download_session.h"
 
 namespace leaf
 {
@@ -27,7 +28,8 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
    public:
     void startup();
     void shutdown();
-    void add_file(const leaf::file_context::ptr& file);
+    void add_upload_file(const leaf::file_context::ptr& file);
+    void add_download_file(const leaf::file_context::ptr& file);
 
    private:
     void on_connect(boost::beast::error_code ec);
@@ -38,7 +40,8 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     void safe_read();
     void on_read(boost::beast::error_code ec, std::size_t bytes_transferred);
 
-    void safe_add_file(const leaf::file_context::ptr& file);
+    void safe_add_upload_file(const leaf::file_context::ptr& file);
+    void safe_add_download_file(const leaf::file_context::ptr& file);
     void safe_write(const std::vector<uint8_t>& msg);
     void write(const std::vector<uint8_t>& msg);
     void do_write();
@@ -57,6 +60,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     boost::beast::flat_buffer buffer_;
     boost::asio::ip::tcp::endpoint ed_;
     std::shared_ptr<upload_session> uploader_;
+    std::shared_ptr<download_session> downloader_;
     std::queue<std::vector<uint8_t>> msg_queue_;
     std::shared_ptr<boost::asio::steady_timer> timer_;
     boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;

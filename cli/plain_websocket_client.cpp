@@ -120,14 +120,23 @@ void plain_websocket_client::safe_shutdown()
     uploader_->shutdown();
 }
 
-void plain_websocket_client::add_file(const leaf::file_context::ptr& file)
+void plain_websocket_client::add_upload_file(const leaf::file_context::ptr& file)
 {
     boost::asio::dispatch(
         ws_.get_executor(),
-        boost::beast::bind_front_handler(&plain_websocket_client::safe_add_file, shared_from_this(), file));
+        boost::beast::bind_front_handler(&plain_websocket_client::safe_add_upload_file, shared_from_this(), file));
 }
 
-void plain_websocket_client::safe_add_file(const leaf::file_context::ptr& file) { uploader_->add_file(file); }
+void plain_websocket_client::add_download_file(const leaf::file_context::ptr& file)
+{
+    boost::asio::dispatch(
+        ws_.get_executor(),
+        boost::beast::bind_front_handler(&plain_websocket_client::safe_add_download_file, shared_from_this(), file));
+}
+
+void plain_websocket_client::safe_add_download_file(const leaf::file_context::ptr& file) { uploader_->add_file(file); }
+
+void plain_websocket_client::safe_add_upload_file(const leaf::file_context::ptr& file) { uploader_->add_file(file); }
 
 void plain_websocket_client::write(const std::vector<uint8_t>& msg)
 {
@@ -184,7 +193,11 @@ void plain_websocket_client::timer_callback(const boost::system::error_code& ec)
         LOG_ERROR("{} timer error {}", id_, ec.message());
         return;
     }
+
     uploader_->update();
+
+    downloader_->update();
+
     start_timer();
 }
 
