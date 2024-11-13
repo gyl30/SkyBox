@@ -9,9 +9,11 @@ namespace leaf
 {
 
 plain_websocket_client::plain_websocket_client(std::string id,
+                                               std::string target,
+                                               std::shared_ptr<leaf::base_session> session,
                                                boost::asio::ip::tcp::endpoint ed,
                                                boost::asio::io_context& io)
-    : id_(std::move(id)), ed_(std::move(ed)), ws_(io)
+    : id_(std::move(id)), target_(std::move(target)), ed_(std::move(ed)), session_(std::move(session)), ws_(io)
 {
     LOG_INFO("create {}", id_);
 }
@@ -24,11 +26,10 @@ plain_websocket_client::~plain_websocket_client()
 
 void plain_websocket_client::startup()
 {
-    auto self = shared_from_this();
-    uploader_ = std::make_shared<leaf::upload_session>(id_);
-    uploader_->set_message_cb(std::bind(&plain_websocket_client::write_message, self, std::placeholders::_1));
     timer_ = std::make_shared<boost::asio::steady_timer>(ws_.get_executor());
-    uploader_->startup();
+    auto self = shared_from_this();
+    session_->set_message_cb(std::bind(&plain_websocket_client::write_message, self, std::placeholders::_1));
+    session_->startup();
     boost::asio::dispatch(ws_.get_executor(),
                           boost::beast::bind_front_handler(&plain_websocket_client::safe_startup, self));
     start_timer();
@@ -50,17 +51,16 @@ void plain_websocket_client::on_connect(boost::beast::error_code ec)
         LOG_ERROR("{} connect to {} failed {}", id_, leaf::get_endpoint_address(ed_), ec.message());
         return shutdown();
     }
+    auto self = shared_from_this();
+    std::string host = leaf::get_endpoint_address(ed_);
     boost::beast::get_lowest_layer(ws_).expires_never();
 
+    auto user_agent = [](auto& req) { req.set(boost::beast::http::field::user_agent, "leaf/ws"); };
+
     ws_.set_option(boost::beast::websocket::stream_base::timeout::suggested(boost::beast::role_type::client));
-    ws_.set_option(boost::beast::websocket::stream_base::decorator(
-        [](boost::beast::websocket::request_type& req) { req.set(boost::beast::http::field::user_agent, "leaf/ws"); }));
+    ws_.set_option(boost::beast::websocket::stream_base::decorator(user_agent));
 
-    std::string host = leaf::get_endpoint_address(ed_);
-
-    ws_.async_handshake(host,
-                        "/leaf/ws/file",
-                        boost::beast::bind_front_handler(&plain_websocket_client::on_handshake, shared_from_this()));
+    ws_.async_handshake(host, target_, boost::beast::bind_front_handler(&plain_websocket_client::on_handshake, self));
 }
 
 void plain_websocket_client::on_handshake(boost::beast::error_code ec)
@@ -102,7 +102,7 @@ void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t by
     {
         LOG_ERROR("{} deserialize message error {}", id_, bytes_transferred);
     }
-    uploader_->on_message(msg.value());
+    session_->on_message(msg.value());
     do_read();
 }
 
@@ -117,26 +117,17 @@ void plain_websocket_client::safe_shutdown()
     LOG_INFO("shutdown {}", id_);
     boost::beast::error_code ec;
     ec = ws_.next_layer().socket().close(ec);
-    uploader_->shutdown();
+    session_->shutdown();
 }
 
-void plain_websocket_client::add_upload_file(const leaf::file_context::ptr& file)
+void plain_websocket_client::add_file(const leaf::file_context::ptr& file)
 {
     boost::asio::dispatch(
         ws_.get_executor(),
-        boost::beast::bind_front_handler(&plain_websocket_client::safe_add_upload_file, shared_from_this(), file));
+        boost::beast::bind_front_handler(&plain_websocket_client::safe_add_file, shared_from_this(), file));
 }
 
-void plain_websocket_client::add_download_file(const leaf::file_context::ptr& file)
-{
-    boost::asio::dispatch(
-        ws_.get_executor(),
-        boost::beast::bind_front_handler(&plain_websocket_client::safe_add_download_file, shared_from_this(), file));
-}
-
-void plain_websocket_client::safe_add_download_file(const leaf::file_context::ptr& file) { uploader_->add_file(file); }
-
-void plain_websocket_client::safe_add_upload_file(const leaf::file_context::ptr& file) { uploader_->add_file(file); }
+void plain_websocket_client::safe_add_file(const leaf::file_context::ptr& file) { session_->add_file(file); }
 
 void plain_websocket_client::write(const std::vector<uint8_t>& msg)
 {
@@ -194,9 +185,7 @@ void plain_websocket_client::timer_callback(const boost::system::error_code& ec)
         return;
     }
 
-    uploader_->update();
-
-    downloader_->update();
+    session_->update();
 
     start_timer();
 }

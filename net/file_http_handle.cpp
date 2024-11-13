@@ -2,6 +2,7 @@
 
 #include "file_http_handle.h"
 #include "upload_file_handle.h"
+#include "download_file_handle.h"
 
 namespace leaf
 {
@@ -11,6 +12,10 @@ leaf::websocket_handle::ptr file_http_handle::websocket_handle(const std::string
     if (boost::ends_with(target, "/upload"))
     {
         return std::make_shared<upload_file_handle>(id);
+    }
+    if (boost::ends_with(target, "/download"))
+    {
+        return std::make_shared<download_file_handle>(id);
     }
     return nullptr;
 }

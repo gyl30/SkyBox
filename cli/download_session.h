@@ -5,24 +5,25 @@
 #include "codec.h"
 #include "blake2b.h"
 #include "file_context.h"
+#include "base_session.h"
 
 namespace leaf
 {
-class download_session
+class download_session : public base_session, public std::enable_shared_from_this<download_session>
 {
    public:
     explicit download_session(std::string id);
     ~download_session();
 
    public:
-    void startup();
-    void shutdown();
-    void update();
+    void startup() override;
+    void shutdown() override;
+    void update() override;
 
    public:
-    void add_file(const leaf::file_context::ptr &file);
-    void on_message(const leaf::codec_message &msg);
-    void set_message_cb(std::function<void(const leaf::codec_message &)> cb);
+    void add_file(const leaf::file_context::ptr &file) override;
+    void on_message(const leaf::codec_message &msg) override;
+    void set_message_cb(std::function<void(const leaf::codec_message &)> cb) override;
 
    private:
     void open_file();
