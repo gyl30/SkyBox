@@ -11,9 +11,9 @@ download_session::download_session(std::string id) : id_(std::move(id)) {}
 
 download_session::~download_session() = default;
 
-void download_session::startup() {}
+void download_session::startup() { LOG_INFO("{} startup", id_); }
 
-void download_session::shutdown() {}
+void download_session::shutdown() { LOG_INFO("{} shutdown", id_); }
 
 void download_session::set_message_cb(std::function<void(const leaf::codec_message&)> cb) { cb_ = std::move(cb); }
 

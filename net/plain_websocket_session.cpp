@@ -24,6 +24,7 @@ plain_websocket_session::~plain_websocket_session()
 void plain_websocket_session::startup(const boost::beast::http::request<boost::beast::http::string_body>& req)
 {
     ws_.binary(true);
+    h_->startup();
     self_ = shared_from_this();
     LOG_INFO("startup {}", id_);
     do_accept(req);
@@ -36,6 +37,7 @@ void plain_websocket_session::shutdown()
 }
 void plain_websocket_session::safe_shutdown()
 {
+    h_->shutdown();
     LOG_INFO("shutdown {}", id_);
     boost::beast::error_code ec;
     ec = ws_.next_layer().socket().close(ec);

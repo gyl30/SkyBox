@@ -1,5 +1,6 @@
 #include <boost/algorithm/string.hpp>
 
+#include "log.h"
 #include "file_http_handle.h"
 #include "upload_file_handle.h"
 #include "download_file_handle.h"
@@ -9,11 +10,12 @@ namespace leaf
 
 leaf::websocket_handle::ptr file_http_handle::websocket_handle(const std::string &id, const std::string &target)
 {
-    if (boost::ends_with(target, "/upload"))
+    LOG_INFO("{} websocket handle target {}", id, target);
+    if (boost::ends_with(target, "upload"))
     {
         return std::make_shared<upload_file_handle>(id);
     }
-    if (boost::ends_with(target, "/download"))
+    if (boost::ends_with(target, "download"))
     {
         return std::make_shared<download_file_handle>(id);
     }
