@@ -16,9 +16,9 @@ static uint64_t file_id()
     return ++id;
 }
 
-download_file_handle::download_file_handle(std::string id) : id_(std::move(id)) {}
+download_file_handle::download_file_handle(std::string id) : id_(std::move(id)) { LOG_INFO("create {}", id_); }
 
-download_file_handle::~download_file_handle() = default;
+download_file_handle::~download_file_handle() { LOG_INFO("destroy {}", id_); }
 
 void download_file_handle::startup() { LOG_INFO("startup {}", id_); }
 
@@ -92,6 +92,20 @@ void download_file_handle::open_file()
 void download_file_handle::on_download_file_request(const leaf::download_file_request& msg)
 {
     LOG_INFO("{} on_download_file_request file {}", id_, msg.filename);
+
+    boost::system::error_code exists_ec;
+    bool exist = std::filesystem::exists(msg.filename, exists_ec);
+    if (exists_ec)
+    {
+        LOG_ERROR("{} download_file_request file {} exist error {}", id_, msg.filename, exists_ec.message());
+        return;
+    }
+    if (!exist)
+    {
+        LOG_ERROR("{} download_file_request file {} not exist", id_, msg.filename);
+        return;
+    }
+
     file_ = std::make_shared<leaf::file_context>();
     file_->name = msg.filename;
     boost::system::error_code hash_ec;
