@@ -75,6 +75,23 @@ std::vector<uint8_t> serialize_download_file_request(const download_file_request
     w.copy_to(&bytes);
     return bytes;
 }
+static std::optional<leaf::download_file_request> decode_download_file_request(leaf::read_buffer &r)
+{
+    if (r.size() > 2048)
+    {
+        return {};
+    }
+    std::string filename;
+    r.read_string(&filename, r.size());
+    if (filename.empty())
+    {
+        return {};
+    }
+    leaf::download_file_request req;
+    req.filename = filename;
+    return req;
+}
+
 std::vector<uint8_t> serialize_download_file_response(const download_file_response &msg)
 {
     leaf::write_buffer w;
@@ -85,6 +102,22 @@ std::vector<uint8_t> serialize_download_file_response(const download_file_respon
     std::vector<uint8_t> bytes;
     w.copy_to(&bytes);
     return bytes;
+}
+static std::optional<leaf::download_file_response> decode_download_file_response(leaf::read_buffer &r)
+{
+    if (r.size() > 2048)
+    {
+        return {};
+    }
+    std::string str;
+    r.read_string(&str, r.size());
+    if (str.empty())
+    {
+        return {};
+    }
+    leaf::download_file_response resp;
+    reflect::deserialize_struct(resp, str);
+    return resp;
 }
 
 std::vector<uint8_t> serialize_delete_file_request(const delete_file_request &msg)
@@ -116,6 +149,23 @@ std::vector<uint8_t> serialize_delete_file_response(const delete_file_response &
     std::vector<uint8_t> bytes;
     w.copy_to(&bytes);
     return bytes;
+}
+
+static std::optional<leaf::delete_file_response> decode_delete_file_response(leaf::read_buffer &r)
+{
+    if (r.size() > 2048)
+    {
+        return {};
+    }
+    std::string filename;
+    r.read_string(&filename, r.size());
+    if (filename.empty())
+    {
+        return {};
+    }
+    leaf::delete_file_response resp;
+    resp.filename = filename;
+    return resp;
 }
 std::vector<uint8_t> serialize_block_data_request(const block_data_request &msg)
 {
@@ -174,6 +224,16 @@ std::vector<uint8_t> serialize_error_response(const error_response &msg)
     std::vector<uint8_t> bytes;
     w.copy_to(&bytes);
     return bytes;
+}
+static std::optional<leaf::error_response> decode_error_response(leaf::read_buffer &r)
+{
+    if (r.size() > 2048)
+    {
+        return {};
+    }
+    leaf::error_response resp;
+    r.read_uint32(&resp.error);
+    return resp;
 }
 
 static std::optional<leaf::upload_file_request> decode_upload_file_request(leaf::read_buffer &r)
@@ -386,10 +446,13 @@ std::optional<codec_message> deserialize_message(const uint8_t *data, uint64_t l
         case leaf::message_type::upload_file_exist:
             return decode_upload_file_exist(r);
         case leaf::message_type::download_file_request:
+            return decode_download_file_request(r);
         case leaf::message_type::download_file_response:
+            return decode_download_file_response(r);
         case leaf::message_type::delete_file_response:
+            return decode_delete_file_response(r);
         case leaf::message_type::error:
-            return {};
+            return decode_error_response(r);
     }
     return {};
 }
