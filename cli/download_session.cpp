@@ -58,6 +58,10 @@ void download_session::download_file_response(const leaf::download_file_response
              msg.filename,
              msg.file_size,
              msg.hash);
+    leaf::file_block_request req;
+    req.file_id = file_->id;
+    write_message(req);
+    LOG_INFO("{} file_block_request id {}", id_, file_->id);
 }
 
 void download_session::write_message(const codec_message& msg)

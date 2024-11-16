@@ -30,14 +30,13 @@ class download_file_handle : public websocket_handle
     void on_block_data_request(const leaf::block_data_request& msg);
     void on_error_response(const leaf::error_response& msg);
     void commit_message(const leaf::codec_message& msg);
-    void open_file();
     void on_message(const leaf::codec_message& msg);
 
    private:
     std::string id_;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;
-    std::shared_ptr<leaf::writer> writer_;
+    std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> blake2b_;
     std::queue<std::vector<uint8_t>> msg_queue_;
     std::queue<leaf::file_context::ptr> padding_files_;
