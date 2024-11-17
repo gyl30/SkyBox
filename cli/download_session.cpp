@@ -25,7 +25,11 @@ void download_session::on_message(const leaf::codec_message& msg)
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, leaf::download_file_response>)
             {
-                download_file_response(arg);
+                on_download_file_response(arg);
+            }
+            if constexpr (std::is_same_v<T, leaf::file_block_response>)
+            {
+                on_file_block_response(arg);
             }
             else if constexpr (std::is_same_v<T, leaf::error_response>)
             {
@@ -46,7 +50,7 @@ void download_session::download_file_request()
     write_message(req);
 }
 
-void download_session::download_file_response(const leaf::download_file_response& msg)
+void download_session::on_download_file_response(const leaf::download_file_response& msg)
 {
     assert(file_ && file_->name == msg.filename);
     file_->id = msg.file_id;
@@ -64,6 +68,23 @@ void download_session::download_file_response(const leaf::download_file_response
     LOG_INFO("{} file_block_request id {}", id_, file_->id);
 }
 
+void download_session::on_file_block_response(const leaf::file_block_response& msg)
+{
+    assert(file_ && file_->id == msg.file_id);
+    file_->block_count = msg.block_count;
+    file_->block_size = msg.block_size;
+    LOG_INFO("{} on_file_block_response id {} count {} size {}", id_, msg.file_id, msg.block_count, msg.block_size);
+    block_data_request(file_->active_block_count);
+}
+
+void download_session::block_data_request(uint32_t block_id)
+{
+    leaf::block_data_request req;
+    req.block_id = block_id;
+    req.file_id = file_->id;
+    write_message(req);
+    LOG_INFO("{} block_data_request id {} block {}", id_, req.file_id, req.block_id);
+}
 void download_session::write_message(const codec_message& msg)
 {
     if (cb_)

@@ -158,7 +158,33 @@ void download_file_handle::on_file_block_request(const leaf::file_block_request&
 
 void download_file_handle::on_block_data_request(const leaf::block_data_request& msg)
 {
-    LOG_INFO("{} on_block_data_request file {} block id ", id_, msg.file_id, msg.block_id);
+    assert(file_ && reader_ && blake2b_);
+    LOG_DEBUG("{} block_data_request id {} block {}", id_, msg.file_id, msg.block_id);
+    if (msg.block_id != file_->active_block_count)
+    {
+        LOG_ERROR(
+            "{} block_data_request block {} less than send block {}", id_, msg.block_id, file_->active_block_count);
+        return;
+    }
+
+    boost::system::error_code ec;
+    std::vector<uint8_t> buffer(file_->block_size, '0');
+    auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
+    if (ec)
+    {
+        LOG_ERROR("{} block_data_request {} error {}", id_, msg.block_id, ec.message());
+        return;
+    }
+    blake2b_->update(buffer.data(), read_size);
+    buffer.resize(read_size);
+    file_->active_block_count = msg.block_id;
+    leaf::block_data_response response;
+    response.file_id = msg.file_id;
+    response.block_id = msg.block_id;
+    response.data = std::move(buffer);
+    commit_message(response);
+    file_->active_block_count = msg.block_id + 1;
+    LOG_DEBUG("{} block_data_request id {} block {} size {}", id_, msg.file_id, msg.block_id, read_size);
 }
 
 void download_file_handle::on_error_response(const leaf::error_response& msg)

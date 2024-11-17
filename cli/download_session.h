@@ -28,7 +28,9 @@ class download_session : public base_session, public std::enable_shared_from_thi
    private:
     void open_file();
     void download_file_request();
-    void download_file_response(const leaf::download_file_response &);
+    void on_download_file_response(const leaf::download_file_response &);
+    void on_file_block_response(const leaf::file_block_response &);
+    void block_data_request(uint32_t block_id);
     void error_response(const leaf::error_response &);
     void write_message(const codec_message &msg);
 
