@@ -31,6 +31,10 @@ void download_session::on_message(const leaf::codec_message& msg)
             {
                 on_file_block_response(arg);
             }
+            if constexpr (std::is_same_v<T, leaf::block_data_response>)
+            {
+                on_block_data_response(arg);
+            }
             else if constexpr (std::is_same_v<T, leaf::error_response>)
             {
                 error_response(arg);
@@ -84,6 +88,33 @@ void download_session::block_data_request(uint32_t block_id)
     req.file_id = file_->id;
     write_message(req);
     LOG_INFO("{} block_data_request id {} block {}", id_, req.file_id, req.block_id);
+}
+
+void download_session::on_block_data_response(const leaf::block_data_response& msg)
+{
+    assert(file_ && file_->id == msg.file_id);
+    assert(file_->active_block_count == msg.block_id);
+    assert(file_->active_block_count < file_->block_count);
+    boost::system::error_code ec;
+
+    writer_->write(msg.data.data(), msg.data.size(), ec);
+    if (ec)
+    {
+        LOG_ERROR("{} on_block_data_response write error {}", id_, ec.message());
+        return;
+    }
+    blake2b_->update(msg.data.data(), msg.data.size());
+    LOG_INFO("{} on_block_data_response id {} block {} size {} file size {}",
+             id_,
+             msg.file_id,
+             msg.block_id,
+             msg.data.size(),
+             writer_->size());
+    if (msg.block_id == file_->active_block_count)
+    {
+        file_->active_block_count++;
+        block_data_request(file_->active_block_count);
+    }
 }
 void download_session::write_message(const codec_message& msg)
 {
