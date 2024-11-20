@@ -166,6 +166,10 @@ void download_file_handle::on_block_data_request(const leaf::block_data_request&
             "{} block_data_request block {} less than send block {}", id_, msg.block_id, file_->active_block_count);
         return;
     }
+    if (msg.block_id == file_->block_count)
+    {
+        return;
+    }
 
     boost::system::error_code ec;
     std::vector<uint8_t> buffer(file_->block_size, '0');
@@ -177,14 +181,37 @@ void download_file_handle::on_block_data_request(const leaf::block_data_request&
     }
     blake2b_->update(buffer.data(), read_size);
     buffer.resize(read_size);
-    file_->active_block_count = msg.block_id;
     leaf::block_data_response response;
     response.file_id = msg.file_id;
     response.block_id = msg.block_id;
     response.data = std::move(buffer);
     commit_message(response);
-    file_->active_block_count = msg.block_id + 1;
-    LOG_DEBUG("{} block_data_request id {} block {} size {}", id_, msg.file_id, msg.block_id, read_size);
+    file_->active_block_count += 1;
+    LOG_DEBUG("{} block_data_request id {} block {} read size {}", id_, msg.file_id, msg.block_id, read_size);
+}
+
+void download_file_handle::block_data_finish()
+{
+    auto ec = reader_->close();
+    if (ec)
+    {
+        LOG_ERROR("{} block_data_finish close file {} error {}", id_, file_->name, ec.message());
+        return;
+    }
+    hash_->final();
+    LOG_INFO("{} block_data_finish file {} size {} hash {}", id_, file_->name, reader_->size(), hash_->hex());
+    block_data_finish1(file_->id, file_->name, hash_->hex());
+    file_ = nullptr;
+    reader_.reset();
+    hash_.reset();
+}
+void download_file_handle::block_data_finish1(uint64_t file_id, const std::string& filename, const std::string& hash)
+{
+    leaf::block_data_finish finish;
+    finish.file_id = file_id;
+    finish.filename = filename;
+    finish.hash = hash;
+    commit_message(finish);
 }
 
 void download_file_handle::on_error_response(const leaf::error_response& msg)
