@@ -35,6 +35,10 @@ void download_session::on_message(const leaf::codec_message& msg)
             {
                 on_block_data_response(arg);
             }
+            if constexpr (std::is_same_v<T, leaf::block_data_finish>)
+            {
+                on_block_data_finish(arg);
+            }
             else if constexpr (std::is_same_v<T, leaf::error_response>)
             {
                 error_response(arg);
@@ -56,6 +60,17 @@ void download_session::download_file_request()
 
 void download_session::on_download_file_response(const leaf::download_file_response& msg)
 {
+    assert(file_ && !writer_ && !hash_);
+
+    writer_ = std::make_shared<leaf::file_writer>(file_->name);
+    auto ec = writer_->open();
+    if (ec)
+    {
+        LOG_ERROR("{} on_download_file_response open file {} error {}", id_, file_->name, ec.message());
+        return;
+    }
+    hash_ = std::make_shared<leaf::blake2b>();
+
     assert(file_ && file_->name == msg.filename);
     file_->id = msg.file_id;
     file_->file_size = msg.file_size;
@@ -103,7 +118,7 @@ void download_session::on_block_data_response(const leaf::block_data_response& m
         LOG_ERROR("{} on_block_data_response write error {}", id_, ec.message());
         return;
     }
-    blake2b_->update(msg.data.data(), msg.data.size());
+    hash_->update(msg.data.data(), msg.data.size());
     LOG_INFO("{} on_block_data_response id {} block {} size {} file size {}",
              id_,
              msg.file_id,
@@ -116,25 +131,29 @@ void download_session::on_block_data_response(const leaf::block_data_response& m
         block_data_request(file_->active_block_count);
     }
 }
+
+void download_session::on_block_data_finish(const leaf::block_data_finish& msg)
+{
+    assert(file_ && file_->id == msg.file_id);
+    assert(file_->active_block_count == file_->block_count);
+    auto ec = writer_->close();
+    if (ec)
+    {
+        LOG_ERROR("{} on_block_data_finish close file {} error {}", id_, file_->name, ec.message());
+        return;
+    }
+    hash_->final();
+    LOG_INFO("{} on_block_data_finish file {} size {} hash {}", id_, file_->name, writer_->size(), hash_->hex());
+    file_.reset();
+    writer_.reset();
+    hash_.reset();
+}
 void download_session::write_message(const codec_message& msg)
 {
     if (cb_)
     {
         cb_(msg);
     }
-}
-void download_session::open_file()
-{
-    assert(file_ && !writer_ && !blake2b_);
-
-    writer_ = std::make_shared<leaf::file_writer>(file_->name);
-    auto ec = writer_->open();
-    if (ec)
-    {
-        LOG_ERROR("{} file open error {}", id_, ec.message());
-        return;
-    }
-    blake2b_ = std::make_shared<leaf::blake2b>();
 }
 void download_session::add_file(const leaf::file_context::ptr& file)
 {

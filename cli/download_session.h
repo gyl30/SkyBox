@@ -26,20 +26,20 @@ class download_session : public base_session, public std::enable_shared_from_thi
     void set_message_cb(std::function<void(const leaf::codec_message &)> cb) override;
 
    private:
-    void open_file();
     void download_file_request();
     void on_download_file_response(const leaf::download_file_response &);
     void on_file_block_response(const leaf::file_block_response &);
     void block_data_request(uint32_t block_id);
     void on_block_data_response(const leaf::block_data_response &);
+    void on_block_data_finish(const leaf::block_data_finish &);
     void error_response(const leaf::error_response &);
     void write_message(const codec_message &msg);
 
    private:
     std::string id_;
     leaf::file_context::ptr file_;
+    std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;
-    std::shared_ptr<leaf::blake2b> blake2b_;
     std::queue<leaf::file_context::ptr> padding_files_;
     std::function<void(const leaf::codec_message &)> cb_;
 };

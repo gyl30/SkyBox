@@ -168,6 +168,12 @@ void download_file_handle::on_block_data_request(const leaf::block_data_request&
     }
     if (msg.block_id == file_->block_count)
     {
+        LOG_INFO("{} block_data_request id {} block id {} block count {} finish",
+                 id_,
+                 msg.file_id,
+                 msg.block_id,
+                 file_->block_count);
+        block_data_finish();
         return;
     }
 
