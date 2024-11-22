@@ -37,9 +37,8 @@ class download_file_handle : public websocket_handle
    private:
     std::string id_;
     leaf::file_context::ptr file_;
-    std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::reader> reader_;
-    std::shared_ptr<leaf::blake2b> blake2b_;
+    std::shared_ptr<leaf::blake2b> hash_;
     std::queue<std::vector<uint8_t>> msg_queue_;
     std::queue<leaf::file_context::ptr> padding_files_;
 };

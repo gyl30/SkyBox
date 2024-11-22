@@ -108,7 +108,7 @@ void download_file_handle::on_download_file_request(const leaf::download_file_re
         return;
     }
 
-    assert(!file_ && !reader_ && !blake2b_);
+    assert(!file_ && !reader_ && !hash_);
     reader_ = std::make_shared<leaf::file_reader>(msg.filename);
     auto ec = reader_->open();
     if (ec)
@@ -120,7 +120,7 @@ void download_file_handle::on_download_file_request(const leaf::download_file_re
     {
         return;
     }
-    blake2b_ = std::make_shared<leaf::blake2b>();
+    hash_ = std::make_shared<leaf::blake2b>();
     constexpr auto kBlockSize = 128 * 1024;
     uint64_t block_count = file_size / kBlockSize;
     if (file_size % kBlockSize != 0)
@@ -158,7 +158,7 @@ void download_file_handle::on_file_block_request(const leaf::file_block_request&
 
 void download_file_handle::on_block_data_request(const leaf::block_data_request& msg)
 {
-    assert(file_ && reader_ && blake2b_);
+    assert(file_ && reader_ && hash_);
     LOG_DEBUG("{} block_data_request id {} block {}", id_, msg.file_id, msg.block_id);
     if (msg.block_id != file_->active_block_count)
     {
@@ -185,7 +185,7 @@ void download_file_handle::on_block_data_request(const leaf::block_data_request&
         LOG_ERROR("{} block_data_request {} error {}", id_, msg.block_id, ec.message());
         return;
     }
-    blake2b_->update(buffer.data(), read_size);
+    hash_->update(buffer.data(), read_size);
     buffer.resize(read_size);
     leaf::block_data_response response;
     response.file_id = msg.file_id;
