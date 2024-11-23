@@ -60,6 +60,7 @@ std::vector<uint8_t> serialize_upload_file_response(const upload_file_response &
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::upload_file_response));
     w.write_uint64(msg.file_id);
+    w.write_uint32(msg.block_size);
     w.write_bytes(msg.filename.data(), msg.filename.size());
     std::vector<uint8_t> bytes;
     w.copy_to(&bytes);
@@ -301,10 +302,13 @@ static std::optional<leaf::upload_file_response> decode_upload_file_response(lea
         return {};
     }
     uint64_t file_id = 0;
+    uint32_t block_size = 0;
     r.read_uint64(&file_id);
+    r.read_uint32(&block_size);
     std::string filename;
     r.read_string(&filename, r.size());
     leaf::upload_file_response create;
+    create.block_size = block_size;
     create.filename = filename;
     create.file_id = file_id;
     return create;

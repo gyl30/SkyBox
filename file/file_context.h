@@ -19,7 +19,8 @@ struct file_context
     uint64_t file_size = 0;
     uint64_t block_count = 0;
     uint64_t active_block_count = 0;
-    std::string name;
+    std::string file_path;
+    std::string filename;
     std::string dst_file;
     std::string src_hash;
     std::string dst_hash;

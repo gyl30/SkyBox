@@ -54,7 +54,7 @@ void download_session::download_file_request()
         return;
     }
     leaf::download_file_request req;
-    req.filename = file_->name;
+    req.filename = file_->file_path;
     write_message(req);
 }
 
@@ -62,16 +62,16 @@ void download_session::on_download_file_response(const leaf::download_file_respo
 {
     assert(file_ && !writer_ && !hash_);
 
-    writer_ = std::make_shared<leaf::file_writer>(file_->name);
+    writer_ = std::make_shared<leaf::file_writer>(file_->file_path);
     auto ec = writer_->open();
     if (ec)
     {
-        LOG_ERROR("{} on_download_file_response open file {} error {}", id_, file_->name, ec.message());
+        LOG_ERROR("{} on_download_file_response open file {} error {}", id_, file_->file_path, ec.message());
         return;
     }
     hash_ = std::make_shared<leaf::blake2b>();
 
-    assert(file_ && file_->name == msg.filename);
+    assert(file_ && file_->file_path == msg.filename);
     file_->id = msg.file_id;
     file_->file_size = msg.file_size;
     file_->src_hash = msg.hash;
@@ -139,11 +139,11 @@ void download_session::on_block_data_finish(const leaf::block_data_finish& msg)
     auto ec = writer_->close();
     if (ec)
     {
-        LOG_ERROR("{} on_block_data_finish close file {} error {}", id_, file_->name, ec.message());
+        LOG_ERROR("{} on_block_data_finish close file {} error {}", id_, file_->file_path, ec.message());
         return;
     }
     hash_->final();
-    LOG_INFO("{} on_block_data_finish file {} size {} hash {}", id_, file_->name, writer_->size(), hash_->hex());
+    LOG_INFO("{} on_block_data_finish file {} size {} hash {}", id_, file_->file_path, writer_->size(), hash_->hex());
     file_.reset();
     writer_.reset();
     hash_.reset();
@@ -159,11 +159,11 @@ void download_session::add_file(const leaf::file_context::ptr& file)
 {
     if (file_ != nullptr)
     {
-        LOG_INFO("{} change file from {} to {}", id_, file_->name, file->name);
+        LOG_INFO("{} change file from {} to {}", id_, file_->file_path, file->file_path);
     }
     else
     {
-        LOG_INFO("{} add file {}", id_, file->name);
+        LOG_INFO("{} add file {}", id_, file->file_path);
     }
     padding_files_.push(file);
 }
@@ -182,7 +182,7 @@ void download_session::update()
     }
     file_ = padding_files_.front();
     padding_files_.pop();
-    LOG_INFO("{} start_file {} size {}", id_, file_->name, padding_files_.size());
+    LOG_INFO("{} start_file {} size {}", id_, file_->file_path, padding_files_.size());
     download_file_request();
 }
 

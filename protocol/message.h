@@ -81,6 +81,7 @@ struct error_response
 struct upload_file_response
 {
     uint64_t file_id = 0;
+    uint32_t block_size = 0;
     std::string filename;
 };
 struct file_block_response

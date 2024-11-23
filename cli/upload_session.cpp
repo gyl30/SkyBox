@@ -58,7 +58,9 @@ void upload_session::on_message(const leaf::codec_message& msg)
 }
 void upload_session::upload_file_response(const leaf::upload_file_response& msg)
 {
+    assert(file_ && file_->filename == msg.filename);
     file_->id = msg.file_id;
+    file_->block_size = msg.block_size;
     LOG_INFO("{} upload_file_response id {} name {}", id_, msg.file_id, msg.filename);
 }
 void upload_session::delete_file_response(const leaf::delete_file_response& msg)
@@ -73,17 +75,17 @@ void upload_session::upload_file_request()
         return;
     }
     boost::system::error_code hash_ec;
-    std::string h = leaf::hash_file(file_->name, hash_ec);
+    std::string h = leaf::hash_file(file_->file_path, hash_ec);
     if (hash_ec)
     {
-        LOG_ERROR("{} upload_file_request file {} hash error {}", id_, file_->name, hash_ec.message());
+        LOG_ERROR("{} upload_file_request file {} hash error {}", id_, file_->file_path, hash_ec.message());
         return;
     }
     std::error_code size_ec;
-    auto file_size = std::filesystem::file_size(file_->name, size_ec);
+    auto file_size = std::filesystem::file_size(file_->file_path, size_ec);
     if (size_ec)
     {
-        LOG_ERROR("{} upload_file_request file {} size error {}", id_, file_->name, size_ec.message());
+        LOG_ERROR("{} upload_file_request file {} size error {}", id_, file_->file_path, size_ec.message());
         return;
     }
     open_file();
@@ -91,12 +93,13 @@ void upload_session::upload_file_request()
     {
         return;
     }
-    LOG_DEBUG("{} upload_file_request {} size {} hash {}", id_, file_->name, file_size, h);
+    LOG_DEBUG("{} upload_file_request {} size {} hash {}", id_, file_->file_path, file_size, h);
     leaf::upload_file_request create;
     create.file_size = file_size;
     create.hash = h;
-    create.filename = std::filesystem::path(file_->name).filename().string();
+    create.filename = std::filesystem::path(file_->file_path).filename().string();
     file_->file_size = file_size;
+    file_->filename = create.filename;
     write_message(create);
 }
 void upload_session::write_message(const codec_message& msg)
@@ -110,7 +113,7 @@ void upload_session::open_file()
 {
     assert(file_ && !reader_ && !blake2b_);
 
-    reader_ = std::make_shared<leaf::file_reader>(file_->name);
+    reader_ = std::make_shared<leaf::file_reader>(file_->file_path);
     auto ec = reader_->open();
     if (ec)
     {
@@ -123,11 +126,11 @@ void upload_session::add_file(const leaf::file_context::ptr& file)
 {
     if (file_ != nullptr)
     {
-        LOG_INFO("{} change file from {} to {}", id_, file_->name, file->name);
+        LOG_INFO("{} change file from {} to {}", id_, file_->file_path, file->file_path);
     }
     else
     {
-        LOG_INFO("{} add file {}", id_, file->name);
+        LOG_INFO("{} add file {}", id_, file->file_path);
     }
     padding_files_.push(file);
 }
@@ -146,7 +149,7 @@ void upload_session::update()
     }
     file_ = padding_files_.front();
     padding_files_.pop();
-    LOG_INFO("{} start_file {} size {}", id_, file_->name, padding_files_.size());
+    LOG_INFO("{} start_file {} size {}", id_, file_->file_path, padding_files_.size());
     upload_file_request();
 }
 
@@ -187,18 +190,16 @@ void upload_session::file_block_request(const leaf::file_block_request& msg)
         LOG_ERROR("{} file id not match {} {}", id_, msg.file_id, file_->id);
         return;
     }
-    constexpr auto kBlockSize = 128 * 1024;
-    uint64_t block_count = file_->file_size / kBlockSize;
-    if (file_->file_size % kBlockSize != 0)
+    uint64_t block_count = file_->file_size / file_->block_size;
+    if (file_->file_size % file_->block_size != 0)
     {
         block_count++;
     }
     leaf::file_block_response response;
     response.block_count = block_count;
-    response.block_size = kBlockSize;
+    response.block_size = file_->block_size;
     response.file_id = file_->id;
-    file_->block_size = kBlockSize;
-    LOG_INFO("{} file_block_request id {} count {} size {}", id_, file_->id, block_count, kBlockSize);
+    LOG_INFO("{} file_block_request id {} count {} size {}", id_, file_->id, block_count, file_->block_size);
     write_message(response);
 }
 
@@ -239,7 +240,7 @@ void upload_session::upload_file_exist(const leaf::upload_file_exist& exist)
     blake2b_->final();
     blake2b_.reset();
 
-    std::string filename = std::filesystem::path(file_->name).filename().string();
+    std::string filename = std::filesystem::path(file_->file_path).filename().string();
     assert(filename == exist.filename);
     file_ = nullptr;
     LOG_INFO("{} upload_file_exist {} hash {}", id_, exist.filename, exist.hash);

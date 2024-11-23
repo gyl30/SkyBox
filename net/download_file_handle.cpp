@@ -128,16 +128,16 @@ void download_file_handle::on_download_file_request(const leaf::download_file_re
         block_count++;
     }
     file_ = std::make_shared<leaf::file_context>();
-    file_->name = msg.filename;
+    file_->file_path = msg.filename;
     file_->file_size = file_size;
     file_->block_size = kBlockSize;
     file_->block_count = block_count;
     file_->active_block_count = 0;
     file_->src_hash = h;
     file_->id = file_id();
-    LOG_INFO("{} download_file_request file {} size {} hash {}", id_, file_->name, file_->file_size, file_->src_hash);
+    LOG_INFO("{} download_file_request file {} size {} hash {}", id_, file_->file_path, file_->file_size, file_->src_hash);
     leaf::download_file_response response;
-    response.filename = file_->name;
+    response.filename = file_->file_path;
     response.file_id = file_->id;
     response.file_size = file_->file_size;
     response.hash = file_->src_hash;
@@ -201,12 +201,12 @@ void download_file_handle::block_data_finish()
     auto ec = reader_->close();
     if (ec)
     {
-        LOG_ERROR("{} block_data_finish close file {} error {}", id_, file_->name, ec.message());
+        LOG_ERROR("{} block_data_finish close file {} error {}", id_, file_->file_path, ec.message());
         return;
     }
     hash_->final();
-    LOG_INFO("{} block_data_finish file {} size {} hash {}", id_, file_->name, reader_->size(), hash_->hex());
-    block_data_finish1(file_->id, file_->name, hash_->hex());
+    LOG_INFO("{} block_data_finish file {} size {} hash {}", id_, file_->file_path, reader_->size(), hash_->hex());
+    block_data_finish1(file_->id, file_->file_path, hash_->hex());
     file_ = nullptr;
     reader_.reset();
     hash_.reset();

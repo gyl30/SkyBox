@@ -113,13 +113,15 @@ void upload_file_handle::on_upload_file_request(const leaf::upload_file_request&
         }
     }
     assert(file_ == nullptr);
+    constexpr auto kBlockSize = 128 * 1024;
     leaf::upload_file_response response;
+    response.block_size = kBlockSize;
     response.filename = msg.filename;
     response.file_id = file_id();
     commit_message(response);
     file_ = std::make_shared<file_context>();
     file_->id = response.file_id;
-    file_->name = msg.filename;
+    file_->file_path = msg.filename;
     file_->file_size = msg.file_size;
     leaf::file_block_request request;
     request.file_id = response.file_id;
@@ -143,7 +145,7 @@ void upload_file_handle::on_delete_file_request(const leaf::delete_file_request&
 
 void upload_file_handle::on_file_block_response(const leaf::file_block_response& msg)
 {
-    assert(file_ && !writer_);
+    assert(file_ && !writer_ && file_->block_size == msg.block_size && file_->id == msg.file_id);
     LOG_INFO("{} on_file_block_response id {} size {} count {}", id_, msg.file_id, msg.block_size, msg.block_count);
     if (file_->id != msg.file_id)
     {
@@ -151,11 +153,11 @@ void upload_file_handle::on_file_block_response(const leaf::file_block_response&
         return;
     }
     hash_ = std::make_shared<leaf::blake2b>();
-    writer_ = std::make_shared<leaf::file_writer>(file_->name);
+    writer_ = std::make_shared<leaf::file_writer>(file_->file_path);
     auto ec = writer_->open();
     if (ec)
     {
-        LOG_ERROR("{} open file {} error {}", id_, file_->name, ec.message());
+        LOG_ERROR("{} open file {} error {}", id_, file_->file_path, ec.message());
         return;
     }
     file_->block_size = msg.block_size;
@@ -177,12 +179,12 @@ void upload_file_handle::block_data_finish()
     auto ec = writer_->close();
     if (ec)
     {
-        LOG_ERROR("{} block_data_finish close file {} error {}", id_, file_->name, ec.message());
+        LOG_ERROR("{} block_data_finish close file {} error {}", id_, file_->file_path, ec.message());
         return;
     }
     hash_->final();
-    LOG_INFO("{} block_data_finish file {} size {} hash {}", id_, file_->name, writer_->size(), hash_->hex());
-    block_data_finish1(file_->id, file_->name, hash_->hex());
+    LOG_INFO("{} block_data_finish file {} size {} hash {}", id_, file_->file_path, writer_->size(), hash_->hex());
+    block_data_finish1(file_->id, file_->file_path, hash_->hex());
     file_ = nullptr;
     writer_.reset();
     hash_.reset();
