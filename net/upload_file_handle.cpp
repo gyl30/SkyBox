@@ -123,6 +123,8 @@ void upload_file_handle::on_upload_file_request(const leaf::upload_file_request&
     file_->id = response.file_id;
     file_->file_path = msg.filename;
     file_->file_size = msg.file_size;
+    file_->block_size = kBlockSize;
+    file_->active_block_count = 0;
     leaf::file_block_request request;
     request.file_id = response.file_id;
     LOG_DEBUG("{} file_block_request id {}", id_, request.file_id);
