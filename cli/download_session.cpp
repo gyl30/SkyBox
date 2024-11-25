@@ -55,12 +55,26 @@ void download_session::download_file_request()
     }
     leaf::download_file_request req;
     req.filename = file_->file_path;
+    LOG_INFO("{} download_file_request {}", id_, file_->file_path);
     write_message(req);
 }
 
 void download_session::on_download_file_response(const leaf::download_file_response& msg)
 {
     assert(file_ && !writer_ && !hash_);
+
+    boost::system::error_code exists_ec;
+    bool exists = std::filesystem::exists(file_->file_path, exists_ec);
+    if (exists_ec)
+    {
+        LOG_ERROR("{} on_download_file_response file {} exists error {}", id_, file_->file_path, exists_ec.message());
+        return;
+    }
+    if (exists)
+    {
+        LOG_ERROR("{} on_download_file_response file {} exists", id_, file_->file_path);
+        return;
+    }
 
     writer_ = std::make_shared<leaf::file_writer>(file_->file_path);
     auto ec = writer_->open();
