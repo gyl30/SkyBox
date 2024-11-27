@@ -2,6 +2,7 @@
 #define LEAF_DOWNLOAD_SESSION_H
 
 #include <queue>
+#include "event.h"
 #include "codec.h"
 #include "blake2b.h"
 #include "file_context.h"
@@ -12,8 +13,8 @@ namespace leaf
 class download_session : public base_session, public std::enable_shared_from_this<download_session>
 {
    public:
-    explicit download_session(std::string id);
-    ~download_session();
+    download_session(std::string id, leaf::download_progress_callback cb);
+    ~download_session() override;
 
    public:
     void startup() override;
@@ -36,10 +37,14 @@ class download_session : public base_session, public std::enable_shared_from_thi
     void write_message(const codec_message &msg);
 
    private:
+    void emit_event(const leaf::download_event &);
+
+   private:
     std::string id_;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;
+    leaf::download_progress_callback progress_cb_;
     std::queue<leaf::file_context::ptr> padding_files_;
     std::function<void(const leaf::codec_message &)> cb_;
 };

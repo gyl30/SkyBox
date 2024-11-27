@@ -2,12 +2,14 @@
 #include <filesystem>
 #include "log.h"
 #include "file.h"
-#include "hash_file.h"
 #include "download_session.h"
 
 namespace leaf
 {
-download_session::download_session(std::string id) : id_(std::move(id)) {}
+download_session::download_session(std::string id, leaf::download_progress_callback cb)
+    : id_(std::move(id)), progress_cb_(std::move(cb))
+{
+}
 
 download_session::~download_session() = default;
 
@@ -144,8 +146,21 @@ void download_session::on_block_data_response(const leaf::block_data_response& m
         file_->active_block_count++;
         block_data_request(file_->active_block_count);
     }
+    leaf::download_event e;
+    e.id = file_->id;
+    e.filename = file_->file_path;
+    e.download_size = writer_->size();
+    e.file_size = file_->file_size;
+    emit_event(e);
 }
 
+void download_session::emit_event(const leaf::download_event& e)
+{
+    if (progress_cb_)
+    {
+        progress_cb_(e);
+    }
+}
 void download_session::on_block_data_finish(const leaf::block_data_finish& msg)
 {
     assert(file_ && file_->id == msg.file_id);
