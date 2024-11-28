@@ -7,7 +7,10 @@
 
 namespace leaf
 {
-upload_session::upload_session(std::string id) : id_(std::move(id)) {}
+upload_session::upload_session(std::string id, leaf::upload_progress_callback cb)
+    : id_(std::move(id)), progress_cb_(std::move(cb))
+{
+}
 
 upload_session::~upload_session() = default;
 
@@ -182,7 +185,22 @@ void upload_session::block_data_request(const leaf::block_data_request& msg)
     response.data = std::move(buffer);
     write_message(response);
     file_->active_block_count = msg.block_id + 1;
+    upload_event e;
+    e.file_size = file_->file_size;
+    e.upload_size = reader_->size();
+    e.filename = file_->filename;
+    e.id = file_->id;
+    emit_event(e);
 }
+
+void upload_session::emit_event(const leaf::upload_event& e)
+{
+    if (progress_cb_)
+    {
+        progress_cb_(e);
+    }
+}
+
 void upload_session::file_block_request(const leaf::file_block_request& msg)
 {
     if (msg.file_id != file_->id)

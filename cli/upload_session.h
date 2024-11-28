@@ -2,6 +2,7 @@
 #define LEAF_UPLOAD_SESSION_H
 
 #include <queue>
+#include "event.h"
 #include "codec.h"
 #include "blake2b.h"
 #include "file_context.h"
@@ -12,7 +13,7 @@ namespace leaf
 class upload_session : public leaf::base_session, public std::enable_shared_from_this<upload_session>
 {
    public:
-    explicit upload_session(std::string id);
+    explicit upload_session(std::string id, leaf::upload_progress_callback cb);
     ~upload_session();
 
    public:
@@ -36,12 +37,14 @@ class upload_session : public leaf::base_session, public std::enable_shared_from
     void block_data_finish(const leaf::block_data_finish &);
     void error_response(const leaf::error_response &);
     void write_message(const codec_message &msg);
+    void emit_event(const leaf::upload_event &e);
 
    private:
     std::string id_;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> blake2b_;
+    leaf::upload_progress_callback progress_cb_;
     std::queue<leaf::file_context::ptr> padding_files_;
     std::function<void(const leaf::codec_message &)> cb_;
 };
