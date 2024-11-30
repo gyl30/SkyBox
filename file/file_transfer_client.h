@@ -12,10 +12,10 @@
 namespace leaf
 {
 
-class file_manager
+class file_transfer_client
 {
    public:
-    file_manager(const std::string &ip,
+    file_transfer_client(const std::string &ip,
                  uint16_t port,
                  leaf::upload_progress_callback upload_progress_cb,
                  leaf::download_progress_callback download_progress_cb);

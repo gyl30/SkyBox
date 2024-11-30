@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 
     leaf::set_log_level("trace");
 
-    leaf::file_manager fm("127.0.0.1", 8080, upload_progress, download_progress);
+    leaf::file_transfer_client fm("127.0.0.1", 8080, upload_progress, download_progress);
     fm.startup();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
