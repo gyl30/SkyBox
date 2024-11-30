@@ -2,6 +2,7 @@
 #define LEAF_UPLOAD_FILE_HANDLE_H
 
 #include <queue>
+#include "file.h"
 #include "codec.h"
 #include "message.h"
 #include "blake2b.h"

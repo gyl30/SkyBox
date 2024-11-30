@@ -36,8 +36,10 @@ int main(int argc, char* argv[])
     boost::asio::io_context io(1);
     auto address = boost::asio::ip::address::from_string("127.0.0.1");
     boost::asio::ip::tcp::endpoint ed(address, 8080);
+
     auto downloader = std::make_shared<leaf::plain_websocket_client>("ws_cli", "/leaf/ws/download", download, ed, io);
     downloader->startup();
+
     auto uploader = std::make_shared<leaf::plain_websocket_client>("ws_cli", "/leaf/ws/upload", upload, ed, io);
     uploader->startup();
 

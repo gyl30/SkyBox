@@ -2,6 +2,7 @@
 #define LEAF_UPLOAD_SESSION_H
 
 #include <queue>
+#include "file.h"
 #include "event.h"
 #include "codec.h"
 #include "blake2b.h"
