@@ -1,23 +1,21 @@
 #include <iostream>
+#include <utility>
 
 #include "log.h"
 #include "event.h"
-#include "file_context.h"
-#include "upload_session.h"
-#include "download_session.h"
-#include "plain_websocket_client.h"
+#include "file_transfer_client.h"
 
-static void download_progress(const leaf::download_event& e)
+static void download_progress(const leaf::download_event &e)
 {
-    LOG_INFO("download progress {} {} {} {}", e.id, e.filename, e.download_size, e.file_size);
+    LOG_INFO("--> download progress {} {} {} {}", e.id, e.filename, e.download_size, e.file_size);
 }
 
-static void upload_progress(const leaf::upload_event& e)
+static void upload_progress(const leaf::upload_event &e)
 {
-    LOG_INFO("upload progress {} {} {} {}", e.id, e.filename, e.upload_size, e.file_size);
+    LOG_INFO("<-- upload progress {} {} {} {}", e.id, e.filename, e.upload_size, e.file_size);
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     if (argc < 3)
     {
@@ -29,54 +27,17 @@ int main(int argc, char* argv[])
 
     leaf::set_log_level("trace");
 
-    auto download = std::make_shared<leaf::download_session>("123", download_progress);
+    leaf::file_manager fm("127.0.0.1", 8080, upload_progress, download_progress);
+    fm.startup();
 
-    auto upload = std::make_shared<leaf::upload_session>("456", upload_progress);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    boost::asio::io_context io(1);
-    auto address = boost::asio::ip::address::from_string("127.0.0.1");
-    boost::asio::ip::tcp::endpoint ed(address, 8080);
+    fm.add_upload_file(argv[1]);
+    fm.add_download_file(argv[2]);
 
-    auto downloader = std::make_shared<leaf::plain_websocket_client>("ws_cli", "/leaf/ws/download", download, ed, io);
-    downloader->startup();
+    std::this_thread::sleep_for(std::chrono::seconds(60));
 
-    auto uploader = std::make_shared<leaf::plain_websocket_client>("ws_cli", "/leaf/ws/upload", upload, ed, io);
-    uploader->startup();
-
-    std::vector<std::shared_ptr<leaf::file_context>> upload_files;
-    {
-        std::string filename = argv[1];
-        auto file = std::make_shared<leaf::file_context>();
-        file->file_path = filename;
-        upload_files.push_back(file);
-    }
-
-    std::vector<std::shared_ptr<leaf::file_context>> download_files;
-    {
-        std::string filename = argv[2];
-        auto file = std::make_shared<leaf::file_context>();
-        file->file_path = filename;
-        download_files.push_back(file);
-    }
-    boost::asio::steady_timer timer(io);
-    timer.expires_after(std::chrono::seconds(1));
-    timer.async_wait(
-        [&](const boost::system::error_code&)
-        {
-            for (auto& file : download_files)
-            {
-                downloader->add_file(file);
-            }
-            for (auto& file : upload_files)
-            {
-                uploader->add_file(file);
-            }
-        });
-
-    auto worker = boost::asio::make_work_guard(io);
-    io.run();
-    downloader->shutdown();
-    uploader->shutdown();
+    fm.shutdown();
     leaf::shutdown_log();
     return 0;
 }

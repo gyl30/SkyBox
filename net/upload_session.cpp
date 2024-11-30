@@ -14,8 +14,8 @@ upload_session::upload_session(std::string id, leaf::upload_progress_callback cb
 
 upload_session::~upload_session() = default;
 
-void upload_session::startup() {}
-void upload_session::shutdown() {}
+void upload_session::startup() { LOG_INFO("{} startup", id_); }
+void upload_session::shutdown() { LOG_INFO("{} shutdown", id_); }
 
 void upload_session::set_message_cb(std::function<void(const leaf::codec_message&)> cb) { cb_ = std::move(cb); }
 

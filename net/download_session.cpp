@@ -2,6 +2,7 @@
 #include <filesystem>
 #include "log.h"
 #include "file.h"
+#include "hash_file.h"
 #include "download_session.h"
 
 namespace leaf
@@ -74,7 +75,19 @@ void download_session::on_download_file_response(const leaf::download_file_respo
     }
     if (exists)
     {
-        LOG_ERROR("{} on_download_file_response file {} exists", id_, file_->file_path);
+        boost::system::error_code hash_ec;
+        std::string h = leaf::hash_file(msg.filename, hash_ec);
+        if (hash_ec)
+        {
+            LOG_ERROR("{} on_download_file_response file {} exists retemo {} local hash failed {}",
+                      id_,
+                      file_->file_path,
+                      msg.hash,
+                      hash_ec.message());
+            return;
+        }
+
+        LOG_WARN("{} on_download_file_response file {} exists remote {} local {}", id_, file_->file_path, msg.hash, h);
         return;
     }
 
