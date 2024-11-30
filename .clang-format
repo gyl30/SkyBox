@@ -7,8 +7,8 @@ BreakBeforeBraces: Allman
 IndentWidth:     4
 SortIncludes:    false
 SortUsingDeclarations: false
+AllowAllArgumentsOnNextLine: true
 SpacesBeforeTrailingComments: 4
-ConstructorInitializerAllOnOneLineOrOnePerLine: false
 BinPackParameters: false
 BinPackArguments: false
 BraceWrapping:
