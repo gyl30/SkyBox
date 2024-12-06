@@ -62,4 +62,5 @@ include_directories(third/rapidjson/include)
 include_directories(third/spdlog/include)
 
 add_subdirectory(cli)
+add_subdirectory(qt)
 add_subdirectory(cmd)
