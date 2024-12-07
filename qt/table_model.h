@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QVariant>
 #include <QAbstractTableModel>
+#include "qt/task.h"
 
 namespace leaf
 {
@@ -12,6 +13,9 @@ class task_model : public QAbstractTableModel
 {
    public:
     explicit task_model(QObject *parent = nullptr);
+
+   public:
+    void add_or_update_task(const leaf::task &task);
 
    public:
     [[nodiscard]] int rowCount(const QModelIndex & /*parent*/) const override;
@@ -24,6 +28,7 @@ class task_model : public QAbstractTableModel
 
    private:
     QTimer *timer_ = nullptr;
+    std::vector<leaf::task> tasks_;
 };
 
 }    // namespace leaf

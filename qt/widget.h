@@ -2,8 +2,9 @@
 #define WIDGET_H
 
 #include <QWidget>
-#include "table_view.h"
-#include "table_model.h"
+#include "qt/task.h"
+#include "qt/table_view.h"
+#include "qt/table_model.h"
 #include "file_transfer_client.h"
 
 class Widget : public QWidget
@@ -16,6 +17,12 @@ class Widget : public QWidget
 
    private:
     void on_new_file_clicked();
+
+   Q_SIGNALS:
+    void progress_slot(leaf::task e);
+
+   private Q_SLOTS:
+    void on_progress_slot(leaf::task e);
 
    private:
     void upload_progress(const leaf::upload_event& e);

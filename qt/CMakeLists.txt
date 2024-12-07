@@ -9,6 +9,7 @@ aux_source_directory(${PROJECT_SOURCE_DIR}/crypt CLI_GUI_SOURCE_FILE)
 aux_source_directory(${PROJECT_SOURCE_DIR}/log CLI_GUI_SOURCE_FILE)
 aux_source_directory(${PROJECT_SOURCE_DIR}/net CLI_GUI_SOURCE_FILE)
 aux_source_directory(${PROJECT_SOURCE_DIR}/protocol CLI_GUI_SOURCE_FILE)
+
 add_executable(cli_gui 
     main.cpp 
     widget.cpp
@@ -18,7 +19,7 @@ add_executable(cli_gui
     ${CLI_GUI_SOURCE_FILE})
 list(APPEND 
     CLI_GUI_INCLUDE_DIRS 
-    ${PROJECT_SOURCE_DIR}/qt 
+    ${PROJECT_SOURCE_DIR} 
     ${PROJECT_SOURCE_DIR}/file 
     ${PROJECT_SOURCE_DIR}/crypt 
     ${PROJECT_SOURCE_DIR}/log
