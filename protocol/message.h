@@ -20,7 +20,8 @@ enum class message_type : uint16_t
     block_data_finish = 0x09,
     upload_file_exist = 0x10,
     download_file_request = 0x11,
-    download_file_response = 0x12
+    download_file_response = 0x12,
+    keepalive = 0x13,
 };
 
 // ------------------------------------------------------------------------------
@@ -30,6 +31,14 @@ struct upload_file_request
     uint64_t file_size = 0;
     std::string hash;
     std::string filename;
+};
+
+struct keepalive
+{
+    uint64_t id = 0;
+    uint64_t client_id = 0;
+    uint64_t client_timestamp = 0;
+    uint64_t server_timestamp = 0;
 };
 
 struct download_file_request

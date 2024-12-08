@@ -236,6 +236,32 @@ static std::optional<leaf::error_response> decode_error_response(leaf::read_buff
     r.read_uint32(&resp.error);
     return resp;
 }
+std::vector<uint8_t> serialize_keepalive(const leaf::keepalive &k)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(leaf::to_underlying(message_type::keepalive));
+    w.write_uint64(k.id);
+    w.write_uint64(k.client_id);
+    w.write_uint64(k.client_timestamp);
+    w.write_uint64(k.server_timestamp);
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
+}
+static std::optional<leaf::keepalive> decode_keepalive_response(leaf::read_buffer &r)
+{
+    if (r.size() > 2048)
+    {
+        return {};
+    }
+    leaf::keepalive resp;
+    r.read_uint64(&resp.id);
+    r.read_uint64(&resp.client_id);
+    r.read_uint64(&resp.client_timestamp);
+    r.read_uint64(&resp.server_timestamp);
+    return resp;
+}
 
 static std::optional<leaf::upload_file_request> decode_upload_file_request(leaf::read_buffer &r)
 {
@@ -415,6 +441,7 @@ std::vector<uint8_t> serialize_message(const codec_message &msg)
         XXX(upload_file_exist)
         XXX(download_file_request)
         XXX(download_file_response)
+        XXX(keepalive)
 #undef XXX
     };
     return std::visit(message_serializer{}, msg);
@@ -455,6 +482,8 @@ std::optional<codec_message> deserialize_message(const uint8_t *data, uint64_t l
             return decode_download_file_response(r);
         case leaf::message_type::delete_file_response:
             return decode_delete_file_response(r);
+        case leaf::message_type::keepalive:
+            return decode_keepalive_response(r);
         case leaf::message_type::error:
             return decode_error_response(r);
     }

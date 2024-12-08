@@ -19,6 +19,7 @@ using codec_message = std::variant<leaf::upload_file_request,
                                    leaf::block_data_response,
                                    leaf::file_block_response,
                                    leaf::block_data_finish,
+                                   leaf::keepalive,
                                    leaf::error_response>;
 
 uint16_t to_underlying(leaf::message_type type);
