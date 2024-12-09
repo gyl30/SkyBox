@@ -63,6 +63,14 @@ void upload_file_handle::on_message(const leaf::codec_message& msg)
             {
                 on_upload_file_request(arg);
             }
+            if constexpr (std::is_same_v<T, leaf::delete_file_request>)
+            {
+                on_delete_file_request(arg);
+            }
+            if constexpr (std::is_same_v<T, leaf::keepalive>)
+            {
+                on_keepalive(arg);
+            }
             if constexpr (std::is_same_v<T, leaf::error_response>)
             {
                 on_error_response(arg);
@@ -236,6 +244,14 @@ void upload_file_handle::on_block_data_response(const leaf::block_data_response&
     block_data_request();
 }
 
+void upload_file_handle::on_keepalive(const leaf::keepalive& msg)
+{
+    leaf::keepalive k = msg;
+    k.server_timestamp =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    commit_message(k);
+}
 void upload_file_handle::on_error_response(const leaf::error_response& msg)
 {
     LOG_INFO("{} on_error_response {}", id_, msg.error);

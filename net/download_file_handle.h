@@ -26,6 +26,7 @@ class download_file_handle : public websocket_handle
     void update();
 
    private:
+    void on_keepalive(const leaf::keepalive& msg);
     void on_download_file_request(const leaf::download_file_request& msg);
     void on_file_block_request(const leaf::file_block_request& msg);
     void on_block_data_request(const leaf::block_data_request& msg);

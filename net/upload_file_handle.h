@@ -25,6 +25,7 @@ class upload_file_handle : public websocket_handle
     void shutdown() override;
 
    private:
+    void on_keepalive(const leaf::keepalive& msg);
     void on_upload_file_request(const leaf::upload_file_request& msg);
     void on_delete_file_request(const leaf::delete_file_request& msg);
     void on_file_block_response(const leaf::file_block_response& msg);

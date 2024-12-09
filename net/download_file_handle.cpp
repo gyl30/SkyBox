@@ -68,6 +68,10 @@ void download_file_handle::on_message(const leaf::codec_message& msg)
             {
                 on_block_data_request(arg);
             }
+            if constexpr (std::is_same_v<T, leaf::keepalive>)
+            {
+                on_keepalive(arg);
+            }
             if constexpr (std::is_same_v<T, leaf::error_response>)
             {
                 on_error_response(arg);
@@ -135,7 +139,8 @@ void download_file_handle::on_download_file_request(const leaf::download_file_re
     file_->active_block_count = 0;
     file_->src_hash = h;
     file_->id = file_id();
-    LOG_INFO("{} download_file_request file {} size {} hash {}", id_, file_->file_path, file_->file_size, file_->src_hash);
+    LOG_INFO(
+        "{} download_file_request file {} size {} hash {}", id_, file_->file_path, file_->file_size, file_->src_hash);
     leaf::download_file_response response;
     response.filename = file_->file_path;
     response.file_id = file_->id;
@@ -220,6 +225,14 @@ void download_file_handle::block_data_finish1(uint64_t file_id, const std::strin
     commit_message(finish);
 }
 
+void download_file_handle::on_keepalive(const leaf::keepalive& msg)
+{
+    leaf::keepalive k = msg;
+    k.server_timestamp =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    commit_message(k);
+}
 void download_file_handle::on_error_response(const leaf::error_response& msg)
 {
     LOG_INFO("{} on_error_response {}", id_, msg.error);
