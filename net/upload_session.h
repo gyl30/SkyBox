@@ -36,6 +36,8 @@ class upload_session : public leaf::base_session, public std::enable_shared_from
     void block_data_request(const leaf::block_data_request &);
     void file_block_request(const leaf::file_block_request &);
     void block_data_finish(const leaf::block_data_finish &);
+    void keepalive();
+    void keepalive_response(const leaf::keepalive &);
     void error_response(const leaf::error_response &);
     void write_message(const codec_message &msg);
     void emit_event(const leaf::upload_event &e);

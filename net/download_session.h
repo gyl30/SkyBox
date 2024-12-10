@@ -36,6 +36,8 @@ class download_session : public base_session, public std::enable_shared_from_thi
     void on_block_data_finish(const leaf::block_data_finish &);
     void error_response(const leaf::error_response &);
     void write_message(const codec_message &msg);
+    void keepalive();
+    void keepalive_response(const leaf::keepalive &);
 
    private:
     void emit_event(const leaf::download_event &);

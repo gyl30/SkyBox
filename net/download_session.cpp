@@ -42,6 +42,10 @@ void download_session::on_message(const leaf::codec_message& msg)
             {
                 on_block_data_finish(arg);
             }
+            else if constexpr (std::is_same_v<T, leaf::keepalive>)
+            {
+                keepalive_response(arg);
+            }
             else if constexpr (std::is_same_v<T, leaf::error_response>)
             {
                 error_response(arg);
@@ -212,6 +216,8 @@ void download_session::add_file(const leaf::file_context::ptr& file)
 
 void download_session::update()
 {
+    keepalive();
+
     if (file_ != nullptr)
     {
         return;
@@ -229,4 +235,32 @@ void download_session::update()
 }
 
 void download_session::error_response(const leaf::error_response& msg) { LOG_ERROR("{} error {}", id_, msg.error); }
+
+void download_session::keepalive_response(const leaf::keepalive& k)
+{
+    auto now =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    auto diff = now - k.client_timestamp;
+
+    LOG_INFO("{} keepalive_response {} client {} client time {} server time {} diff {}",
+             id_,
+             k.id,
+             k.client_id,
+             k.client_timestamp,
+             k.server_timestamp,
+             diff);
+}
+void download_session::keepalive()
+{
+    leaf::keepalive k;
+    k.id = 0;
+    k.client_id = reinterpret_cast<uintptr_t>(this);
+    k.client_timestamp =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    k.server_timestamp = 0;
+    write_message(k);
+}
+
 }    // namespace leaf

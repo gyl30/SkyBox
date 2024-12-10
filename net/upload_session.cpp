@@ -49,6 +49,10 @@ void upload_session::on_message(const leaf::codec_message& msg)
             {
                 upload_file_exist(arg);
             }
+            else if constexpr (std::is_same_v<T, leaf::keepalive>)
+            {
+                keepalive_response(arg);
+            }
             else if constexpr (std::is_same_v<T, leaf::error_response>)
             {
                 error_response(arg);
@@ -140,6 +144,8 @@ void upload_session::add_file(const leaf::file_context::ptr& file)
 
 void upload_session::update()
 {
+    keepalive();
+
     if (file_ != nullptr)
     {
         return;
@@ -263,5 +269,34 @@ void upload_session::upload_file_exist(const leaf::upload_file_exist& exist)
     file_ = nullptr;
     LOG_INFO("{} upload_file_exist {} hash {}", id_, exist.filename, exist.hash);
 }
+
 void upload_session::error_response(const leaf::error_response& msg) { LOG_ERROR("{} error {}", id_, msg.error); }
+
+void upload_session::keepalive_response(const leaf::keepalive& k)
+{
+    auto now =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    auto diff = now - k.client_timestamp;
+
+    LOG_INFO("{} keepalive_response {} client {} client time {} server time {} diff {}",
+             id_,
+             k.id,
+             k.client_id,
+             k.client_timestamp,
+             k.server_timestamp,
+             diff);
+}
+void upload_session::keepalive()
+{
+    leaf::keepalive k;
+    k.id = 0;
+    k.client_id = reinterpret_cast<uintptr_t>(this);
+    k.client_timestamp =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    k.server_timestamp = 0;
+    write_message(k);
+}
+
 }    // namespace leaf
