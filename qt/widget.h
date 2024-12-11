@@ -2,6 +2,8 @@
 #define WIDGET_H
 
 #include <QWidget>
+#include <QStackedWidget>
+#include <QPushButton>
 #include "qt/task.h"
 #include "qt/table_view.h"
 #include "qt/table_model.h"
@@ -29,6 +31,9 @@ class Widget : public QWidget
     void download_progress(const leaf::download_event& e);
 
    private:
+    QPushButton* finish_btn_ = nullptr;
+    QPushButton* progress_btn_ = nullptr;
+    QStackedWidget* stacked_widget_ = nullptr;
     leaf::task_model* model_ = nullptr;
     leaf::task_table_view* table_view_ = nullptr;
     leaf::file_transfer_client* file_client_ = nullptr;
