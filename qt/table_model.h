@@ -16,6 +16,7 @@ class task_model : public QAbstractTableModel
 
    public:
     void add_or_update_task(const leaf::task &task);
+    void delete_task(const leaf::task &task);
 
    public:
     [[nodiscard]] int rowCount(const QModelIndex & /*parent*/) const override;

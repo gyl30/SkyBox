@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QStackedWidget>
 #include <QPushButton>
+#include <QListWidget>
 #include "qt/task.h"
 #include "qt/table_view.h"
 #include "qt/table_model.h"
@@ -33,7 +34,11 @@ class Widget : public QWidget
    private:
     QPushButton* finish_btn_ = nullptr;
     QPushButton* progress_btn_ = nullptr;
+    QPushButton* upload_btn_ = nullptr;
     QStackedWidget* stacked_widget_ = nullptr;
+    QListWidget* finish_list_widget_ = nullptr;
+    int finish_list_index_ = -1;
+    int upload_list_index_ = -1;
     leaf::task_model* model_ = nullptr;
     leaf::task_table_view* table_view_ = nullptr;
     leaf::file_transfer_client* file_client_ = nullptr;

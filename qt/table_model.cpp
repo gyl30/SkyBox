@@ -24,6 +24,17 @@ void task_model::add_or_update_task(const leaf::task &task)
 
     endResetModel();
 }
+
+void task_model::delete_task(const leaf::task &task)
+{
+    beginResetModel();
+    tasks_.erase(std::remove_if(tasks_.begin(),
+                                tasks_.end(),
+                                [&task](const leaf::task &t)
+                                { return t.id == task.id && t.op == task.op && t.filename == task.filename; }),
+                 tasks_.end());
+    endResetModel();
+}
 int task_model::rowCount(const QModelIndex & /*parent*/) const { return static_cast<int>(tasks_.size()); }
 
 int task_model::columnCount(const QModelIndex & /*parent*/) const { return 2; }
