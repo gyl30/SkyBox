@@ -48,6 +48,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     qRegisterMetaType<leaf::task>("leaf::task");
 
     table_view_ = new leaf::task_table_view(this);
+    table_view_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
     model_ = new leaf::task_model();
 
