@@ -107,7 +107,7 @@ void download_session::on_download_file_response(const leaf::download_file_respo
     assert(file_ && file_->file_path == msg.filename);
     file_->id = msg.file_id;
     file_->file_size = msg.file_size;
-    file_->src_hash = msg.hash;
+    file_->content_hash = msg.hash;
     LOG_INFO("{} download_file_response id {} name {} size {} hash {}",
              id_,
              msg.file_id,

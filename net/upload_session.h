@@ -2,6 +2,7 @@
 #define LEAF_UPLOAD_SESSION_H
 
 #include <queue>
+#include <deque>
 #include "file.h"
 #include "event.h"
 #include "codec.h"
@@ -29,6 +30,7 @@ class upload_session : public leaf::base_session, public std::enable_shared_from
 
    private:
     void open_file();
+    void update_process_file();
     void upload_file_request();
     void upload_file_response(const leaf::upload_file_response &);
     void upload_file_exist(const leaf::upload_file_exist &);
@@ -37,6 +39,7 @@ class upload_session : public leaf::base_session, public std::enable_shared_from
     void file_block_request(const leaf::file_block_request &);
     void block_data_finish(const leaf::block_data_finish &);
     void keepalive();
+    void padding_file_event();
     void keepalive_response(const leaf::keepalive &);
     void error_response(const leaf::error_response &);
     void write_message(const codec_message &msg);
@@ -48,7 +51,7 @@ class upload_session : public leaf::base_session, public std::enable_shared_from
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> blake2b_;
     leaf::upload_progress_callback progress_cb_;
-    std::queue<leaf::file_context::ptr> padding_files_;
+    std::deque<leaf::file_context::ptr> padding_files_;
     std::function<void(const leaf::codec_message &)> cb_;
 };
 }    // namespace leaf

@@ -139,13 +139,11 @@ void upload_session::add_file(const leaf::file_context::ptr& file)
     {
         LOG_INFO("{} add file {}", id_, file->file_path);
     }
-    padding_files_.push(file);
+    padding_files_.push_back(file);
 }
 
-void upload_session::update()
+void upload_session::update_process_file()
 {
-    keepalive();
-
     if (file_ != nullptr)
     {
         return;
@@ -157,9 +155,15 @@ void upload_session::update()
         return;
     }
     file_ = padding_files_.front();
-    padding_files_.pop();
+    padding_files_.pop_front();
     LOG_INFO("{} start_file {} size {}", id_, file_->file_path, padding_files_.size());
     upload_file_request();
+}
+void upload_session::update()
+{
+    keepalive();
+    update_process_file();
+    padding_file_event();
 }
 
 void upload_session::block_data_request(const leaf::block_data_request& msg)
@@ -287,6 +291,20 @@ void upload_session::keepalive_response(const leaf::keepalive& k)
              k.server_timestamp,
              diff);
 }
+
+void upload_session::padding_file_event()
+{
+    for (const auto& p : padding_files_)
+    {
+        upload_event e;
+        e.file_size = p->file_size;
+        e.upload_size = 0;
+        e.filename = p->filename;
+        e.id = p->id;
+        emit_event(e);
+    }
+}
+
 void upload_session::keepalive()
 {
     leaf::keepalive k;
