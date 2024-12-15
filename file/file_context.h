@@ -11,20 +11,15 @@ namespace leaf
 struct file_context
 {
     using ptr = std::shared_ptr<file_context>;
-    int32_t progress = 0;
-    uint32_t block_size = 0;
 
     uint64_t id = 0;
     uint64_t file_size = 0;
+    uint32_t block_size = 0;
     uint64_t block_count = 0;
     uint64_t active_block_count = 0;
     std::string file_path;
     std::string filename;
-    std::string dst_file;
-    std::string src_hash;
-    std::string dst_hash;
-    boost::system::error_code ec;
-    std::chrono::time_point<std::chrono::steady_clock> start_time_;
+    std::string content_hash;
 };
 
 }    // namespace leaf
