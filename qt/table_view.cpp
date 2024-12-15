@@ -31,12 +31,6 @@ void task_table_view::show_tooltip(const QModelIndex &index)
     {
         return;
     }
-    if (index.column() == 4)
-    {
-        QToolTip::showText(QCursor::pos(), QStringLiteral("处理中 %1%").arg(index.data().toInt()));
-        return;
-    }
-
     QToolTip::showText(QCursor::pos(), index.data().toString());
 }
 

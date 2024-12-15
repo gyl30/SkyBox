@@ -90,9 +90,13 @@ QVariant task_model::data(const QModelIndex &index, int role) const
     {
         return QString::fromStdString(t.filename);
     }
-    if (column == 1)
+    if (column == 1 && t.process_size != 0)
     {
         return static_cast<double>(t.process_size) * 100 / static_cast<double>(t.file_size);
+    }
+    if (column == 1 && t.process_size == 0)
+    {
+        return "Wait";
     }
     return {};
 }
