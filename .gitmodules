@@ -4,3 +4,6 @@
 [submodule "third/rapidjson"]
 	path = third/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
+[submodule "third/absl"]
+	path = third/absl
+	url = https://github.com/abseil/abseil-cpp.git
