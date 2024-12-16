@@ -10,9 +10,11 @@ void task_model::add_or_update_task(const leaf::task &task)
     beginResetModel();
     for (auto &&t : tasks_)
     {
-        if (t.id == task.id && task.op == t.op && task.filename == t.filename)
+        if (task.op == t.op && task.filename == t.filename)
         {
             t.process_size = task.process_size;
+            t.file_size = task.file_size;
+            t.id = task.id;
             update = true;
             break;
         }
@@ -28,11 +30,11 @@ void task_model::add_or_update_task(const leaf::task &task)
 void task_model::delete_task(const leaf::task &task)
 {
     beginResetModel();
-    tasks_.erase(std::remove_if(tasks_.begin(),
-                                tasks_.end(),
-                                [&task](const leaf::task &t)
-                                { return t.id == task.id && t.op == task.op && t.filename == task.filename; }),
-                 tasks_.end());
+    tasks_.erase(
+        std::remove_if(tasks_.begin(),
+                       tasks_.end(),
+                       [&task](const leaf::task &t) { return t.op == task.op && t.filename == task.filename; }),
+        tasks_.end());
     endResetModel();
 }
 int task_model::rowCount(const QModelIndex & /*parent*/) const { return static_cast<int>(tasks_.size()); }
@@ -96,7 +98,7 @@ QVariant task_model::data(const QModelIndex &index, int role) const
     }
     if (column == 1 && t.process_size == 0)
     {
-        return "Wait";
+        return 0;
     }
     return {};
 }
