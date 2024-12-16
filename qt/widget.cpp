@@ -106,9 +106,9 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 
 void Widget::on_progress_slot(leaf::task e)
 {
+    LOG_INFO("{} progress {} {} {} {}", e.op, e.id, e.filename, e.process_size, e.file_size);
     if (e.process_size == e.file_size && e.file_size != 0)
     {
-        LOG_INFO("{} progress {} {} {} {}", e.op, e.id, e.filename, e.process_size, e.file_size);
         model_->delete_task(e);
         append_task_to_wiget(finish_list_widget_, e, QTime::currentTime());
         return;
@@ -139,7 +139,11 @@ void Widget::upload_progress(const leaf::upload_event &e)
     emit progress_slot(t);
 }
 
-Widget::~Widget() { file_client_->shutdown(); }
+Widget::~Widget()
+{
+    file_client_->shutdown();
+    delete file_client_;
+}
 
 void Widget::on_new_file_clicked()
 {
