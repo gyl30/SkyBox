@@ -2,8 +2,7 @@
 #include <QApplication>
 #include <QStyledItemDelegate>
 #include <QStyleOptionProgressBar>
-
-#include "table_delegate.h"
+#include "qt/table_delegate.h"
 
 namespace leaf
 {
@@ -33,7 +32,11 @@ void task_style_delegate::paint(QPainter *painter, const QStyleOptionViewItem &o
     p.text = QStringLiteral("处理中 %1%").arg(p.progress);
     if (p.progress >= 100)
     {
-        p.text = QString("处理完成");
+        p.text = "处理完成";
+    }
+    if (p.progress == 0)
+    {
+        p.text = "等待中";
     }
     style->drawControl(QStyle::CE_ProgressBar, &p, painter);
     painter->restore();
