@@ -26,6 +26,8 @@ class task_model : public QAbstractTableModel
     [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
     [[nodiscard]] static QVariant set_header_data(int section, int role);
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
+    QVariant tooltip_data(const QModelIndex &index, int role) const;
+    QVariant display_data(const QModelIndex &index, int role) const;
 
    private:
     QTimer *timer_ = nullptr;

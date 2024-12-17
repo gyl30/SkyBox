@@ -10,9 +10,6 @@ class task_table_view : public QTableView
 {
    public:
     explicit task_table_view(QWidget *parent);
-
-   public:
-    static void show_tooltip(const QModelIndex &index);
 };
 
 }    // namespace leaf

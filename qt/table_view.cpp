@@ -21,17 +21,5 @@ task_table_view::task_table_view(QWidget *parent) : QTableView(parent)
     verticalHeader()->setMaximumSectionSize(30);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    auto c = connect(this, &QTableView::entered, this, &task_table_view::show_tooltip);
-    (void)c;
 }
-
-void task_table_view::show_tooltip(const QModelIndex &index)
-{
-    if (!index.isValid())
-    {
-        return;
-    }
-    QToolTip::showText(QCursor::pos(), index.data().toString());
-}
-
 }    // namespace leaf

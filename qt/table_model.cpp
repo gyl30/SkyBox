@@ -71,12 +71,33 @@ QVariant task_model::set_header_data(int section, int role)
     }
     return {};
 }
-QVariant task_model::data(const QModelIndex &index, int role) const
+
+QVariant task_model::tooltip_data(const QModelIndex &index, int role) const
 {
-    if (role != Qt::DisplayRole)
+    if (!index.isValid() || index.column() >= columnCount(index) || index.row() >= rowCount(index))
     {
         return {};
     }
+    const size_t row = index.row();
+    if (row >= tasks_.size())
+    {
+        return {};
+    }
+    const auto &t = tasks_[row];
+    const int column = index.column();
+    if (role == Qt::ToolTipRole && column == 1)
+    {
+        if (t.process_size == 0)
+        {
+            return "等待中";
+        }
+        return "处理中";
+    }
+    return {};
+}
+
+QVariant task_model::display_data(const QModelIndex &index, int role) const
+{
     if (!index.isValid() || index.column() >= columnCount(index) || index.row() >= rowCount(index))
     {
         return {};
@@ -99,6 +120,19 @@ QVariant task_model::data(const QModelIndex &index, int role) const
     if (column == 1 && t.process_size == 0)
     {
         return 0;
+    }
+    return {};
+}
+
+QVariant task_model::data(const QModelIndex &index, int role) const
+{
+    if (role == Qt::DisplayRole)
+    {
+        return display_data(index, role);
+    }
+    if (role == Qt::ToolTipRole)
+    {
+        return tooltip_data(index, role);
     }
     return {};
 }
