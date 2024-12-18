@@ -1,9 +1,7 @@
 #include <iostream>
-#include <utility>
-
-#include "log.h"
-#include "event.h"
-#include "file_transfer_client.h"
+#include "log/log.h"
+#include "file/event.h"
+#include "file/file_transfer_client.h"
 
 static void download_progress(const leaf::download_event &e)
 {

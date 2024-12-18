@@ -1,5 +1,5 @@
-#ifndef LEAF_TABLE_VIEW_H
-#define LEAF_TABLE_VIEW_H
+#ifndef LEAF_GUI_TABLE_VIEW_H
+#define LEAF_GUI_TABLE_VIEW_H
 
 #include <QObject>
 #include <QTableView>

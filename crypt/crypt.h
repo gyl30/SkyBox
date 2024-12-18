@@ -1,5 +1,5 @@
-#ifndef LEAF_CRYPT_H
-#define LEAF_CRYPT_H
+#ifndef LEAF_CRYPT_CRYPT_H
+#define LEAF_CRYPT_CRYPT_H
 
 #include <vector>
 #include <boost/system/error_code.hpp>

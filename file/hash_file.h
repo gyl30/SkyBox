@@ -1,5 +1,5 @@
-#ifndef HASH_FILE_H
-#define HASH_FILE_H
+#ifndef LEAF_FILE_HASH_FILE_H
+#define LEAF_FILE_HASH_FILE_H
 
 #include <string>
 #include <boost/system/error_code.hpp>

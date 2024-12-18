@@ -1,5 +1,5 @@
-#ifndef LEAF_LOG_H
-#define LEAF_LOG_H
+#ifndef LEAF_LOG_LOG_H
+#define LEAF_LOG_LOG_H
 
 #define SPDLOG_SHORT_LEVEL_NAMES {"TRC", "DBG", "INF", "WRN", "ERR", "CTL", "OFF"};
 

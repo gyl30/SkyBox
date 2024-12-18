@@ -2,9 +2,9 @@
 #include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>
 
-#include "file.h"
-#include "hash_file.h"
-#include "blake2b.h"
+#include "file/file.h"
+#include "file/hash_file.h"
+#include "crypt/blake2b.h"
 
 namespace leaf
 {

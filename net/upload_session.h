@@ -1,14 +1,13 @@
-#ifndef LEAF_UPLOAD_SESSION_H
-#define LEAF_UPLOAD_SESSION_H
+#ifndef LEAF_NET_UPLOAD_SESSION_H
+#define LEAF_NET_UPLOAD_SESSION_H
 
-#include <queue>
 #include <deque>
-#include "file.h"
-#include "event.h"
-#include "codec.h"
-#include "blake2b.h"
-#include "file_context.h"
-#include "base_session.h"
+#include "file/file.h"
+#include "file/event.h"
+#include "protocol/codec.h"
+#include "crypt/blake2b.h"
+#include "file/file_context.h"
+#include "net/base_session.h"
 
 namespace leaf
 {
@@ -16,7 +15,7 @@ class upload_session : public leaf::base_session, public std::enable_shared_from
 {
    public:
     explicit upload_session(std::string id, leaf::upload_progress_callback cb);
-    ~upload_session();
+    ~upload_session() override;
 
    public:
     void startup() override;

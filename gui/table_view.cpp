@@ -3,7 +3,7 @@
 #include <QHeaderView>
 #include <QAbstractItemView>
 
-#include "table_view.h"
+#include "gui/table_view.h"
 
 namespace leaf
 {

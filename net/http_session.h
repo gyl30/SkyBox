@@ -1,5 +1,5 @@
-#ifndef LEAF_HTTP_SESSION_H
-#define LEAF_HTTP_SESSION_H
+#ifndef LEAF_NET_HTTP_SESSION_H
+#define LEAF_NET_HTTP_SESSION_H
 
 #include <memory>
 #include <boost/optional.hpp>

@@ -1,7 +1,7 @@
-#ifndef LEAF_APPLICATION_H
-#define LEAF_APPLICATION_H
+#ifndef LEAF_SERVER_APPLICATION_H
+#define LEAF_SERVER_APPLICATION_H
 
-#include "tcp_server.h"
+#include "net/tcp_server.h"
 
 namespace leaf
 {

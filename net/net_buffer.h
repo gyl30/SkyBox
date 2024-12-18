@@ -1,5 +1,5 @@
-#ifndef LEAF_NET_BUFFER_H
-#define LEAF_NET_BUFFER_H
+#ifndef LEAF_NET_NET_BUFFER_H
+#define LEAF_NET_NET_BUFFER_H
 
 #include <vector>
 #include <string>

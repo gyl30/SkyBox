@@ -9,13 +9,14 @@
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QStringList>
+#include <QHeaderView>
 
-#include "qt/task.h"
-#include "qt/widget.h"
-#include <qheaderview.h>
-#include "qt/table_view.h"
-#include "qt/table_model.h"
-#include "qt/table_delegate.h"
+#include "log/log.h"
+#include "gui/task.h"
+#include "gui/widget.h"
+#include "gui/table_view.h"
+#include "gui/table_model.h"
+#include "gui/table_delegate.h"
 
 void append_task_to_wiget(QTableWidget *table, const leaf::task &task, const QTime &t)
 {

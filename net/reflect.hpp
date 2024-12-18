@@ -1,5 +1,5 @@
-#ifndef LEAF_REFLECT_HPP
-#define LEAF_REFLECT_HPP
+#ifndef LEAF_NET_REFLECT_HPP
+#define LEAF_NET_REFLECT_HPP
 
 #include "rapidjson/document.h"
 #include "rapidjson/fwd.h"

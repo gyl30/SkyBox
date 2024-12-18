@@ -1,4 +1,4 @@
-#include "application.h"
+#include "server/application.h"
 
 int main(int argc, char *argv[])
 {

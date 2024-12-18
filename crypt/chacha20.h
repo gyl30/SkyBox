@@ -1,9 +1,9 @@
-#ifndef LEAF_CHACHA20_H
-#define LEAF_CHACHA20_H
+#ifndef LEAF_CRYPT_CHACHA20_H
+#define LEAF_CRYPT_CHACHA20_H
 
 #include <cstdint>
 #include <vector>
-#include "crypt.h"
+#include "crypt/crypt.h"
 
 namespace leaf
 {

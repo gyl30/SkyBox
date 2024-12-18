@@ -1,13 +1,13 @@
-#ifndef LEAF_SSL_HTTP_SESSION_H
-#define LEAF_SSL_HTTP_SESSION_H
+#ifndef LEAF_NET_SSL_HTTP_SESSION_H
+#define LEAF_NET_SSL_HTTP_SESSION_H
 
 #include <boost/optional.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
-#include "http_handle.h"
-#include "http_session.h"
+#include "net/http_handle.h"
+#include "net/http_session.h"
 
 namespace leaf
 {

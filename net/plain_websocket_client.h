@@ -1,13 +1,13 @@
-#ifndef LEAF_PLAIN_WEBSOCKET_CLIENT_H
-#define LEAF_PLAIN_WEBSOCKET_CLIENT_H
+#ifndef LEAF_NET_PLAIN_WEBSOCKET_CLIENT_H
+#define LEAF_NET_PLAIN_WEBSOCKET_CLIENT_H
 
 #include <queue>
 #include <functional>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
-#include "codec.h"
-#include "file_context.h"
-#include "base_session.h"
+#include "protocol/codec.h"
+#include "file/file_context.h"
+#include "net/base_session.h"
 
 namespace leaf
 {

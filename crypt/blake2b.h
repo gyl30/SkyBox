@@ -1,5 +1,5 @@
-#ifndef LEAF_BLAKE2B_H
-#define LEAF_BLAKE2B_H
+#ifndef LEAF_CRYPT_BLAKE2B_H
+#define LEAF_CRYPT_BLAKE2B_H
 
 #include <vector>
 #include <string>

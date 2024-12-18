@@ -2,7 +2,7 @@
 #include <absl/cleanup/cleanup.h>
 
 #include "log/log.h"
-#include "qt/widget.h"
+#include "gui/widget.h"
 
 int main(int argc, char *argv[])
 {

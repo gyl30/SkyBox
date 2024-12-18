@@ -1,13 +1,13 @@
-#ifndef LEAF_DOWNLOAD_SESSION_H
-#define LEAF_DOWNLOAD_SESSION_H
+#ifndef LEAF_NET_DOWNLOAD_SESSION_H
+#define LEAF_NET_DOWNLOAD_SESSION_H
 
 #include <queue>
-#include "file.h"
-#include "event.h"
-#include "codec.h"
-#include "blake2b.h"
-#include "file_context.h"
-#include "base_session.h"
+#include "file/file.h"
+#include "file/event.h"
+#include "protocol/codec.h"
+#include "crypt/blake2b.h"
+#include "file/file_context.h"
+#include "net/base_session.h"
 
 namespace leaf
 {

@@ -1,5 +1,5 @@
-#ifndef LEAF_MESSAGE_H
-#define LEAF_MESSAGE_H
+#ifndef LEAF_PROTOCOL_MESSAGE_H
+#define LEAF_PROTOCOL_MESSAGE_H
 
 #include <string>
 #include <vector>

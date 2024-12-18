@@ -1,11 +1,11 @@
-#ifndef LEAF_DETECT_SESSION_H
-#define LEAF_DETECT_SESSION_H
+#ifndef LEAF_NET_DETECT_SESSION_H
+#define LEAF_NET_DETECT_SESSION_H
 
 #include <memory>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/asio/ssl.hpp>
-#include "session_handle.h"
+#include "net/session_handle.h"
 
 namespace leaf
 {

@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 project(crypt)
 
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -55,12 +51,14 @@ else()
     list(APPEND LINK_LIBS PkgConfig::libuv)
 endif()
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 # rapidjson
 include_directories(third/rapidjson/include)
 
 # spdlog
 include_directories(third/spdlog/include)
 
-add_subdirectory(cli)
-add_subdirectory(qt)
-add_subdirectory(cmd)
+add_subdirectory(client)
+add_subdirectory(gui)
+add_subdirectory(server)

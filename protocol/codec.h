@@ -1,9 +1,9 @@
-#ifndef LEAF_CODEC_H
-#define LEAF_CODEC_H
+#ifndef LEAF_PROTOCOL_CODEC_H
+#define LEAF_PROTOCOL_CODEC_H
 
 #include <variant>
 #include <optional>
-#include "message.h"
+#include "protocol/message.h"
 
 namespace leaf
 {

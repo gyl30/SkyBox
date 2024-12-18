@@ -1,5 +1,5 @@
-#ifndef LEAF_EVENT_H
-#define LEAF_EVENT_H
+#ifndef LEAF_FILE_EVENT_H
+#define LEAF_FILE_EVENT_H
 
 #include <string>
 #include <functional>

@@ -1,5 +1,5 @@
-#ifndef BYTE_ORDER_H
-#define BYTE_ORDER_H
+#ifndef LEAF_NET_BYTE_ORDER_H
+#define LEAF_NET_BYTE_ORDER_H
 
 #include <cstdint>
 

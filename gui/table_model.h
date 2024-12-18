@@ -1,11 +1,11 @@
-#ifndef LEAF_TABLE_MODEL_H
-#define LEAF_TABLE_MODEL_H
+#ifndef LEAF_GUI_TABLE_MODEL_H
+#define LEAF_GUI_TABLE_MODEL_H
 
 #include <QTimer>
 #include <QObject>
 #include <QVariant>
 #include <QAbstractTableModel>
-#include "qt/task.h"
+#include "gui/task.h"
 
 namespace leaf
 {

@@ -1,5 +1,5 @@
-#ifndef LEAF_SSL_WEBSOCKET_SESSION_H
-#define LEAF_SSL_WEBSOCKET_SESSION_H
+#ifndef LEAF_NET_SSL_WEBSOCKET_SESSION_H
+#define LEAF_NET_SSL_WEBSOCKET_SESSION_H
 
 #include <queue>
 #include <memory>
@@ -8,8 +8,8 @@
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/ssl/ssl_stream.hpp>
-#include "websocket_handle.h"
-#include "websocket_session.h"
+#include "net/websocket_handle.h"
+#include "net/websocket_session.h"
 
 namespace leaf
 {

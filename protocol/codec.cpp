@@ -1,9 +1,9 @@
 #include <cassert>
-#include "codec.h"
-#include "reflect.hpp"
-#include "net_buffer.h"
-
 #include <type_traits>
+#include "protocol/codec.h"
+#include "net/reflect.hpp"
+#include "net/net_buffer.h"
+
 
 namespace reflect
 {

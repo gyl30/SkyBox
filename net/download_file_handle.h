@@ -1,13 +1,13 @@
-#ifndef LEAF_DOWNLOAD_FILE_HANDLE_H
-#define LEAF_DOWNLOAD_FILE_HANDLE_H
+#ifndef LEAF_NET_DOWNLOAD_FILE_HANDLE_H
+#define LEAF_NET_DOWNLOAD_FILE_HANDLE_H
 
 #include <queue>
-#include "file.h"
-#include "codec.h"
-#include "message.h"
-#include "blake2b.h"
-#include "file_context.h"
-#include "websocket_handle.h"
+#include "file/file.h"
+#include "protocol/codec.h"
+#include "protocol/message.h"
+#include "crypt/blake2b.h"
+#include "file/file_context.h"
+#include "net/websocket_handle.h"
 
 namespace leaf
 {

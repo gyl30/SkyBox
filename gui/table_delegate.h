@@ -1,5 +1,5 @@
-#ifndef LEAF_TABLE_DELEGATE_H
-#define LEAF_TABLE_DELEGATE_H
+#ifndef LEAF_GUI_TABLE_DELEGATE_H
+#define LEAF_GUI_TABLE_DELEGATE_H
 
 #include <QObject>
 #include <QStyledItemDelegate>
@@ -13,7 +13,10 @@ class task_style_delegate : public QStyledItemDelegate
 
    public:
     void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex & /*index*/) const override { return QSize(option.rect.size()); }
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex & /*index*/) const override
+    {
+        return QSize(option.rect.size());
+    }
 };
 
 }    // namespace leaf

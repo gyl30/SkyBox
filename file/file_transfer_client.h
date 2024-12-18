@@ -1,13 +1,11 @@
-#ifndef LEAF_FILE_TRANSFER_CLIENT_H
-#define LEAF_FILE_TRANSFER_CLIENT_H
+#ifndef LEAF_FILE_FILE_TRANSFER_CLIENT_H
+#define LEAF_FILE_FILE_TRANSFER_CLIENT_H
 
-#include "log.h"
-#include "event.h"
-#include "executors.h"
-#include "file_context.h"
-#include "upload_session.h"
-#include "download_session.h"
-#include "plain_websocket_client.h"
+#include "file/event.h"
+#include "net/executors.h"
+#include "net/upload_session.h"
+#include "net/download_session.h"
+#include "net/plain_websocket_client.h"
 
 namespace leaf
 {
@@ -16,9 +14,9 @@ class file_transfer_client
 {
    public:
     file_transfer_client(const std::string &ip,
-                 uint16_t port,
-                 leaf::upload_progress_callback upload_progress_cb,
-                 leaf::download_progress_callback download_progress_cb);
+                         uint16_t port,
+                         leaf::upload_progress_callback upload_progress_cb,
+                         leaf::download_progress_callback download_progress_cb);
 
    public:
     void startup();

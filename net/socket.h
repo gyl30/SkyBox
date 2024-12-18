@@ -1,5 +1,5 @@
-#ifndef LEAF_SOCKET_H
-#define LEAF_SOCKET_H
+#ifndef LEAF_NET_SOCKET_H
+#define LEAF_NET_SOCKET_H
 
 #include <string>
 #include <boost/asio.hpp>

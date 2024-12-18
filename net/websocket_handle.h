@@ -1,10 +1,10 @@
-#ifndef LEAF_WEBSOCKET_HANDLE_H
-#define LEAF_WEBSOCKET_HANDLE_H
+#ifndef LEAF_NET_WEBSOCKET_HANDLE_H
+#define LEAF_NET_WEBSOCKET_HANDLE_H
 
 #include <memory>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
-#include "websocket_session.h"
+#include "net/websocket_session.h"
 
 namespace leaf
 {

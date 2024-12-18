@@ -1,7 +1,7 @@
-#ifndef LEAF_HANDLE_H
-#define LEAF_HANDLE_H
+#ifndef LEAF_NET_SESSION_HANDLE_H
+#define LEAF_NET_SESSION_HANDLE_H
 
-#include "http_handle.h"
+#include "net/http_handle.h"
 
 namespace leaf
 {

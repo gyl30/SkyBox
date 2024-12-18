@@ -1,5 +1,5 @@
-#ifndef LEAF_WEBSOCKET_SERVER_H
-#define LEAF_WEBSOCKET_SERVER_H
+#ifndef LEAF_NET_TCP_SERVER_H
+#define LEAF_NET_TCP_SERVER_H
 
 #include <memory>
 #include <functional>

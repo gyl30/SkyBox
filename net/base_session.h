@@ -1,8 +1,8 @@
-#ifndef LEAF_CLI_BASE_SESSION_H
-#define LEAF_CLI_BASE_SESSION_H
+#ifndef LEAF_NET_BASE_SESSION_H
+#define LEAF_NET_BASE_SESSION_H
 
-#include "codec.h"
-#include "file_context.h"
+#include "protocol/codec.h"
+#include "file/file_context.h"
 
 namespace leaf
 {

@@ -1,14 +1,14 @@
-#ifndef WIDGET_H
-#define WIDGET_H
+#ifndef LEAF_GUI_WIDGET_H
+#define LEAF_GUI_WIDGET_H
 
 #include <QWidget>
 #include <QStackedWidget>
 #include <QPushButton>
 #include <QTableWidget>
-#include "qt/task.h"
-#include "qt/table_view.h"
-#include "qt/table_model.h"
-#include "file_transfer_client.h"
+#include "gui/task.h"
+#include "gui/table_view.h"
+#include "gui/table_model.h"
+#include "file/file_transfer_client.h"
 
 class Widget : public QWidget
 {

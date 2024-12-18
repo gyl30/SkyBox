@@ -1,5 +1,5 @@
-#ifndef LEAF_SHA256_H
-#define LEAF_SHA256_H
+#ifndef LEAF_CRYPT_SHA256_H
+#define LEAF_CRYPT_SHA256_H
 
 #include <vector>
 #include <string>

@@ -1,5 +1,5 @@
-#ifndef LEAF_QT_TASK_H
-#define LEAF_QT_TASK_H
+#ifndef LEAF_GUI_TASK_H
+#define LEAF_GUI_TASK_H
 
 #include <string>
 #include <cstdint>

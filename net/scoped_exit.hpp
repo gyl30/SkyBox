@@ -1,5 +1,5 @@
-#ifndef LEAF_SCOPED_EXIT_HPP
-#define LEAF_SCOPED_EXIT_HPP
+#ifndef LEAF_NET_SCOPED_EXIT_HPP
+#define LEAF_NET_SCOPED_EXIT_HPP
 
 namespace leaf
 {

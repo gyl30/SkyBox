@@ -1,4 +1,4 @@
-#include "table_model.h"
+#include "gui/table_model.h"
 
 namespace leaf
 {

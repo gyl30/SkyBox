@@ -2,7 +2,7 @@
 #include <QApplication>
 #include <QStyledItemDelegate>
 #include <QStyleOptionProgressBar>
-#include "qt/table_delegate.h"
+#include "gui/table_delegate.h"
 
 namespace leaf
 {
