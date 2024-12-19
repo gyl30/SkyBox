@@ -16,9 +16,6 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 set(LINK_LIBS Threads::Threads) #
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
-
 # boost
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_DEBUG_LIBS ON)

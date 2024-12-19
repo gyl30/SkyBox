@@ -1,4 +1,5 @@
 #include "log/log.h"
+#include "net/session_handle.h"
 #include "net/plain_http_session.h"
 #include "net/plain_websocket_session.h"
 
@@ -8,7 +9,7 @@ namespace leaf
 plain_http_session::plain_http_session(std::string id,
                                        boost::beast::tcp_stream&& stream,
                                        boost::beast::flat_buffer&& buffer,
-                                       leaf::http_handle::ptr handle)
+                                       leaf::session_handle handle)
     : id_(std::move(id)), handle_(std::move(handle)), buffer_(std::move(buffer)), stream_(std::move(stream))
 {
     LOG_INFO("create {}", id_);
@@ -59,14 +60,15 @@ void plain_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_
     {
         boost::beast::http::request<boost::beast::http::string_body> req(parser_->release());
 
-        auto h = handle_->websocket_handle(id_, req.target());
+        auto h = handle_.ws_handle(id_, req.target());
 
         boost::beast::get_lowest_layer(stream_).expires_never();
 
-        return std::make_shared<leaf::plain_websocket_session>(id_, std::move(stream_), h)->startup(req);
+        std::make_shared<leaf::plain_websocket_session>(id_, std::move(stream_), h)->startup(req);
+        return;
     }
     auto req_ptr = std::make_shared<boost::beast::http::request<boost::beast::http::string_body>>(parser_->release());
-    handle_->handle(shared_from_this(), req_ptr);
+    handle_.http_handle(shared_from_this(), req_ptr);
 }
 
 void plain_http_session::write(const http_response_ptr& ptr)

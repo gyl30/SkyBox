@@ -8,7 +8,7 @@
 namespace leaf
 {
 
-leaf::websocket_handle::ptr file_http_handle::websocket_handle(const std::string &id, const std::string &target)
+leaf::websocket_handle::ptr websocket_handle(const std::string &id, const std::string &target)
 {
     LOG_INFO("{} websocket handle target {}", id, target);
     if (boost::ends_with(target, "upload"))
@@ -22,7 +22,7 @@ leaf::websocket_handle::ptr file_http_handle::websocket_handle(const std::string
     return nullptr;
 }
 
-void file_http_handle::handle(const leaf::http_session::ptr &session, const leaf::http_session::http_request_ptr &req)
+void http_handle(const leaf::http_session::ptr &session, const leaf::http_session::http_request_ptr &req)
 {
     boost::beast::http::response<boost::beast::http::string_body> response;
     response.result(boost::beast::http::status::ok);

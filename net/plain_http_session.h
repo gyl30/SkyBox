@@ -4,8 +4,8 @@
 #include <boost/optional.hpp>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
-#include "net/http_handle.h"
 #include "net/http_session.h"
+#include "net/session_handle.h"
 
 namespace leaf
 {
@@ -16,7 +16,7 @@ class plain_http_session : public http_session
     plain_http_session(std::string id,
                        boost::beast::tcp_stream&& stream,
                        boost::beast::flat_buffer&& buffer,
-                       leaf::http_handle::ptr handle);
+                       leaf::session_handle handle);
     ~plain_http_session() override;
 
    public:
@@ -36,7 +36,7 @@ class plain_http_session : public http_session
 
    private:
     std::string id_;
-    leaf::http_handle::ptr handle_;
+    leaf::session_handle handle_;
     boost::beast::flat_buffer buffer_;
     boost::beast::tcp_stream stream_;
     std::shared_ptr<void> self_;

@@ -9,7 +9,7 @@ ssl_http_session::ssl_http_session(std::string id,
                                    boost::beast::tcp_stream&& stream,
                                    boost::asio::ssl::context& ctx,
                                    boost::beast::flat_buffer&& buffer,
-                                   leaf::http_handle::ptr handle)
+                                   leaf::session_handle handle)
     : id_(std::move(id)), handle_(std::move(handle)), buffer_(std::move(buffer)), stream_(std::move(stream), ctx)
 {
     LOG_INFO("create {}", id_);
@@ -90,14 +90,14 @@ void ssl_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_tr
     {
         boost::beast::http::request<boost::beast::http::string_body> req(parser_->release());
 
-        auto h = handle_->websocket_handle(id_, req.target());
+        auto h = handle_.ws_handle(id_, req.target());
 
         boost::beast::get_lowest_layer(stream_).expires_never();
 
         return std::make_shared<leaf::ssl_websocket_session>(id_, std::move(stream_), h)->startup(req);
     }
     auto req_ptr = std::make_shared<boost::beast::http::request<boost::beast::http::string_body>>(parser_->release());
-    handle_->handle(shared_from_this(), req_ptr);
+    handle_.http_handle(shared_from_this(), req_ptr);
 }
 
 void ssl_http_session::write(const http_response_ptr& ptr)

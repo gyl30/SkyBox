@@ -18,12 +18,8 @@ void application::startup()
     endpoint_ = boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 8080);
 
     leaf::session_handle h2;
-    h2.http_handle = []
-    {
-        //
-        return std::make_shared<leaf::file_http_handle>();
-    };
-
+    h2.http_handle = leaf::http_handle;
+    h2.ws_handle = leaf::websocket_handle;
     leaf::tcp_server::handle h;
     h.accept = [this, h2](boost::asio::ip::tcp::socket socket)
     {
