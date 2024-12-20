@@ -1,5 +1,5 @@
-#ifndef LEAF_NET_DOWNLOAD_FILE_HANDLE_H
-#define LEAF_NET_DOWNLOAD_FILE_HANDLE_H
+#ifndef LEAF_FILE_DOWNLOAD_FILE_HANDLE_H
+#define LEAF_FILE_DOWNLOAD_FILE_HANDLE_H
 
 #include <queue>
 #include "file/file.h"

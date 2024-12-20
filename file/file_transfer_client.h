@@ -3,8 +3,8 @@
 
 #include "file/event.h"
 #include "net/executors.h"
-#include "net/upload_session.h"
-#include "net/download_session.h"
+#include "file/upload_session.h"
+#include "file/download_session.h"
 #include "net/plain_websocket_client.h"
 
 namespace leaf

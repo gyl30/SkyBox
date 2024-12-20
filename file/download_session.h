@@ -1,5 +1,5 @@
-#ifndef LEAF_NET_DOWNLOAD_SESSION_H
-#define LEAF_NET_DOWNLOAD_SESSION_H
+#ifndef LEAF_FILE_DOWNLOAD_SESSION_H
+#define LEAF_FILE_DOWNLOAD_SESSION_H
 
 #include <queue>
 #include "file/file.h"

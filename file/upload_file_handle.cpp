@@ -5,7 +5,7 @@
 #include "protocol/codec.h"
 #include "protocol/message.h"
 #include "file/hash_file.h"
-#include "net/upload_file_handle.h"
+#include "file/upload_file_handle.h"
 
 namespace leaf
 {

@@ -6,7 +6,7 @@
 #include "file/file.h"
 #include "protocol/message.h"
 #include "file/hash_file.h"
-#include "net/download_file_handle.h"
+#include "file/download_file_handle.h"
 
 namespace leaf
 {

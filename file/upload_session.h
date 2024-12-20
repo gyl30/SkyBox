@@ -1,5 +1,5 @@
-#ifndef LEAF_NET_UPLOAD_SESSION_H
-#define LEAF_NET_UPLOAD_SESSION_H
+#ifndef LEAF_FILE_UPLOAD_SESSION_H
+#define LEAF_FILE_UPLOAD_SESSION_H
 
 #include <deque>
 #include "file/file.h"

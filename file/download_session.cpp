@@ -3,7 +3,7 @@
 #include "log/log.h"
 #include "file/file.h"
 #include "file/hash_file.h"
-#include "net/download_session.h"
+#include "file/download_session.h"
 
 namespace leaf
 {
