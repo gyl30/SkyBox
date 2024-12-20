@@ -1,6 +1,7 @@
 #ifndef LEAF_NET_SCOPED_EXIT_HPP
 #define LEAF_NET_SCOPED_EXIT_HPP
 
+#include <utility>
 namespace leaf
 {
 template <typename Callback>
@@ -51,6 +52,6 @@ scoped_exit<Callback> make_scoped_exit(Callback&& c)
 #define SCOPED_CONCAT_(x, y) x##y
 #define SCOPED_CONCAT(x, y) SCOPED_CONCAT_(x, y)
 #define SCOPED_UNIQUE_NAME(prefix) SCOPED_CONCAT(prefix, __LINE__)
-#define DEFER(code) auto SCOPED_UNIQUE_NAME(scoped) = ::ScopedExit::make_scoped_exit([&]() { code; })
+#define DEFER(code) auto SCOPED_UNIQUE_NAME(scoped) = leaf::make_scoped_exit([&]() { code; })
 }    // namespace leaf
 #endif
