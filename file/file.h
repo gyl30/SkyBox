@@ -6,6 +6,10 @@
 
 namespace leaf
 {
+uint64_t file_id();
+
+std::string make_file_path(const std::string& filename);
+
 class file_impl;
 class writer
 {

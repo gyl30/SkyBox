@@ -9,11 +9,6 @@
 
 namespace leaf
 {
-static uint64_t file_id()
-{
-    static std::atomic<uint64_t> id = 0xff1;
-    return ++id;
-}
 
 upload_file_handle::upload_file_handle(std::string id) : id_(std::move(id)) { LOG_INFO("create {}", id_); }
 
@@ -98,20 +93,27 @@ void upload_file_handle::shutdown()
 void upload_file_handle::on_upload_file_request(const leaf::upload_file_request& msg)
 {
     std::error_code ec;
-    LOG_INFO("{} on_upload_file_request file size {} name {} hash {}", id_, msg.file_size, msg.filename, msg.hash);
-    bool exist = std::filesystem::exists(msg.filename, ec);
+    std::string upload_file_path = leaf::make_file_path(msg.filename);
+    LOG_INFO("{} on_upload_file_request file size {} name {} path {} hash {}",
+             id_,
+             msg.file_size,
+             msg.filename,
+             upload_file_path,
+             msg.hash);
+
+    bool exist = std::filesystem::exists(upload_file_path, ec);
     if (ec)
     {
-        LOG_ERROR("{} on_upload_file_request file {} exist failed {}", id_, msg.filename, ec.message());
+        LOG_ERROR("{} on_upload_file_request file {} exist failed {}", id_, upload_file_path, ec.message());
         return;
     }
     if (exist)
     {
         boost::system::error_code hash_ec;
-        std::string hash_hex = leaf::hash_file(msg.filename, hash_ec);
+        std::string hash_hex = leaf::hash_file(upload_file_path, hash_ec);
         if (hash_ec)
         {
-            LOG_ERROR("{} on_upload_file_request file {} hash failed {}", id_, msg.filename, hash_ec.message());
+            LOG_ERROR("{} on_upload_file_request file {} hash failed {}", id_, upload_file_path, hash_ec.message());
             return;
         }
         if (hash_hex == msg.hash)
@@ -129,7 +131,7 @@ void upload_file_handle::on_upload_file_request(const leaf::upload_file_request&
     commit_message(response);
     file_ = std::make_shared<file_context>();
     file_->id = response.file_id;
-    file_->file_path = msg.filename;
+    file_->file_path = upload_file_path;
     file_->file_size = msg.file_size;
     file_->block_size = kBlockSize;
     file_->active_block_count = 0;

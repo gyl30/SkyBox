@@ -1,11 +1,21 @@
 #include <climits>
-#include <uv.h>
 #include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>
+#include <filesystem>
+#include <uv.h>
 #include "file/file.h"
 
 namespace leaf
 {
+uint64_t file_id()
+{
+    static std::atomic<uint64_t> id = 0xff1;
+    return ++id;
+}
+std::string make_file_path(const std::string& filename)
+{
+    return std::filesystem::temp_directory_path().append("upload_" + filename).string();
+}
 class file_impl
 {
    public:

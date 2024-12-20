@@ -10,12 +10,6 @@
 
 namespace leaf
 {
-static uint64_t file_id()
-{
-    static std::atomic<uint64_t> id = 0xffff1;
-    return ++id;
-}
-
 download_file_handle::download_file_handle(std::string id) : id_(std::move(id)) { LOG_INFO("create {}", id_); }
 
 download_file_handle::~download_file_handle() { LOG_INFO("destroy {}", id_); }
@@ -82,10 +76,10 @@ void download_file_handle::on_message(const leaf::codec_message& msg)
 
 void download_file_handle::on_download_file_request(const leaf::download_file_request& msg)
 {
-    LOG_INFO("{} on_download_file_request file {}", id_, msg.filename);
-
+    std::string download_file_path = leaf::make_file_path(msg.filename);
+    LOG_INFO("{} on_download_file_request file {} save to {}", id_, msg.filename, download_file_path);
     boost::system::error_code exists_ec;
-    bool exist = std::filesystem::exists(msg.filename, exists_ec);
+    bool exist = std::filesystem::exists(download_file_path, exists_ec);
     if (exists_ec)
     {
         LOG_ERROR("{} download_file_request file {} exist error {}", id_, msg.filename, exists_ec.message());
@@ -93,19 +87,19 @@ void download_file_handle::on_download_file_request(const leaf::download_file_re
     }
     if (!exist)
     {
-        LOG_ERROR("{} download_file_request file {} not exist", id_, msg.filename);
+        LOG_ERROR("{} download_file_request file {} not exist", id_, download_file_path);
         return;
     }
 
     boost::system::error_code hash_ec;
-    std::string h = leaf::hash_file(msg.filename, hash_ec);
+    std::string h = leaf::hash_file(download_file_path, hash_ec);
     if (hash_ec)
     {
         LOG_ERROR("{} download_file_request file {} hash error {}", id_, msg.filename, hash_ec.message());
         return;
     }
     std::error_code size_ec;
-    auto file_size = std::filesystem::file_size(msg.filename, size_ec);
+    auto file_size = std::filesystem::file_size(download_file_path, size_ec);
     if (size_ec)
     {
         LOG_ERROR("{} download_file_request file {} size error {}", id_, msg.filename, size_ec.message());
@@ -113,7 +107,7 @@ void download_file_handle::on_download_file_request(const leaf::download_file_re
     }
 
     assert(!file_ && !reader_ && !hash_);
-    reader_ = std::make_shared<leaf::file_reader>(msg.filename);
+    reader_ = std::make_shared<leaf::file_reader>(download_file_path);
     auto ec = reader_->open();
     if (ec)
     {
@@ -132,15 +126,18 @@ void download_file_handle::on_download_file_request(const leaf::download_file_re
         block_count++;
     }
     file_ = std::make_shared<leaf::file_context>();
-    file_->file_path = msg.filename;
+    file_->file_path = download_file_path;
     file_->file_size = file_size;
     file_->block_size = kBlockSize;
     file_->block_count = block_count;
     file_->active_block_count = 0;
     file_->content_hash = h;
     file_->id = file_id();
-    LOG_INFO(
-        "{} download_file_request file {} size {} hash {}", id_, file_->file_path, file_->file_size, file_->content_hash);
+    LOG_INFO("{} download_file_request file {} size {} hash {}",
+             id_,
+             file_->file_path,
+             file_->file_size,
+             file_->content_hash);
     leaf::download_file_response response;
     response.filename = file_->file_path;
     response.file_id = file_->id;
