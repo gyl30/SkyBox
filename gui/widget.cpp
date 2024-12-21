@@ -15,6 +15,7 @@
 #include "gui/task.h"
 #include "gui/widget.h"
 #include "gui/table_view.h"
+#include "gui/table_widget.h"
 #include "gui/table_model.h"
 #include "gui/table_delegate.h"
 
@@ -64,7 +65,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     upload_btn_ = new QPushButton(this);
     upload_btn_->setText("上传文件");
 
-    finish_list_widget_ = new QTableWidget(this);
+    finish_list_widget_ = new leaf::file_table_widget(this);
     QStringList header;
     header << "文件名" << "操作" << "大小" << "时间";
     finish_list_widget_->setColumnCount(4);

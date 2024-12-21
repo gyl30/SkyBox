@@ -30,12 +30,10 @@ void task_table_view::mousePressEvent(QMouseEvent *event)
     QModelIndex index = indexAt(event->pos());
     if (!index.isValid())
     {
-        // 如果点击的是空白区域，清除选中
         clearSelection();
     }
     else
     {
-        // 否则保持原有行为
         QTableView::mousePressEvent(event);
     }
 }
