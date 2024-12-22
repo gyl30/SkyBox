@@ -26,15 +26,18 @@ class Widget : public QWidget
 
    private Q_SLOTS:
     void on_progress_slot(leaf::task e);
+    void on_login_slot(QString ip, QString port);
 
    private:
     void upload_progress(const leaf::upload_event& e);
     void download_progress(const leaf::download_event& e);
+    void setting_btn_clicked();
 
    private:
     QPushButton* finish_btn_ = nullptr;
     QPushButton* progress_btn_ = nullptr;
     QPushButton* upload_btn_ = nullptr;
+    QPushButton* setting_btn_ = nullptr;
     QStackedWidget* stacked_widget_ = nullptr;
     QTableWidget* finish_list_widget_ = nullptr;
     int finish_list_index_ = -1;

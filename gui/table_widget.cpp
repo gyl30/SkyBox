@@ -12,6 +12,11 @@ file_table_widget::file_table_widget(QWidget *parent) : QTableWidget(parent)
     setSelectionMode(QAbstractItemView::SingleSelection);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    QStringList header;
+    header << "文件名" << "操作" << "大小" << "时间";
+    setColumnCount(4);
+    clear();
+    setHorizontalHeaderLabels(header);
 }
 void file_table_widget::mousePressEvent(QMouseEvent *event)
 {

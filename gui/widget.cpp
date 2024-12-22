@@ -10,16 +10,19 @@
 #include <QTableWidgetItem>
 #include <QStringList>
 #include <QHeaderView>
+#include <QLineEdit>
 
 #include "log/log.h"
 #include "gui/task.h"
 #include "gui/widget.h"
+#include "gui/ip_edit.h"
 #include "gui/table_view.h"
-#include "gui/table_widget.h"
 #include "gui/table_model.h"
+#include "gui/table_widget.h"
+#include "gui/login_widget.h"
 #include "gui/table_delegate.h"
 
-void append_task_to_wiget(QTableWidget *table, const leaf::task &task, const QTime &t)
+static void append_task_to_wiget(QTableWidget *table, const leaf::task &task, const QTime &t)
 {
     // 0
     auto *filename_item = new QTableWidgetItem();
@@ -64,13 +67,10 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     progress_btn_->setText("上传中");
     upload_btn_ = new QPushButton(this);
     upload_btn_->setText("上传文件");
+    setting_btn_ = new QPushButton(this);
+    setting_btn_->setText("设置");
 
     finish_list_widget_ = new leaf::file_table_widget(this);
-    QStringList header;
-    header << "文件名" << "操作" << "大小" << "时间";
-    finish_list_widget_->setColumnCount(4);
-    finish_list_widget_->clear();
-    finish_list_widget_->setHorizontalHeaderLabels(header);
     stacked_widget_ = new QStackedWidget(this);
     upload_list_index_ = stacked_widget_->addWidget(table_view_);
     finish_list_index_ = stacked_widget_->addWidget(finish_list_widget_);
@@ -85,18 +85,21 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     connect(upload_btn_, &QPushButton::clicked, this, &Widget::on_new_file_clicked);
     connect(finish_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(finish_list_index_); });
     connect(progress_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(upload_list_index_); });
+    connect(setting_btn_, &QPushButton::clicked, this, &Widget::setting_btn_clicked);
     // clang-format on
 
-    auto *vlayout = new QVBoxLayout();
-    auto *layout = new QHBoxLayout();
-    layout->addWidget(progress_btn_);
-    layout->addWidget(finish_btn_);
-    layout->addWidget(upload_btn_);
-    // layout->setContentsMargins(0, 0, 0, 0);
-    vlayout->addLayout(layout);
-    vlayout->addWidget(stacked_widget_);
+    auto *main_layout = new QVBoxLayout();
+    auto *right_layout = new QHBoxLayout();
+    auto *left_layout = new QVBoxLayout();
+    left_layout->addWidget(progress_btn_);
+    left_layout->addWidget(finish_btn_);
+    left_layout->addWidget(upload_btn_);
+    left_layout->addWidget(setting_btn_);
+    right_layout->addLayout(left_layout);
+    right_layout->addWidget(stacked_widget_);
+    main_layout->addLayout(right_layout);
 
-    setLayout(vlayout);
+    setLayout(main_layout);
     resize(800, 300);
     auto upload_cb = [this](const leaf::upload_event &e) { upload_progress(e); };
     auto download_cb = [this](const leaf::download_event &e) { download_progress(e); };
@@ -104,6 +107,15 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     file_client_->startup();
     connect(this, &Widget::progress_slot, this, &Widget::on_progress_slot);
 }
+
+void Widget::setting_btn_clicked()
+{
+    LOG_INFO("setting btn clicked");
+    leaf::login_dialog login_dialog(this);
+    connect(&login_dialog, &leaf::login_dialog::login_data, this, &Widget::on_login_slot);
+    login_dialog.exec();
+}
+void Widget::on_login_slot(QString ip, QString port) { LOG_INFO("login {} {}", ip.toStdString(), port.toStdString()); }
 
 void Widget::on_progress_slot(leaf::task e)
 {
