@@ -2,6 +2,7 @@
 #define LEAF_NET_TCP_SERVER_H
 
 #include <memory>
+#include <atomic>
 #include <functional>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
@@ -40,6 +41,7 @@ class tcp_server : public std::enable_shared_from_this<tcp_server>
 
    private:
     handle handle_;
+    std::atomic<bool> shutdown_{false};
     leaf::executors::executor& ex_;
     boost::asio::ip::tcp::endpoint endpoint_;
     boost::asio::ip::tcp::socket socket_{ex_};

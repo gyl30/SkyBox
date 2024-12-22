@@ -60,7 +60,8 @@ void plain_websocket_session::on_accept(boost::beast::error_code ec)
     if (ec)
     {
         LOG_ERROR("{} accept failed {}", id_, ec.message());
-        return shutdown();
+        shutdown();
+        return;
     }
 
     do_read();
@@ -85,7 +86,8 @@ void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t b
     if (ec)
     {
         LOG_ERROR("{} read failed {}", id_, ec.message());
-        return shutdown();
+        shutdown();
+        return;
     }
 
     auto bytes = leaf::buffers_to_vector(buffer_.data());
@@ -94,7 +96,8 @@ void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t b
 
     if (!ws_.got_binary())
     {
-        return shutdown();
+        shutdown();
+        return;
     }
 
     h_->on_message(shared_from_this(), bytes);
@@ -136,7 +139,8 @@ void plain_websocket_session::on_write(boost::beast::error_code ec, std::size_t 
     if (ec)
     {
         LOG_ERROR("{} write failed {}", id_, ec.message());
-        return shutdown();
+        shutdown();
+        return;
     }
     LOG_TRACE("{} write success {} bytes", id_, bytes_transferred);
     msg_queue_.pop();

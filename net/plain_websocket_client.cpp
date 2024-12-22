@@ -49,7 +49,8 @@ void plain_websocket_client::on_connect(boost::beast::error_code ec)
     if (ec)
     {
         LOG_ERROR("{} connect to {} failed {}", id_, leaf::get_endpoint_address(ed_), ec.message());
-        return shutdown();
+        shutdown();
+        return;
     }
     auto self = shared_from_this();
     std::string host = leaf::get_endpoint_address(ed_);
@@ -68,7 +69,8 @@ void plain_websocket_client::on_handshake(boost::beast::error_code ec)
     if (ec)
     {
         LOG_ERROR("{} handshake failed {}", id_, ec.message());
-        return shutdown();
+        shutdown();
+        return;
     }
     do_read();
 }
@@ -88,7 +90,8 @@ void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t by
     if (ec)
     {
         LOG_ERROR("{} read failed {}", id_, ec.message());
-        return shutdown();
+        shutdown();
+        return;
     }
 
     LOG_TRACE("{} read message size {}", id_, bytes_transferred);
@@ -164,7 +167,8 @@ void plain_websocket_client::on_write(boost::beast::error_code ec, std::size_t b
     if (ec)
     {
         LOG_ERROR("{} write failed {}", id_, ec.message());
-        return shutdown();
+        shutdown();
+        return;
     }
     LOG_TRACE("{} write success {} bytes", id_, bytes_transferred);
     writing_ = false;

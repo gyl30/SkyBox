@@ -52,12 +52,17 @@ void tcp_server::shutdown()
 {
     auto self = shared_from_this();
     ex_.post([this, self] { safe_shutdown(); });
+    while (!shutdown_)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    }
 }
 
 void tcp_server::safe_shutdown()
 {
     boost::system::error_code ec;
     ec = acceptor_.close(ec);
+    shutdown_ = true;
 }
 
 void tcp_server::do_accept()

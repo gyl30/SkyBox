@@ -37,7 +37,8 @@ void ssl_websocket_session::on_accept(boost::beast::error_code ec)
     if (ec)
     {
         LOG_ERROR("{} accept failed {}", id_, ec.message());
-        return shutdown();
+        shutdown();
+        return;
     }
     do_read();
 }
@@ -77,7 +78,8 @@ void ssl_websocket_session::on_read(boost::beast::error_code ec, std::size_t byt
     if (ec)
     {
         LOG_ERROR("{} read failed {}", id_, ec.message());
-        return shutdown();
+        shutdown();
+        return;
     }
 
     auto bytes = leaf::buffers_to_vector(buffer_.data());
@@ -86,7 +88,8 @@ void ssl_websocket_session::on_read(boost::beast::error_code ec, std::size_t byt
 
     if (!ws_.binary())
     {
-        return shutdown();
+        shutdown();
+        return;
     }
 
     h_->on_message(shared_from_this(), bytes);
@@ -123,7 +126,8 @@ void ssl_websocket_session::on_write(boost::beast::error_code ec, std::size_t by
     if (ec)
     {
         LOG_ERROR("{} write failed {}", id_, ec.message());
-        return shutdown();
+        shutdown();
+        return;
     }
     msg_queue_.pop();
 }

@@ -54,7 +54,8 @@ void ssl_http_session::on_handshake(boost::beast::error_code ec, std::size_t byt
 {
     if (ec)
     {
-        return shutdown();
+        shutdown();
+        return;
     }
 
     buffer_.consume(bytes_used);
@@ -83,7 +84,8 @@ void ssl_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_tr
 
     if (ec)
     {
-        return shutdown();
+        shutdown();
+        return;
     }
 
     if (boost::beast::websocket::is_upgrade(parser_->get()))
@@ -94,7 +96,10 @@ void ssl_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_tr
 
         boost::beast::get_lowest_layer(stream_).expires_never();
 
-        return std::make_shared<leaf::ssl_websocket_session>(id_, std::move(stream_), h)->startup(req);
+        std::make_shared<leaf::ssl_websocket_session>(id_, std::move(stream_), h)->startup(req);
+
+        shutdown();
+        return;
     }
     auto req_ptr = std::make_shared<boost::beast::http::request<boost::beast::http::string_body>>(parser_->release());
     handle_.http_handle(shared_from_this(), req_ptr);
@@ -114,7 +119,7 @@ void ssl_http_session::safe_write(const http_response_ptr& ptr)
                               boost::beast::bind_front_handler(&ssl_http_session::on_write, this, keep_alive));
 }
 
-void ssl_http_session::on_write(bool keep_alive, boost::beast::error_code ec, std::size_t bytes_transferred)
+void ssl_http_session::on_write(bool keep_alive, boost::beast::error_code /*ec*/, std::size_t /*bytes_transferred*/)
 {
     if (keep_alive)
     {

@@ -53,7 +53,8 @@ void plain_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_
 
     if (ec)
     {
-        return shutdown();
+        shutdown();
+        return;
     }
 
     if (boost::beast::websocket::is_upgrade(parser_->get()))
@@ -65,6 +66,8 @@ void plain_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_
         boost::beast::get_lowest_layer(stream_).expires_never();
 
         std::make_shared<leaf::plain_websocket_session>(id_, std::move(stream_), h)->startup(req);
+
+        shutdown();
         return;
     }
     auto req_ptr = std::make_shared<boost::beast::http::request<boost::beast::http::string_body>>(parser_->release());
@@ -90,7 +93,8 @@ void plain_http_session::on_write(bool keep_alive, boost::beast::error_code ec, 
 {
     if (ec)
     {
-        return shutdown();
+        shutdown();
+        return;
     }
     if (keep_alive)
     {

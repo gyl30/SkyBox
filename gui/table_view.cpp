@@ -11,17 +11,18 @@ namespace leaf
 task_table_view::task_table_view(QWidget *parent) : QTableView(parent)
 {
     setShowGrid(false);
-    horizontalHeader()->setDefaultAlignment(Qt::AlignHCenter);
     setAlternatingRowColors(true);
-    verticalHeader()->setVisible(false);
     setMouseTracking(true);
     setSelectionBehavior(QAbstractItemView::SelectRows);
     setSelectionMode(QAbstractItemView::SingleSelection);
-    horizontalHeader()->setMinimumWidth(60);
-    verticalHeader()->setMinimumSectionSize(18);
-    verticalHeader()->setMaximumSectionSize(30);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    verticalHeader()->setVisible(false);
+    verticalHeader()->setMinimumSectionSize(18);
+    verticalHeader()->setMaximumSectionSize(30);
+    horizontalHeader()->setDefaultAlignment(Qt::AlignHCenter);
+    horizontalHeader()->setMinimumWidth(60);
+    horizontalHeader()->setHighlightSections(false);
     horizontalHeader()->setStretchLastSection(true);
     horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 }
