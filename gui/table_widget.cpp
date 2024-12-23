@@ -1,4 +1,5 @@
 #include <QMouseEvent>
+#include <QHeaderView>
 #include "gui/table_widget.h"
 
 namespace leaf
@@ -17,6 +18,8 @@ file_table_widget::file_table_widget(QWidget *parent) : QTableWidget(parent)
     setColumnCount(4);
     clear();
     setHorizontalHeaderLabels(header);
+    horizontalHeader()->setStyleSheet("QHeaderView::section { border: none; }");
+    verticalHeader()->setStyleSheet("QHeaderView::section { border: none; }");
 }
 void file_table_widget::mousePressEvent(QMouseEvent *event)
 {

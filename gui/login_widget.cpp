@@ -15,7 +15,7 @@ namespace leaf
 login_dialog::login_dialog(QWidget *parent) : QDialog(parent)
 {
     setWindowTitle("登录");
-    setFixedSize(300, 200);
+    setFixedSize(500, 300);
 
     auto *username_label = new QLabel("用户名:");
     auto *username_edit = new QLineEdit();

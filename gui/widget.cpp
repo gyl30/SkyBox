@@ -89,18 +89,17 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     // clang-format on
 
     auto *main_layout = new QVBoxLayout();
-    auto *right_layout = new QHBoxLayout();
-    auto *left_layout = new QVBoxLayout();
-    left_layout->addWidget(progress_btn_);
-    left_layout->addWidget(finish_btn_);
-    left_layout->addWidget(upload_btn_);
-    left_layout->addWidget(setting_btn_);
-    right_layout->addLayout(left_layout);
-    right_layout->addWidget(stacked_widget_);
-    main_layout->addLayout(right_layout);
+    auto *top_layout = new QHBoxLayout();
+    top_layout->addWidget(progress_btn_);
+    top_layout->addWidget(finish_btn_);
+    top_layout->addWidget(upload_btn_);
+    top_layout->addWidget(setting_btn_);
+    top_layout->setSpacing(0);
+    main_layout->addLayout(top_layout);
+    main_layout->addWidget(stacked_widget_);
 
     setLayout(main_layout);
-    resize(800, 300);
+    resize(800, 500);
     auto upload_cb = [this](const leaf::upload_event &e) { upload_progress(e); };
     auto download_cb = [this](const leaf::download_event &e) { download_progress(e); };
     file_client_ = new leaf::file_transfer_client("127.0.0.1", 8080, upload_cb, download_cb);
