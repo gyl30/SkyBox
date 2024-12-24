@@ -17,13 +17,11 @@ file_transfer_client::file_transfer_client(const std::string &ip,
 void file_transfer_client::startup()
 {
     executors.startup();
-    upload = std::make_shared<leaf::upload_session>("upload", upload_progress_cb_);
-    download = std::make_shared<leaf::download_session>("download", download_progress_cb_);
-    upload->startup();
-    download->startup();
+    upload_ = std::make_shared<leaf::upload_session>("upload", upload_progress_cb_);
+    download_ = std::make_shared<leaf::download_session>("download", download_progress_cb_);
     // clang-format off
-    upload_client_ = std::make_shared<leaf::plain_websocket_client>("ws_cli", upload_uri, upload, ed_, executors.get_executor());
-    download_client_ = std::make_shared<leaf::plain_websocket_client>("ws_cli", download_uri, download, ed_, executors.get_executor());
+    upload_client_ = std::make_shared<leaf::plain_websocket_client>("ws_cli", upload_uri, upload_, ed_, executors.get_executor());
+    download_client_ = std::make_shared<leaf::plain_websocket_client>("ws_cli", download_uri, download_, ed_, executors.get_executor());
     // clang-format on
     upload_client_->startup();
     download_client_->startup();
@@ -32,8 +30,6 @@ void file_transfer_client::shutdown()
 {
     upload_client_->shutdown();
     download_client_->shutdown();
-    upload->shutdown();
-    download->shutdown();
     executors.shutdown();
 }
 
@@ -42,13 +38,13 @@ void file_transfer_client::add_upload_file(const std::string &filename)
     auto file = std::make_shared<leaf::file_context>();
     file->file_path = filename;
     file->filename = std::filesystem::path(filename).filename();
-    upload->add_file(file);
+    upload_->add_file(file);
 }
 void file_transfer_client::add_download_file(const std::string &filename)
 {
     auto file = std::make_shared<leaf::file_context>();
     file->file_path = filename;
-    download->add_file(file);
+    download_->add_file(file);
 }
 
 }    // namespace leaf

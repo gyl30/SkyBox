@@ -29,8 +29,8 @@ class file_transfer_client
    private:
     leaf::executors executors{4};
     boost::asio::ip::tcp::endpoint ed_;
-    std::shared_ptr<leaf::upload_session> upload;
-    std::shared_ptr<leaf::download_session> download;
+    std::shared_ptr<leaf::upload_session> upload_;
+    std::shared_ptr<leaf::download_session> download_;
     leaf::upload_progress_callback upload_progress_cb_;
     leaf::download_progress_callback download_progress_cb_;
     std::shared_ptr<leaf::plain_websocket_client> upload_client_;
