@@ -24,6 +24,9 @@ using codec_message = std::variant<leaf::upload_file_request,
                                    leaf::block_data_response,
                                    leaf::block_data_finish,
                                    //
+                                   leaf::login_request,
+                                   leaf::login_response,
+                                   //
                                    leaf::keepalive,
                                    leaf::error_response>;
 

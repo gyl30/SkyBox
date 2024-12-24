@@ -10,6 +10,8 @@ REFLECT_STRUCT(leaf::upload_file_request, (file_size)(hash)(filename));
 REFLECT_STRUCT(leaf::block_data_finish, (file_id)(hash)(filename));
 REFLECT_STRUCT(leaf::upload_file_exist, (hash)(filename));
 REFLECT_STRUCT(leaf::download_file_response, (hash)(filename)(file_size)(file_id));
+REFLECT_STRUCT(leaf::login_request, (username)(password));
+REFLECT_STRUCT(leaf::login_response, (username)(token));
 }    // namespace reflect
 
 template <typename E>
@@ -424,6 +426,69 @@ static std::optional<leaf::keepalive> deserialize_keepalive_response(leaf::read_
     r.read_uint64(&resp.server_timestamp);
     return resp;
 }
+std::vector<uint8_t> serialize_login_request(const leaf::login_request &l)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(leaf::to_underlying(message_type::login_request));
+    std::string str = reflect::serialize_struct(l);
+    w.write_bytes(str.data(), str.size());
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
+}
+static std::optional<leaf::login_request> deserialize_login_request(leaf::read_buffer &r)
+{
+    if (r.size() > 2048)
+    {
+        return {};
+    }
+
+    std::string str;
+    r.read_string(&str, r.size());
+    if (str.empty())
+    {
+        return {};
+    }
+    leaf::login_request l;
+    if (!reflect::deserialize_struct(l, str))
+    {
+        return {};
+    }
+    return l;
+}
+std::vector<uint8_t> serialize_login_response(const leaf::login_response &l)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(leaf::to_underlying(message_type::login_response));
+    std::string str = reflect::serialize_struct(l);
+    w.write_bytes(str.data(), str.size());
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
+}
+
+static std::optional<leaf::login_response> deserialize_login_response(leaf::read_buffer &r)
+{
+    if (r.size() > 2048)
+    {
+        return {};
+    }
+
+    std::string str;
+    r.read_string(&str, r.size());
+    if (str.empty())
+    {
+        return {};
+    }
+    leaf::login_response l;
+    if (!reflect::deserialize_struct(l, str))
+    {
+        return {};
+    }
+    return l;
+}
 
 static std::map<leaf::message_type, std::function<std::optional<codec_message>(leaf::read_buffer &)>> funcs = {
     {leaf::message_type::upload_file_request, deserialize_upload_file_request},
@@ -440,6 +505,8 @@ static std::map<leaf::message_type, std::function<std::optional<codec_message>(l
     {leaf::message_type::delete_file_response, deserialize_delete_file_response},
     {leaf::message_type::error, deserialize_error_response},
     {leaf::message_type::keepalive, deserialize_keepalive_response},
+    {leaf::message_type::login_request, deserialize_login_request},
+    {leaf::message_type::login_response, deserialize_login_response},
 };
 
 std::vector<uint8_t> serialize_message(const codec_message &msg)
@@ -462,6 +529,8 @@ std::vector<uint8_t> serialize_message(const codec_message &msg)
         XXX(download_file_request)
         XXX(download_file_response)
         XXX(keepalive)
+        XXX(login_request)
+        XXX(login_response)
 #undef XXX
     };
     return std::visit(message_serializer{}, msg);

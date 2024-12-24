@@ -22,6 +22,8 @@ enum class message_type : uint16_t
     download_file_request = 0x11,
     download_file_response = 0x12,
     keepalive = 0x13,
+    login_request = 0x14,
+    login_response = 0x15,
 };
 
 // ------------------------------------------------------------------------------
@@ -36,6 +38,18 @@ struct upload_file_response
     uint64_t file_id = 0;       // 文件唯一标识
     uint32_t block_size = 0;    // 文件块大小
     std::string filename;       // 文件名称
+};
+
+struct login_request
+{
+    std::string username;
+    std::string password;
+};
+
+struct login_response
+{
+    std::string username;
+    std::string token;
 };
 
 struct keepalive
