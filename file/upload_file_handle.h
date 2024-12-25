@@ -25,6 +25,7 @@ class upload_file_handle : public websocket_handle
     void shutdown() override;
 
    private:
+    void on_login(const leaf::login_request& msg);
     void on_keepalive(const leaf::keepalive& msg);
     void on_upload_file_request(const leaf::upload_file_request& msg);
     void on_delete_file_request(const leaf::delete_file_request& msg);
@@ -40,6 +41,9 @@ class upload_file_handle : public websocket_handle
 
    private:
     std::string id_;
+    std::string user_;
+    std::string token_;
+    std::vector<uint8_t> key_;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;

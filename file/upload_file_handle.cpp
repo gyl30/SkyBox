@@ -2,6 +2,7 @@
 #include <utility>
 #include <filesystem>
 #include "log/log.h"
+#include "crypt/passwd.h"
 #include "protocol/codec.h"
 #include "protocol/message.h"
 #include "file/hash_file.h"
@@ -10,7 +11,11 @@
 namespace leaf
 {
 
-upload_file_handle::upload_file_handle(std::string id) : id_(std::move(id)) { LOG_INFO("create {}", id_); }
+upload_file_handle::upload_file_handle(std::string id) : id_(std::move(id))
+{
+    LOG_INFO("create {}", id_);
+    key_ = leaf::passwd_key();
+}
 
 upload_file_handle::~upload_file_handle()
 {
@@ -244,6 +249,14 @@ void upload_file_handle::on_block_data_response(const leaf::block_data_response&
     }
     file_->active_block_count = msg.block_id + 1;
     block_data_request();
+}
+void upload_file_handle::on_login(const leaf::login_request& msg)
+{
+    leaf::login_response response;
+    response.username = msg.username;
+    response.token = leaf::passwd_hash(msg.password, key_);
+    token_ = response.token;
+    commit_message(response);
 }
 
 void upload_file_handle::on_keepalive(const leaf::keepalive& msg)
