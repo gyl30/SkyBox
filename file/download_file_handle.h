@@ -35,9 +35,14 @@ class download_file_handle : public websocket_handle
     void on_error_response(const leaf::error_response& msg);
     void commit_message(const leaf::codec_message& msg);
     void on_message(const leaf::codec_message& msg);
+    void on_login(const leaf::login_request& msg);
 
    private:
     std::string id_;
+    std::string user_;
+    std::string token_;
+    std::vector<uint8_t> key_;
+
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> hash_;

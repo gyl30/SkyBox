@@ -75,6 +75,10 @@ void upload_file_handle::on_message(const leaf::codec_message& msg)
             {
                 on_error_response(arg);
             }
+            if constexpr (std::is_same_v<T, leaf::login_request>)
+            {
+                on_login(arg);
+            }
         },
         msg);
 }
@@ -255,7 +259,9 @@ void upload_file_handle::on_login(const leaf::login_request& msg)
     leaf::login_response response;
     response.username = msg.username;
     response.token = leaf::passwd_hash(msg.password, key_);
+    user_ = response.username;
     token_ = response.token;
+    LOG_INFO("{} on_login username {} token {}", id_, msg.username, response.token);
     commit_message(response);
 }
 

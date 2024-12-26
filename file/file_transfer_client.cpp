@@ -33,6 +33,11 @@ void file_transfer_client::shutdown()
     executors.shutdown();
 }
 
+void file_transfer_client::login(const std::string &user, const std::string &pass)
+{
+    upload_->login(user, pass);
+    download_->login(user, pass);
+}
 void file_transfer_client::add_upload_file(const std::string &filename)
 {
     auto file = std::make_shared<leaf::file_context>();

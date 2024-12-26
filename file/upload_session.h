@@ -26,6 +26,7 @@ class upload_session : public leaf::base_session, public std::enable_shared_from
     void add_file(const leaf::file_context::ptr &file) override;
     void on_message(const leaf::codec_message &msg) override;
     void set_message_cb(std::function<void(const leaf::codec_message &)> cb) override;
+    void login(const std::string &user, const std::string &pass);
 
    private:
     void open_file();
@@ -39,12 +40,14 @@ class upload_session : public leaf::base_session, public std::enable_shared_from
     void block_data_finish(const leaf::block_data_finish &);
     void keepalive();
     void padding_file_event();
+    void login_response(const leaf::login_response &);
     void keepalive_response(const leaf::keepalive &);
     void error_response(const leaf::error_response &);
     void write_message(const codec_message &msg);
     void emit_event(const leaf::upload_event &e);
 
    private:
+    bool login_ = false;
     std::string id_;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::reader> reader_;

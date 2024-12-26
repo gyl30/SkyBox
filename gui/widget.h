@@ -26,7 +26,7 @@ class Widget : public QWidget
 
    private Q_SLOTS:
     void on_progress_slot(leaf::task e);
-    void on_login_slot(QString ip, QString port);
+    void on_login_slot(QString user, QString passwd);
 
    private:
     void upload_progress(const leaf::upload_event& e);

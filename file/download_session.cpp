@@ -20,6 +20,15 @@ void download_session::shutdown() { LOG_INFO("{} shutdown", id_); }
 
 void download_session::set_message_cb(std::function<void(const leaf::codec_message&)> cb) { cb_ = std::move(cb); }
 
+void download_session::login(const std::string& user, const std::string& pass)
+{
+    LOG_INFO("{} login user {} pass {}", id_, user, pass);
+    leaf::login_request req;
+    req.username = user;
+    req.password = pass;
+    write_message(req);
+}
+
 void download_session::on_message(const leaf::codec_message& msg)
 {
     std::visit(
@@ -50,10 +59,19 @@ void download_session::on_message(const leaf::codec_message& msg)
             {
                 error_response(arg);
             }
+            else if constexpr (std::is_same_v<T, leaf::login_response>)
+            {
+                login_response(arg);
+            }
         },
         msg);
 }
 
+void download_session::login_response(const leaf::login_response& l)
+{
+    login_ = true;
+    LOG_INFO("{} login_response user {} token {}", id_, l.username, l.token);
+}
 void download_session::download_file_request()
 {
     if (file_ == nullptr)
@@ -214,10 +232,8 @@ void download_session::add_file(const leaf::file_context::ptr& file)
     padding_files_.push(file);
 }
 
-void download_session::update()
+void download_session::update_download_file()
 {
-    keepalive();
-
     if (file_ != nullptr)
     {
         return;
@@ -231,6 +247,16 @@ void download_session::update()
     file_ = padding_files_.front();
     padding_files_.pop();
     LOG_INFO("{} start_file {} size {}", id_, file_->file_path, padding_files_.size());
+}
+
+void download_session::update()
+{
+    if (!login_)
+    {
+        return;
+    }
+    keepalive();
+    update_download_file();
     download_file_request();
 }
 

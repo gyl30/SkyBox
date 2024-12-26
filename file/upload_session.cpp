@@ -15,7 +15,17 @@ upload_session::upload_session(std::string id, leaf::upload_progress_callback cb
 upload_session::~upload_session() = default;
 
 void upload_session::startup() { LOG_INFO("{} startup", id_); }
+
 void upload_session::shutdown() { LOG_INFO("{} shutdown", id_); }
+
+void upload_session::login(const std::string& user, const std::string& pass)
+{
+    LOG_INFO("{} login user {} pass {}", id_, user, pass);
+    leaf::login_request req;
+    req.username = user;
+    req.password = pass;
+    write_message(req);
+}
 
 void upload_session::set_message_cb(std::function<void(const leaf::codec_message&)> cb) { cb_ = std::move(cb); }
 
@@ -57,7 +67,7 @@ void upload_session::on_message(const leaf::codec_message& msg)
             {
                 error_response(arg);
             }
-            else
+            else if constexpr (std::is_same_v<T, leaf::login_response>)
             {
             }
         },
@@ -161,6 +171,10 @@ void upload_session::update_process_file()
 }
 void upload_session::update()
 {
+    if (!login_)
+    {
+        return;
+    }
     keepalive();
     update_process_file();
     padding_file_event();
@@ -276,6 +290,11 @@ void upload_session::upload_file_exist(const leaf::upload_file_exist& exist)
 
 void upload_session::error_response(const leaf::error_response& msg) { LOG_ERROR("{} error {}", id_, msg.error); }
 
+void upload_session::login_response(const leaf::login_response& l)
+{
+    login_ = true;
+    LOG_INFO("{} login_response user {} token {}", id_, l.username, l.token);
+}
 void upload_session::keepalive_response(const leaf::keepalive& k)
 {
     auto now =

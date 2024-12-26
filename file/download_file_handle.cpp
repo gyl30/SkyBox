@@ -3,6 +3,7 @@
 #include <filesystem>
 #include "log/log.h"
 #include "protocol/codec.h"
+#include "crypt/passwd.h"
 #include "file/file.h"
 #include "protocol/message.h"
 #include "file/hash_file.h"
@@ -10,7 +11,11 @@
 
 namespace leaf
 {
-download_file_handle::download_file_handle(std::string id) : id_(std::move(id)) { LOG_INFO("create {}", id_); }
+download_file_handle::download_file_handle(std::string id) : id_(std::move(id))
+{
+    LOG_INFO("create {}", id_);
+    key_ = leaf::passwd_key();
+}
 
 download_file_handle::~download_file_handle() { LOG_INFO("destroy {}", id_); }
 
@@ -70,8 +75,22 @@ void download_file_handle::on_message(const leaf::codec_message& msg)
             {
                 on_error_response(arg);
             }
+            if constexpr (std::is_same_v<T, leaf::login_request>)
+            {
+                on_login(arg);
+            }
         },
         msg);
+}
+void download_file_handle::on_login(const leaf::login_request& msg)
+{
+    leaf::login_response response;
+    response.username = msg.username;
+    response.token = leaf::passwd_hash(msg.password, key_);
+    user_ = response.username;
+    token_ = response.token;
+    LOG_INFO("{} on_login username {} token {}", id_, msg.username, response.token);
+    commit_message(response);
 }
 
 void download_file_handle::on_download_file_request(const leaf::download_file_request& msg)

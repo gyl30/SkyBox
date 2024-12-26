@@ -26,6 +26,7 @@ class download_session : public base_session, public std::enable_shared_from_thi
     void add_file(const leaf::file_context::ptr &file) override;
     void on_message(const leaf::codec_message &msg) override;
     void set_message_cb(std::function<void(const leaf::codec_message &)> cb) override;
+    void login(const std::string &user, const std::string &pass);
 
    private:
     void download_file_request();
@@ -38,11 +39,15 @@ class download_session : public base_session, public std::enable_shared_from_thi
     void write_message(const codec_message &msg);
     void keepalive();
     void keepalive_response(const leaf::keepalive &);
+    void login_response(const leaf::login_response &);
 
    private:
     void emit_event(const leaf::download_event &);
+    void update_download_file();
+
 
    private:
+    bool login_ = false;
     std::string id_;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;

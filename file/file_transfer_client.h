@@ -23,6 +23,7 @@ class file_transfer_client
     void shutdown();
 
    public:
+    void login(const std::string &user, const std::string &pass);
     void add_upload_file(const std::string &filename);
     void add_download_file(const std::string &filename);
 

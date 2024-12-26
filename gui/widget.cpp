@@ -114,7 +114,11 @@ void Widget::setting_btn_clicked()
     connect(&login_dialog, &leaf::login_dialog::login_data, this, &Widget::on_login_slot);
     login_dialog.exec();
 }
-void Widget::on_login_slot(QString ip, QString port) { LOG_INFO("login {} {}", ip.toStdString(), port.toStdString()); }
+void Widget::on_login_slot(QString user, QString passwd)
+{
+    LOG_INFO("login {} {}", user.toStdString(), passwd.toStdString());
+    file_client_->login(user.toStdString(), passwd.toStdString());
+}
 
 void Widget::on_progress_slot(leaf::task e)
 {
