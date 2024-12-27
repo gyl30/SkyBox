@@ -45,10 +45,10 @@ class download_session : public base_session, public std::enable_shared_from_thi
     void emit_event(const leaf::download_event &);
     void update_download_file();
 
-
    private:
     bool login_ = false;
     std::string id_;
+    std::string token_;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;

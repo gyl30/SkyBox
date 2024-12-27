@@ -31,56 +31,36 @@ void upload_session::set_message_cb(std::function<void(const leaf::codec_message
 
 void upload_session::on_message(const leaf::codec_message& msg)
 {
-    std::visit(
-        [&](auto&& arg)
-        {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, leaf::file_block_request>)
-            {
-                file_block_request(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::block_data_request>)
-            {
-                block_data_request(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::upload_file_response>)
-            {
-                upload_file_response(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::delete_file_response>)
-            {
-                delete_file_response(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::block_data_finish>)
-            {
-                block_data_finish(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::upload_file_exist>)
-            {
-                upload_file_exist(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::keepalive>)
-            {
-                keepalive_response(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::error_response>)
-            {
-                error_response(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::login_response>)
-            {
-            }
-        },
-        msg);
+    struct visitor
+    {
+        upload_session* session_;
+        void operator()(const leaf::upload_file_response& msg) { session_->on_upload_file_response(msg); }
+        void operator()(const leaf::delete_file_response& msg) { session_->on_delete_file_response(msg); }
+        void operator()(const leaf::block_data_finish& msg) { session_->on_block_data_finish(msg); }
+        void operator()(const leaf::upload_file_exist& msg) { session_->on_upload_file_exist(msg); }
+        void operator()(const leaf::keepalive& msg) { session_->on_keepalive_response(msg); }
+        void operator()(const leaf::error_response& msg) { session_->on_error_response(msg); }
+        void operator()(const leaf::login_response& msg) { session_->on_login_response(msg); }
+        void operator()(const leaf::upload_file_request& msg) { session_->upload_file_request(); }
+        void operator()(const leaf::file_block_request& msg) { session_->on_file_block_request(msg); }
+        void operator()(const leaf::block_data_request& msg) { session_->on_block_data_request(msg); }
+        void operator()(const leaf::download_file_request& msg) {}
+        void operator()(const leaf::download_file_response& msg) {}
+        void operator()(const leaf::delete_file_request& msg) {}
+        void operator()(const leaf::login_request& msg) {}
+        void operator()(const leaf::file_block_response& msg) {}
+        void operator()(const leaf::block_data_response& msg) {}
+    };
+    std::visit(visitor{this}, msg);
 }
-void upload_session::upload_file_response(const leaf::upload_file_response& msg)
+void upload_session::on_upload_file_response(const leaf::upload_file_response& msg)
 {
     assert(file_ && file_->filename == msg.filename);
     file_->id = msg.file_id;
     file_->block_size = msg.block_size;
     LOG_INFO("{} upload_file_response id {} name {}", id_, msg.file_id, msg.filename);
 }
-void upload_session::delete_file_response(const leaf::delete_file_response& msg)
+void upload_session::on_delete_file_response(const leaf::delete_file_response& msg)
 {
     LOG_INFO("{} delete_file_response name {}", id_, msg.filename);
 }
@@ -180,7 +160,7 @@ void upload_session::update()
     padding_file_event();
 }
 
-void upload_session::block_data_request(const leaf::block_data_request& msg)
+void upload_session::on_block_data_request(const leaf::block_data_request& msg)
 {
     assert(file_ && reader_ && blake2b_);
     LOG_DEBUG("{} block_data_request id {} block {}", id_, msg.file_id, msg.block_id);
@@ -225,7 +205,7 @@ void upload_session::emit_event(const leaf::upload_event& e)
     }
 }
 
-void upload_session::file_block_request(const leaf::file_block_request& msg)
+void upload_session::on_file_block_request(const leaf::file_block_request& msg)
 {
     if (msg.file_id != file_->id)
     {
@@ -245,7 +225,7 @@ void upload_session::file_block_request(const leaf::file_block_request& msg)
     write_message(response);
 }
 
-void upload_session::block_data_finish(const leaf::block_data_finish& msg)
+void upload_session::on_block_data_finish(const leaf::block_data_finish& msg)
 {
     assert(file_ && reader_ && blake2b_);
     blake2b_->final();
@@ -269,7 +249,7 @@ void upload_session::block_data_finish(const leaf::block_data_finish& msg)
         return;
     }
 }
-void upload_session::upload_file_exist(const leaf::upload_file_exist& exist)
+void upload_session::on_upload_file_exist(const leaf::upload_file_exist& exist)
 {
     assert(file_ && reader_ && blake2b_);
     auto ec = reader_->close();
@@ -288,27 +268,29 @@ void upload_session::upload_file_exist(const leaf::upload_file_exist& exist)
     LOG_INFO("{} upload_file_exist {} hash {}", id_, exist.filename, exist.hash);
 }
 
-void upload_session::error_response(const leaf::error_response& msg) { LOG_ERROR("{} error {}", id_, msg.error); }
+void upload_session::on_error_response(const leaf::error_response& msg) { LOG_ERROR("{} error {}", id_, msg.error); }
 
-void upload_session::login_response(const leaf::login_response& l)
+void upload_session::on_login_response(const leaf::login_response& l)
 {
     login_ = true;
+    token_ = l.token;
     LOG_INFO("{} login_response user {} token {}", id_, l.username, l.token);
 }
-void upload_session::keepalive_response(const leaf::keepalive& k)
+void upload_session::on_keepalive_response(const leaf::keepalive& k)
 {
     auto now =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
     auto diff = now - k.client_timestamp;
 
-    LOG_INFO("{} keepalive_response {} client {} client time {} server time {} diff {}",
-             id_,
-             k.id,
-             k.client_id,
-             k.client_timestamp,
-             k.server_timestamp,
-             diff);
+    LOG_DEBUG("{} keepalive_response {} client {} client time {} server time {} diff {} token {}",
+              id_,
+              k.id,
+              k.client_id,
+              k.client_timestamp,
+              k.server_timestamp,
+              diff,
+              k.token);
 }
 
 void upload_session::padding_file_event()
@@ -333,6 +315,7 @@ void upload_session::keepalive()
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
     k.server_timestamp = 0;
+    k.token = token_;
     write_message(k);
 }
 

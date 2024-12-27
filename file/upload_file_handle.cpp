@@ -1,4 +1,3 @@
-#include <atomic>
 #include <utility>
 #include <filesystem>
 #include "log/log.h"
@@ -271,6 +270,12 @@ void upload_file_handle::on_keepalive(const leaf::keepalive& msg)
     k.server_timestamp =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
+    LOG_DEBUG("{} on_keepalive client {} server_timestamp {} client_timestamp {} token {}",
+              id_,
+              k.client_id,
+              k.server_timestamp,
+              k.client_timestamp,
+              k.token);
     commit_message(k);
 }
 void upload_file_handle::on_error_response(const leaf::error_response& msg)

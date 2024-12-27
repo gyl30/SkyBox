@@ -409,6 +409,7 @@ std::vector<uint8_t> serialize_keepalive(const leaf::keepalive &k)
     w.write_uint64(k.client_id);
     w.write_uint64(k.client_timestamp);
     w.write_uint64(k.server_timestamp);
+    w.write_bytes(k.token.data(), k.token.size());
     std::vector<uint8_t> bytes;
     w.copy_to(&bytes);
     return bytes;
@@ -424,6 +425,7 @@ static std::optional<leaf::keepalive> deserialize_keepalive_response(leaf::read_
     r.read_uint64(&resp.client_id);
     r.read_uint64(&resp.client_timestamp);
     r.read_uint64(&resp.server_timestamp);
+    r.read_string(&resp.token, r.size());
     return resp;
 }
 std::vector<uint8_t> serialize_login_request(const leaf::login_request &l)

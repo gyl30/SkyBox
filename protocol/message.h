@@ -58,6 +58,7 @@ struct keepalive
     uint64_t client_id = 0;           // 客户端 id
     uint64_t client_timestamp = 0;    // 客户端时间
     uint64_t server_timestamp = 0;    // 服务端时间
+    std::string token;
 };
 
 struct download_file_request

@@ -70,6 +70,7 @@ void download_session::on_message(const leaf::codec_message& msg)
 void download_session::login_response(const leaf::login_response& l)
 {
     login_ = true;
+    token_ = l.token;
     LOG_INFO("{} login_response user {} token {}", id_, l.username, l.token);
 }
 void download_session::download_file_request()
@@ -269,13 +270,14 @@ void download_session::keepalive_response(const leaf::keepalive& k)
             .count();
     auto diff = now - k.client_timestamp;
 
-    LOG_INFO("{} keepalive_response {} client {} client time {} server time {} diff {}",
+    LOG_DEBUG("{} keepalive_response {} client {} client time {} server time {} diff {} token {}",
              id_,
              k.id,
              k.client_id,
              k.client_timestamp,
              k.server_timestamp,
-             diff);
+             diff,
+             k.token);
 }
 void download_session::keepalive()
 {
@@ -286,6 +288,7 @@ void download_session::keepalive()
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
     k.server_timestamp = 0;
+    k.token = token_;
     write_message(k);
 }
 

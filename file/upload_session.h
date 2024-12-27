@@ -32,23 +32,24 @@ class upload_session : public leaf::base_session, public std::enable_shared_from
     void open_file();
     void update_process_file();
     void upload_file_request();
-    void upload_file_response(const leaf::upload_file_response &);
-    void upload_file_exist(const leaf::upload_file_exist &);
-    void delete_file_response(const leaf::delete_file_response &);
-    void block_data_request(const leaf::block_data_request &);
-    void file_block_request(const leaf::file_block_request &);
-    void block_data_finish(const leaf::block_data_finish &);
+    void on_upload_file_response(const leaf::upload_file_response &);
+    void on_upload_file_exist(const leaf::upload_file_exist &);
+    void on_delete_file_response(const leaf::delete_file_response &);
+    void on_block_data_request(const leaf::block_data_request &);
+    void on_file_block_request(const leaf::file_block_request &);
+    void on_block_data_finish(const leaf::block_data_finish &);
     void keepalive();
     void padding_file_event();
-    void login_response(const leaf::login_response &);
-    void keepalive_response(const leaf::keepalive &);
-    void error_response(const leaf::error_response &);
+    void on_login_response(const leaf::login_response &);
+    void on_keepalive_response(const leaf::keepalive &);
+    void on_error_response(const leaf::error_response &);
     void write_message(const codec_message &msg);
     void emit_event(const leaf::upload_event &e);
 
    private:
     bool login_ = false;
     std::string id_;
+    std::string token_;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> blake2b_;
