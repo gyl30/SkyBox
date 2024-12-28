@@ -35,11 +35,11 @@ class download_session : public base_session, public std::enable_shared_from_thi
     void block_data_request(uint32_t block_id);
     void on_block_data_response(const leaf::block_data_response &);
     void on_block_data_finish(const leaf::block_data_finish &);
-    void error_response(const leaf::error_response &);
+    void on_error_response(const leaf::error_response &);
     void write_message(const codec_message &msg);
     void keepalive();
-    void keepalive_response(const leaf::keepalive &);
-    void login_response(const leaf::login_response &);
+    void on_keepalive_response(const leaf::keepalive &);
+    void on_login_response(const leaf::login_response &);
 
    private:
     void emit_event(const leaf::download_event &);

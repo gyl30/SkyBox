@@ -31,43 +31,30 @@ void download_session::login(const std::string& user, const std::string& pass)
 
 void download_session::on_message(const leaf::codec_message& msg)
 {
-    std::visit(
-        [&](auto&& arg)
-        {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, leaf::download_file_response>)
-            {
-                on_download_file_response(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::file_block_response>)
-            {
-                on_file_block_response(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::block_data_response>)
-            {
-                on_block_data_response(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::block_data_finish>)
-            {
-                on_block_data_finish(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::keepalive>)
-            {
-                keepalive_response(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::error_response>)
-            {
-                error_response(arg);
-            }
-            else if constexpr (std::is_same_v<T, leaf::login_response>)
-            {
-                login_response(arg);
-            }
-        },
-        msg);
+    struct visitor
+    {
+        download_session* session_;
+        void operator()(const leaf::block_data_finish& msg) { session_->on_block_data_finish(msg); }
+        void operator()(const leaf::download_file_response& msg) { session_->on_download_file_response(msg); }
+        void operator()(const leaf::file_block_response& msg) { session_->on_file_block_response(msg); }
+        void operator()(const leaf::block_data_response& msg) { session_->on_block_data_response(msg); }
+        void operator()(const leaf::keepalive& msg) { session_->on_keepalive_response(msg); }
+        void operator()(const leaf::error_response& msg) { session_->on_error_response(msg); }
+        void operator()(const leaf::login_response& msg) { session_->on_login_response(msg); }
+        void operator()(const leaf::upload_file_response& msg) {}
+        void operator()(const leaf::delete_file_response& msg) {}
+        void operator()(const leaf::upload_file_exist& msg) {}
+        void operator()(const leaf::upload_file_request& msg) {}
+        void operator()(const leaf::file_block_request& msg) {}
+        void operator()(const leaf::block_data_request& msg) {}
+        void operator()(const leaf::download_file_request& msg) {}
+        void operator()(const leaf::delete_file_request& msg) {}
+        void operator()(const leaf::login_request& msg) {}
+    };
+    std::visit(visitor{this}, msg);
 }
 
-void download_session::login_response(const leaf::login_response& l)
+void download_session::on_login_response(const leaf::login_response& l)
 {
     login_ = true;
     token_ = l.token;
@@ -261,9 +248,9 @@ void download_session::update()
     download_file_request();
 }
 
-void download_session::error_response(const leaf::error_response& msg) { LOG_ERROR("{} error {}", id_, msg.error); }
+void download_session::on_error_response(const leaf::error_response& msg) { LOG_ERROR("{} error {}", id_, msg.error); }
 
-void download_session::keepalive_response(const leaf::keepalive& k)
+void download_session::on_keepalive_response(const leaf::keepalive& k)
 {
     auto now =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
@@ -271,13 +258,13 @@ void download_session::keepalive_response(const leaf::keepalive& k)
     auto diff = now - k.client_timestamp;
 
     LOG_DEBUG("{} keepalive_response {} client {} client time {} server time {} diff {} token {}",
-             id_,
-             k.id,
-             k.client_id,
-             k.client_timestamp,
-             k.server_timestamp,
-             diff,
-             k.token);
+              id_,
+              k.id,
+              k.client_id,
+              k.client_timestamp,
+              k.server_timestamp,
+              diff,
+              k.token);
 }
 void download_session::keepalive()
 {
