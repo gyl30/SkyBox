@@ -7,25 +7,24 @@
 #include "protocol/codec.h"
 #include "crypt/blake2b.h"
 #include "file/file_context.h"
-#include "net/base_session.h"
 
 namespace leaf
 {
-class download_session : public base_session, public std::enable_shared_from_this<download_session>
+class download_session : public std::enable_shared_from_this<download_session>
 {
    public:
     download_session(std::string id, leaf::download_progress_callback cb);
-    ~download_session() override;
+    ~download_session();
 
    public:
-    void startup() override;
-    void shutdown() override;
-    void update() override;
+    void startup();
+    void shutdown();
+    void update();
 
    public:
-    void add_file(const leaf::file_context::ptr &file) override;
-    void on_message(const leaf::codec_message &msg) override;
-    void set_message_cb(std::function<void(const leaf::codec_message &)> cb) override;
+    void add_file(const leaf::file_context::ptr &file);
+    void on_message(const leaf::codec_message &msg);
+    void set_message_cb(std::function<void(const leaf::codec_message &)> cb);
     void login(const std::string &user, const std::string &pass);
 
    private:

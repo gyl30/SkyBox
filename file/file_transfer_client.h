@@ -28,10 +28,18 @@ class file_transfer_client
     void add_download_file(const std::string &filename);
 
    private:
+    void start_timer();
+    void timer_callback(const boost::system::error_code &ec);
+    void upload_message(const std::shared_ptr<std::vector<uint8_t>> &msg, const boost::system::error_code &ec);
+    void download_message(const std::shared_ptr<std::vector<uint8_t>> &msg, const boost::system::error_code &ec);
+
+   private:
+    std::string id_;
     leaf::executors executors{4};
     boost::asio::ip::tcp::endpoint ed_;
     std::shared_ptr<leaf::upload_session> upload_;
     std::shared_ptr<leaf::download_session> download_;
+    std::shared_ptr<boost::asio::steady_timer> timer_;
     leaf::upload_progress_callback upload_progress_cb_;
     leaf::download_progress_callback download_progress_cb_;
     std::shared_ptr<leaf::plain_websocket_client> upload_client_;
