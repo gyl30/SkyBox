@@ -18,7 +18,7 @@ void download_session::startup() { LOG_INFO("{} startup", id_); }
 
 void download_session::shutdown() { LOG_INFO("{} shutdown", id_); }
 
-void download_session::set_message_cb(std::function<void(const leaf::codec_message&)> cb) { cb_ = std::move(cb); }
+void download_session::set_message_cb(std::function<void(std::vector<uint8_t>)> cb) { cb_ = std::move(cb); }
 
 void download_session::login(const std::string& user, const std::string& pass)
 {
@@ -29,6 +29,14 @@ void download_session::login(const std::string& user, const std::string& pass)
     write_message(req);
 }
 
+void download_session::on_message(std::vector<uint8_t> msg)
+{
+    auto c = leaf::deserialize_message(msg.data(), msg.size());
+    if (c)
+    {
+        on_message(c.value());
+    }
+}
 void download_session::on_message(const leaf::codec_message& msg)
 {
     struct visitor
@@ -204,7 +212,8 @@ void download_session::write_message(const codec_message& msg)
 {
     if (cb_)
     {
-        cb_(msg);
+        auto bytes = leaf::serialize_message(msg);
+        cb_(std::move(bytes));
     }
 }
 void download_session::add_file(const leaf::file_context::ptr& file)

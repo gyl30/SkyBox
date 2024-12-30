@@ -27,7 +27,16 @@ void upload_session::login(const std::string& user, const std::string& pass)
     write_message(req);
 }
 
-void upload_session::set_message_cb(std::function<void(const leaf::codec_message&)> cb) { cb_ = std::move(cb); }
+void upload_session::set_message_cb(std::function<void(std::vector<uint8_t>)> cb) { cb_ = std::move(cb); }
+
+void upload_session::on_message(std::vector<uint8_t> msg)
+{
+    auto c = leaf::deserialize_message(msg.data(), msg.size());
+    if (c)
+    {
+        on_message(c.value());
+    }
+}
 
 void upload_session::on_message(const leaf::codec_message& msg)
 {
@@ -41,9 +50,9 @@ void upload_session::on_message(const leaf::codec_message& msg)
         void operator()(const leaf::keepalive& msg) { session_->on_keepalive_response(msg); }
         void operator()(const leaf::error_response& msg) { session_->on_error_response(msg); }
         void operator()(const leaf::login_response& msg) { session_->on_login_response(msg); }
-        void operator()(const leaf::upload_file_request& msg) { session_->upload_file_request(); }
         void operator()(const leaf::file_block_request& msg) { session_->on_file_block_request(msg); }
         void operator()(const leaf::block_data_request& msg) { session_->on_block_data_request(msg); }
+        void operator()(const leaf::upload_file_request& msg) {}
         void operator()(const leaf::download_file_request& msg) {}
         void operator()(const leaf::download_file_response& msg) {}
         void operator()(const leaf::delete_file_request& msg) {}
@@ -103,7 +112,8 @@ void upload_session::write_message(const codec_message& msg)
 {
     if (cb_)
     {
-        cb_(msg);
+        auto bytes = leaf::serialize_message(msg);
+        cb_(std::move(bytes));
     }
 }
 void upload_session::open_file()

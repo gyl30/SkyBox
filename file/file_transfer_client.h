@@ -30,8 +30,11 @@ class file_transfer_client
    private:
     void start_timer();
     void timer_callback(const boost::system::error_code &ec);
-    void upload_message(const std::shared_ptr<std::vector<uint8_t>> &msg, const boost::system::error_code &ec);
-    void download_message(const std::shared_ptr<std::vector<uint8_t>> &msg, const boost::system::error_code &ec);
+    void on_write_upload_message(std::vector<uint8_t> msg);
+    void on_write_download_message(std::vector<uint8_t> msg);
+    void on_read_upload_message(const std::shared_ptr<std::vector<uint8_t>> &msg, const boost::system::error_code &ec);
+    void on_read_download_message(const std::shared_ptr<std::vector<uint8_t>> &msg,
+                                  const boost::system::error_code &ec);
 
    private:
     std::string id_;

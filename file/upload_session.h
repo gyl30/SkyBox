@@ -23,8 +23,9 @@ class upload_session : public std::enable_shared_from_this<upload_session>
 
    public:
     void add_file(const leaf::file_context::ptr &file);
+    void on_message(std::vector<uint8_t> msg);
     void on_message(const leaf::codec_message &msg);
-    void set_message_cb(std::function<void(const leaf::codec_message &)> cb);
+    void set_message_cb(std::function<void(std::vector<uint8_t>)> cb);
     void login(const std::string &user, const std::string &pass);
 
    private:
@@ -53,8 +54,8 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> blake2b_;
     leaf::upload_progress_callback progress_cb_;
+    std::function<void(std::vector<uint8_t>)> cb_;
     std::deque<leaf::file_context::ptr> padding_files_;
-    std::function<void(const leaf::codec_message &)> cb_;
 };
 }    // namespace leaf
 

@@ -11,11 +11,8 @@ namespace leaf
 class plain_websocket_client : public std::enable_shared_from_this<plain_websocket_client>
 {
    public:
-    struct handle
-    {
-        std::function<void(boost::beast::error_code)> on_connect;
-        std::function<void(boost::beast::error_code)> on_close;
-    };
+    using message_handler =
+        std::function<void(const std::shared_ptr<std::vector<uint8_t>>&, const boost::system::error_code&)>;
 
    public:
     plain_websocket_client(std::string id,
@@ -27,9 +24,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
    public:
     void startup();
     void shutdown();
-    void write(const std::vector<uint8_t>& msg);
-    using message_handler =
-        std::function<void(const std::shared_ptr<std::vector<uint8_t>>&, const boost::system::error_code&)>;
+    void write(std::vector<uint8_t> msg);
     void set_message_handler(const message_handler& handler) { message_handler_ = handler; }
 
    private:

@@ -132,7 +132,7 @@ void plain_websocket_client::safe_shutdown()
     ec = ws_.next_layer().socket().close(ec);
 }
 
-void plain_websocket_client::write(const std::vector<uint8_t>& msg)
+void plain_websocket_client::write(std::vector<uint8_t> msg)
 {
     boost::asio::dispatch(ws_.get_executor(),
                           boost::beast::bind_front_handler(&plain_websocket_client::safe_write, this, msg));
