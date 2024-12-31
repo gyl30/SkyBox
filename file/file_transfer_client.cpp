@@ -26,13 +26,15 @@ void file_transfer_client::startup()
     upload_->startup();
     download_->startup();
     // clang-format off
-    upload_client_ = std::make_shared<leaf::plain_websocket_client>("ws_cli", upload_uri, ed_, executors.get_executor());
-    download_client_ = std::make_shared<leaf::plain_websocket_client>("ws_cli", download_uri, ed_, executors.get_executor());
+    upload_client_ = std::make_shared<leaf::plain_websocket_client>("upload_ws_cli", upload_uri, ed_, executors.get_executor());
+    download_client_ = std::make_shared<leaf::plain_websocket_client>("download_ws_cli", download_uri, ed_, executors.get_executor());
     upload_client_->set_message_handler(std::bind(&file_transfer_client::on_read_upload_message, this, std::placeholders::_1, std::placeholders::_2));
     download_client_->set_message_handler(std::bind(&file_transfer_client::on_read_download_message, this, std::placeholders::_1, std::placeholders::_2));
     // clang-format on
     upload_client_->startup();
     download_client_->startup();
+
+    start_timer();
 }
 void file_transfer_client::shutdown()
 {

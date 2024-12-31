@@ -238,7 +238,7 @@ void download_session::update_download_file()
 
     if (padding_files_.empty())
     {
-        LOG_INFO("{} padding files empty", id_);
+        LOG_TRACE("{} padding files empty", id_);
         return;
     }
     file_ = padding_files_.front();

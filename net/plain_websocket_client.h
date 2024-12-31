@@ -2,6 +2,7 @@
 #define LEAF_NET_PLAIN_WEBSOCKET_CLIENT_H
 
 #include <queue>
+#include <atomic>
 #include <functional>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
@@ -45,6 +46,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
 
    private:
     bool writing_ = false;
+    std::atomic<bool> shutdown_{false};
     std::string id_;
     std::string target_;
     message_handler message_handler_;
