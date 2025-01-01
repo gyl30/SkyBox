@@ -44,6 +44,10 @@ void file_transfer_client::shutdown()
     download_->shutdown();
     upload_client_->shutdown();
     download_client_->shutdown();
+    upload_.reset();
+    download_.reset();
+    upload_client_.reset();
+    download_client_.reset();
     executors.shutdown();
 }
 void file_transfer_client::on_write_upload_message(std::vector<uint8_t> msg)

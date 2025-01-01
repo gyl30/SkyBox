@@ -86,7 +86,6 @@ void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t by
     {
         LOG_ERROR("{} read failed {}", id_, ec.message());
         on_error(ec);
-        shutdown();
         return;
     }
 
@@ -113,10 +112,6 @@ void plain_websocket_client::on_error(boost::beast::error_code ec)
     {
         return;
     }
-    if (shutdown_)
-    {
-        return;
-    }
     if (ec)
     {
         message_handler_(nullptr, ec);
@@ -125,16 +120,8 @@ void plain_websocket_client::on_error(boost::beast::error_code ec)
 
 void plain_websocket_client::shutdown()
 {
-    if (shutdown_)
-    {
-        return;
-    }
     boost::asio::dispatch(ws_.get_executor(),
                           boost::beast::bind_front_handler(&plain_websocket_client::safe_shutdown, shared_from_this()));
-    while (!shutdown_)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
-    }
 }
 
 void plain_websocket_client::safe_shutdown()
@@ -142,7 +129,6 @@ void plain_websocket_client::safe_shutdown()
     LOG_INFO("shutdown {}", id_);
     boost::beast::error_code ec;
     ec = ws_.next_layer().socket().close(ec);
-    shutdown_ = true;
 }
 
 void plain_websocket_client::write(std::vector<uint8_t> msg)
@@ -181,7 +167,6 @@ void plain_websocket_client::on_write(boost::beast::error_code ec, std::size_t b
     {
         LOG_ERROR("{} write failed {}", id_, ec.message());
         on_error(ec);
-        shutdown();
         return;
     }
     LOG_TRACE("{} write success {} bytes", id_, bytes_transferred);
