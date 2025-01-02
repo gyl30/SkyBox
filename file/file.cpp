@@ -12,9 +12,26 @@ uint64_t file_id()
     static std::atomic<uint64_t> id = 0xff1;
     return ++id;
 }
-std::string make_file_path(const std::string& filename)
+
+std::string make_file_path(const std::string& id, const std::string& filename)
 {
-    return std::filesystem::temp_directory_path().append("upload_" + filename).string();
+    auto dir = std::filesystem::temp_directory_path().append(id);
+    boost::system::error_code ec;
+    bool exist = std::filesystem::exists(dir, ec);
+    if (ec)
+    {
+        return "";
+    }
+    if (exist)
+    {
+        return dir.append(filename).string();
+    }
+    std::filesystem::create_directories(dir, ec);
+    if (ec)
+    {
+        return "";
+    }
+    return dir.append(filename).string();
 }
 class file_impl
 {

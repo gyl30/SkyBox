@@ -94,7 +94,7 @@ void download_file_handle::on_login(const leaf::login_request& msg)
 
 void download_file_handle::on_download_file_request(const leaf::download_file_request& msg)
 {
-    std::string download_file_path = leaf::make_file_path(msg.filename);
+    std::string download_file_path = leaf::make_file_path(token_, msg.filename);
     LOG_INFO("{} on_download_file_request file {} save to {}", id_, msg.filename, download_file_path);
     boost::system::error_code exists_ec;
     bool exist = std::filesystem::exists(download_file_path, exists_ec);

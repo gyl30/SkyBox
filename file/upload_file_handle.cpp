@@ -101,7 +101,7 @@ void upload_file_handle::shutdown()
 void upload_file_handle::on_upload_file_request(const leaf::upload_file_request& msg)
 {
     std::error_code ec;
-    std::string upload_file_path = leaf::make_file_path(msg.filename);
+    std::string upload_file_path = leaf::make_file_path(token_, msg.filename);
     LOG_INFO("{} on_upload_file_request file size {} name {} path {} hash {}",
              id_,
              msg.file_size,
