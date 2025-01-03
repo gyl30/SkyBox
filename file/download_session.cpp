@@ -58,6 +58,8 @@ void download_session::on_message(const leaf::codec_message& msg)
         void operator()(const leaf::download_file_request& msg) {}
         void operator()(const leaf::delete_file_request& msg) {}
         void operator()(const leaf::login_request& msg) {}
+        void operator()(const leaf::files_request& msg) {}
+        void operator()(const leaf::files_response& msg) {}
     };
     std::visit(visitor{this}, msg);
 }

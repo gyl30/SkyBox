@@ -24,8 +24,26 @@ enum class message_type : uint16_t
     keepalive = 0x13,
     login_request = 0x14,
     login_response = 0x15,
+    files_request = 0x16,
+    files_response = 0x17
 };
 
+struct files_request
+{
+    std::string token;
+};
+
+struct files_response
+{
+    struct file_node
+    {
+        std::string parent;
+        std::string name;
+        std::string type;
+        std::vector<file_node> children;
+    };
+    std::vector<file_node> files;
+};
 // ------------------------------------------------------------------------------
 struct upload_file_request
 {
