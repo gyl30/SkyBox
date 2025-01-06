@@ -8,6 +8,7 @@
 #include "gui/task.h"
 #include "gui/table_view.h"
 #include "gui/table_model.h"
+#include "gui/files_widget.h"
 #include "file/file_transfer_client.h"
 
 class Widget : public QWidget
@@ -38,10 +39,13 @@ class Widget : public QWidget
     QPushButton* progress_btn_ = nullptr;
     QPushButton* upload_btn_ = nullptr;
     QPushButton* setting_btn_ = nullptr;
+    QPushButton* files_btn_ = nullptr;
     QStackedWidget* stacked_widget_ = nullptr;
     QTableWidget* finish_list_widget_ = nullptr;
+    leaf::files_widget* files_widget_ = nullptr;
     int finish_list_index_ = -1;
     int upload_list_index_ = -1;
+    int files_list_index_ = -1;
     leaf::task_model* model_ = nullptr;
     leaf::task_table_view* table_view_ = nullptr;
     leaf::file_transfer_client* file_client_ = nullptr;

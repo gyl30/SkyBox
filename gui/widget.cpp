@@ -15,12 +15,12 @@
 #include "log/log.h"
 #include "gui/task.h"
 #include "gui/widget.h"
-#include "gui/ip_edit.h"
 #include "gui/table_view.h"
 #include "gui/table_model.h"
 #include "gui/table_widget.h"
 #include "gui/login_widget.h"
 #include "gui/table_delegate.h"
+#include "gui/files_widget.h"
 
 static void append_task_to_wiget(QTableWidget *table, const leaf::task &task, const QTime &t)
 {
@@ -69,11 +69,15 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     upload_btn_->setText("上传文件");
     setting_btn_ = new QPushButton(this);
     setting_btn_->setText("设置");
+    files_btn_ = new QPushButton(this);
+    files_btn_->setText("文件列表");
 
     finish_list_widget_ = new leaf::file_table_widget(this);
     stacked_widget_ = new QStackedWidget(this);
+    files_widget_ = new leaf::files_widget(this);
     upload_list_index_ = stacked_widget_->addWidget(table_view_);
     finish_list_index_ = stacked_widget_->addWidget(finish_list_widget_);
+    files_list_index_ = stacked_widget_->addWidget(files_widget_);
 
     finish_list_widget_->setSelectionBehavior(QAbstractItemView::SelectRows);     // 设置选中模式为选中行
     finish_list_widget_->setSelectionMode(QAbstractItemView::SingleSelection);    // 设置选中单个
@@ -86,10 +90,12 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     connect(finish_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(finish_list_index_); });
     connect(progress_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(upload_list_index_); });
     connect(setting_btn_, &QPushButton::clicked, this, &Widget::setting_btn_clicked);
+    connect(files_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(files_list_index_); });
     // clang-format on
 
     auto *main_layout = new QVBoxLayout();
     auto *top_layout = new QHBoxLayout();
+    top_layout->addWidget(files_btn_);
     top_layout->addWidget(progress_btn_);
     top_layout->addWidget(finish_btn_);
     top_layout->addWidget(upload_btn_);
