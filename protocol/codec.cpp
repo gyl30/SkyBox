@@ -13,7 +13,7 @@ REFLECT_STRUCT(leaf::download_file_response, (hash)(filename)(file_size)(file_id
 REFLECT_STRUCT(leaf::login_request, (username)(password));
 REFLECT_STRUCT(leaf::login_response, (username)(token));
 REFLECT_STRUCT(leaf::files_response::file_node, (parent)(name)(type)(children));
-REFLECT_STRUCT(leaf::files_response, (files));
+REFLECT_STRUCT(leaf::files_response, (files)(token));
 }    // namespace reflect
 
 template <typename E>

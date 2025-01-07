@@ -42,6 +42,7 @@ struct files_response
         std::string type;
         std::vector<file_node> children;
     };
+    std::string token;
     std::vector<file_node> files;
 };
 // ------------------------------------------------------------------------------

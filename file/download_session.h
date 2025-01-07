@@ -40,6 +40,8 @@ class download_session : public std::enable_shared_from_this<download_session>
     void keepalive();
     void on_keepalive_response(const leaf::keepalive &);
     void on_login_response(const leaf::login_response &);
+    void files_request();
+    void on_files_response(const leaf::files_response &);
 
    private:
     void emit_event(const leaf::download_event &);
