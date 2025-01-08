@@ -572,6 +572,8 @@ static std::map<leaf::message_type, std::function<std::optional<codec_message>(l
     {leaf::message_type::keepalive, deserialize_keepalive_response},
     {leaf::message_type::login_request, deserialize_login_request},
     {leaf::message_type::login_response, deserialize_login_response},
+    {leaf::message_type::files_request, deserialize_files_request},
+    {leaf::message_type::files_response, deserialize_files_response},
 };
 
 std::vector<uint8_t> serialize_message(const codec_message &msg)

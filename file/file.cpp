@@ -13,6 +13,8 @@ uint64_t file_id()
     return ++id;
 }
 
+std::string make_file_path(const std::string& id) { return std::filesystem::temp_directory_path().append(id).string(); }
+
 std::string make_file_path(const std::string& id, const std::string& filename)
 {
     auto dir = std::filesystem::temp_directory_path().append(id);

@@ -78,14 +78,56 @@ void download_file_handle::on_message(const leaf::codec_message& msg)
             {
                 on_login(arg);
             }
+            if constexpr (std::is_same_v<T, leaf::files_request>)
+            {
+                on_files_request(arg);
+            }
         },
         msg);
+}
+static void lookup_dir(const std::string& dir, leaf::files_response::file_node& file)
+{
+    if (!std::filesystem::exists(dir))
+    {
+        return;
+    }
+    for (const auto& entry : std::filesystem::directory_iterator(dir))
+    {
+        if (entry.is_directory())
+        {
+            leaf::files_response::file_node child;
+            child.name = entry.path().string();
+            child.parent = dir;
+            lookup_dir(child.name, child);
+            file.children.push_back(child);
+        }
+        else
+        {
+            leaf::files_response::file_node child;
+            child.name = entry.path().string();
+            child.parent = dir;
+            file.children.push_back(child);
+        }
+    }
+}
+void download_file_handle::on_files_request(const leaf::files_request& msg)
+{
+    std::string dir = leaf::make_file_path(msg.token);
+    leaf::files_response response;
+    leaf::files_response::file_node file;
+    file.name = dir;
+    file.parent = dir;
+    // 递归遍历目录中的所有文件
+    lookup_dir(dir, file);
+    response.files.push_back(file);
+    LOG_INFO("{} on_files_request dir {}", id_, dir);
+    commit_message(response);
 }
 void download_file_handle::on_login(const leaf::login_request& msg)
 {
     leaf::login_response response;
     response.username = msg.username;
-    response.token = leaf::passwd_hash(msg.password, key_);
+    response.token = leaf::passwd_hash(msg.password, std::vector<uint8_t>(user_.begin(), user_.end()));
     user_ = response.username;
     token_ = response.token;
     LOG_INFO("{} on_login username {} token {}", id_, msg.username, response.token);

@@ -36,6 +36,7 @@ class download_file_handle : public websocket_handle
     void commit_message(const leaf::codec_message& msg);
     void on_message(const leaf::codec_message& msg);
     void on_login(const leaf::login_request& msg);
+    void on_files_request(const leaf::files_request& msg);
 
    private:
     std::string id_;
