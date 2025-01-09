@@ -5,6 +5,7 @@
 #include <QStackedWidget>
 #include <QPushButton>
 #include <QTableWidget>
+#include <QStringList>
 #include "gui/task.h"
 #include "gui/table_view.h"
 #include "gui/table_model.h"
@@ -28,6 +29,7 @@ class Widget : public QWidget
    private Q_SLOTS:
     void on_progress_slot(leaf::task e);
     void on_login_slot(QString user, QString passwd);
+    void on_style_btn_clicked();
 
    private:
     void upload_progress(const leaf::upload_event& e);
@@ -40,7 +42,10 @@ class Widget : public QWidget
     QPushButton* upload_btn_ = nullptr;
     QPushButton* setting_btn_ = nullptr;
     QPushButton* files_btn_ = nullptr;
+    QPushButton* style_btn_ = nullptr;
     QStackedWidget* stacked_widget_ = nullptr;
+    QStringList style_list_;
+    int style_index_ = 0;
     QTableWidget* finish_list_widget_ = nullptr;
     leaf::files_widget* files_widget_ = nullptr;
     int finish_list_index_ = -1;

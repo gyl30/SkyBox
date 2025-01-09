@@ -11,6 +11,8 @@
 #include <QStringList>
 #include <QHeaderView>
 #include <QLineEdit>
+#include <QStyleFactory>
+#include <QStyle>
 
 #include "log/log.h"
 #include "gui/task.h"
@@ -72,6 +74,9 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     files_btn_ = new QPushButton(this);
     files_btn_->setText("文件列表");
 
+    style_list_ = QStyleFactory::keys();
+    style_btn_ = new QPushButton(this);
+    style_btn_->setText("切换主题");
     finish_list_widget_ = new leaf::file_table_widget(this);
     stacked_widget_ = new QStackedWidget(this);
     files_widget_ = new leaf::files_widget(this);
@@ -91,6 +96,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     connect(progress_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(upload_list_index_); });
     connect(setting_btn_, &QPushButton::clicked, this, &Widget::setting_btn_clicked);
     connect(files_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(files_list_index_); });
+    connect(style_btn_, &QPushButton::clicked, [this]() { on_style_btn_clicked(); });
     // clang-format on
 
     auto *main_layout = new QVBoxLayout();
@@ -100,6 +106,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     top_layout->addWidget(finish_btn_);
     top_layout->addWidget(upload_btn_);
     top_layout->addWidget(setting_btn_);
+    top_layout->addWidget(style_btn_);
     top_layout->setSpacing(0);
     main_layout->addLayout(top_layout);
     main_layout->addWidget(stacked_widget_);
@@ -126,6 +133,15 @@ void Widget::on_login_slot(QString user, QString passwd)
     file_client_->login(user.toStdString(), passwd.toStdString());
 }
 
+void Widget::on_style_btn_clicked()
+{
+    if (style_index_ >= style_list_.size())
+    {
+        style_index_ = 0;
+    }
+    qApp->setStyle(QStyleFactory::create(style_list_.at(style_index_)));
+    style_index_++;
+}
 void Widget::on_progress_slot(leaf::task e)
 {
     LOG_INFO("{} progress {} {} {} {}", e.op, e.id, e.filename, e.process_size, e.file_size);
