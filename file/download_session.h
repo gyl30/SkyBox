@@ -13,7 +13,7 @@ namespace leaf
 class download_session : public std::enable_shared_from_this<download_session>
 {
    public:
-    download_session(std::string id, leaf::download_progress_callback cb);
+    download_session(std::string id, leaf::download_progress_callback cb, leaf::notify_progress_callback notify_cb);
     ~download_session();
 
    public:
@@ -56,6 +56,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     std::shared_ptr<leaf::writer> writer_;
     std::function<void(std::vector<uint8_t>)> cb_;
     leaf::download_progress_callback progress_cb_;
+    leaf::notify_progress_callback notify_cb_;
     std::queue<leaf::file_context::ptr> padding_files_;
 };
 }    // namespace leaf

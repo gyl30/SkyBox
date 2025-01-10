@@ -10,17 +10,19 @@ static const char *download_uri = "/leaf/ws/download";
 file_transfer_client::file_transfer_client(const std::string &ip,
                                            uint16_t port,
                                            leaf::upload_progress_callback upload_progress_cb,
-                                           leaf::download_progress_callback download_progress_cb)
+                                           leaf::download_progress_callback download_progress_cb,
+                                           leaf::notify_progress_callback notify_progress_cb)
     : ed_(boost::asio::ip::address::from_string(ip), port),
       upload_progress_cb_(std::move(upload_progress_cb)),
-      download_progress_cb_(std::move(download_progress_cb)) {};
+      download_progress_cb_(std::move(download_progress_cb)),
+      notify_progress_cb_(std::move(notify_progress_cb)) {};
 
 void file_transfer_client::startup()
 {
     executors.startup();
     timer_ = std::make_shared<boost::asio::steady_timer>(executors.get_executor());
     upload_ = std::make_shared<leaf::upload_session>("upload", upload_progress_cb_);
-    download_ = std::make_shared<leaf::download_session>("download", download_progress_cb_);
+    download_ = std::make_shared<leaf::download_session>("download", download_progress_cb_, notify_progress_cb_);
     upload_->set_message_cb(std::bind(&file_transfer_client::on_write_upload_message, this, std::placeholders::_1));
     download_->set_message_cb(std::bind(&file_transfer_client::on_write_download_message, this, std::placeholders::_1));
     upload_->startup();

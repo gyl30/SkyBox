@@ -16,7 +16,10 @@ class file_transfer_client
     file_transfer_client(const std::string &ip,
                          uint16_t port,
                          leaf::upload_progress_callback upload_progress_cb,
-                         leaf::download_progress_callback download_progress_cb);
+                         leaf::download_progress_callback download_progress_cb,
+                         leaf::notify_progress_callback notify_progress_cb);
+
+    ~file_transfer_client() = default;
 
    public:
     void startup();
@@ -45,6 +48,7 @@ class file_transfer_client
     std::shared_ptr<boost::asio::steady_timer> timer_;
     leaf::upload_progress_callback upload_progress_cb_;
     leaf::download_progress_callback download_progress_cb_;
+    leaf::notify_progress_callback notify_progress_cb_;
     std::shared_ptr<leaf::plain_websocket_client> upload_client_;
     std::shared_ptr<leaf::plain_websocket_client> download_client_;
 };

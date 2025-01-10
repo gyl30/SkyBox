@@ -14,7 +14,10 @@ struct upload_event
     uint64_t upload_size;
     std::string filename;
 };
+struct notify_event
+{
 
+};
 struct download_event
 {
     uint64_t id;
@@ -25,6 +28,7 @@ struct download_event
 
 using download_progress_callback = std::function<void(const download_event&)>;
 using upload_progress_callback = std::function<void(const upload_event&)>;
+using notify_progress_callback = std::function<void(const notify_event&)>;
 
 }    // namespace leaf
 

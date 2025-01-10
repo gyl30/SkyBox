@@ -8,8 +8,10 @@
 
 namespace leaf
 {
-download_session::download_session(std::string id, leaf::download_progress_callback cb)
-    : id_(std::move(id)), progress_cb_(std::move(cb))
+download_session::download_session(std::string id,
+                                   leaf::download_progress_callback cb,
+                                   leaf::notify_progress_callback notify_cb)
+    : id_(std::move(id)), progress_cb_(std::move(cb)), notify_cb_(std::move(notify_cb))
 {
 }
 

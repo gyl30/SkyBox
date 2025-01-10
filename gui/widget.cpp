@@ -115,7 +115,8 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     resize(800, 500);
     auto upload_cb = [this](const leaf::upload_event &e) { upload_progress(e); };
     auto download_cb = [this](const leaf::download_event &e) { download_progress(e); };
-    file_client_ = new leaf::file_transfer_client("127.0.0.1", 8080, upload_cb, download_cb);
+    auto notify_cb = [this](const leaf::notify_event &e) {};
+    file_client_ = new leaf::file_transfer_client("127.0.0.1", 8080, upload_cb, download_cb, notify_cb);
     file_client_->startup();
     connect(this, &Widget::progress_slot, this, &Widget::on_progress_slot);
 }
@@ -165,6 +166,8 @@ void Widget::download_progress(const leaf::download_event &e)
     t.op = "download";
     emit progress_slot(t);
 }
+
+void Widget::notify_progress(const leaf::notify_event &e) {}
 
 void Widget::upload_progress(const leaf::upload_event &e)
 {

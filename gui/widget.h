@@ -32,6 +32,7 @@ class Widget : public QWidget
     void on_style_btn_clicked();
 
    private:
+    void notify_progress(const leaf::notify_event& e);
     void upload_progress(const leaf::upload_event& e);
     void download_progress(const leaf::download_event& e);
     void setting_btn_clicked();
