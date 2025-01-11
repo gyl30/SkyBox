@@ -1,6 +1,7 @@
 #ifndef LEAF_FILE_EVENT_H
 #define LEAF_FILE_EVENT_H
 
+#include <any>
 #include <string>
 #include <functional>
 
@@ -16,7 +17,8 @@ struct upload_event
 };
 struct notify_event
 {
-
+    std::string method;
+    std::any data;
 };
 struct download_event
 {

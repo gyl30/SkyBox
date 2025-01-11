@@ -299,26 +299,13 @@ void download_session::files_request()
     r.token = token_;
     write_message(r);
 }
-static void dump_files(const std::string& id, const std::vector<leaf::files_response::file_node>& files, int dep)
-{
-    if (dep > 3)
-    {
-        return;
-    }
-    for (const auto& f : files)
-    {
-        LOG_DEBUG("{} on_files_response file {} size {}", id, f.name, f.type);
-        if (!f.children.empty())
-        {
-            dump_files(id, f.children, dep++);
-        }
-    }
-}
 void download_session::on_files_response(const leaf::files_response& res)
 {
-    //
     LOG_INFO("{} on_files_response {} files {}", id_, res.files.size(), res.token);
-    dump_files(id_, res.files, 0);
+    leaf::notify_event e;
+    e.method = "files";
+    e.data = res;
+    notify_cb_(e);
 }
 
 }    // namespace leaf

@@ -23,6 +23,7 @@
 #include "gui/login_widget.h"
 #include "gui/table_delegate.h"
 #include "gui/files_widget.h"
+#include "protocol/message.h"
 
 static void append_task_to_wiget(QTableWidget *table, const leaf::task &task, const QTime &t)
 {
@@ -53,6 +54,7 @@ static void append_task_to_wiget(QTableWidget *table, const leaf::task &task, co
 Widget::Widget(QWidget *parent) : QWidget(parent)
 {
     qRegisterMetaType<leaf::task>("leaf::task");
+    qRegisterMetaType<leaf::notify_event>("leaf::notify_event");
 
     table_view_ = new leaf::task_table_view(this);
 
@@ -115,10 +117,11 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     resize(800, 500);
     auto upload_cb = [this](const leaf::upload_event &e) { upload_progress(e); };
     auto download_cb = [this](const leaf::download_event &e) { download_progress(e); };
-    auto notify_cb = [this](const leaf::notify_event &e) {};
+    auto notify_cb = [this](const leaf::notify_event &e) { notify_progress(e); };
     file_client_ = new leaf::file_transfer_client("127.0.0.1", 8080, upload_cb, download_cb, notify_cb);
     file_client_->startup();
     connect(this, &Widget::progress_slot, this, &Widget::on_progress_slot);
+    connect(this, &Widget::notify_event_slot, this, &Widget::on_notify_event_slot);
 }
 
 void Widget::setting_btn_clicked()
@@ -167,7 +170,27 @@ void Widget::download_progress(const leaf::download_event &e)
     emit progress_slot(t);
 }
 
-void Widget::notify_progress(const leaf::notify_event &e) {}
+void Widget::notify_progress(const leaf::notify_event &e) { emit notify_event_slot(e); }
+
+static void dump_files(const std::vector<leaf::files_response::file_node> &files, int dep)
+{
+    if (dep > 3)
+    {
+        return;
+    }
+    for (const auto &f : files)
+    {
+        LOG_DEBUG("on_files_response file {} type {} children size {}", f.name, f.type, f.children.size());
+        if (!f.children.empty())
+        {
+            dump_files(f.children, dep++);
+        }
+    }
+}
+
+void Widget::on_files(const leaf::files_response &files) { dump_files(files.files, 0); }
+
+void Widget::on_notify_event_slot(leaf::notify_event e) { on_files(std::any_cast<leaf::files_response>(e.data)); }
 
 void Widget::upload_progress(const leaf::upload_event &e)
 {

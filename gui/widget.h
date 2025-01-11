@@ -25,17 +25,20 @@ class Widget : public QWidget
 
    Q_SIGNALS:
     void progress_slot(leaf::task e);
+    void notify_event_slot(leaf::notify_event e);
 
    private Q_SLOTS:
     void on_progress_slot(leaf::task e);
     void on_login_slot(QString user, QString passwd);
     void on_style_btn_clicked();
+    void on_notify_event_slot(leaf::notify_event e);
 
    private:
     void notify_progress(const leaf::notify_event& e);
     void upload_progress(const leaf::upload_event& e);
     void download_progress(const leaf::download_event& e);
     void setting_btn_clicked();
+    void on_files(const leaf::files_response& files);
 
    private:
     QPushButton* finish_btn_ = nullptr;
