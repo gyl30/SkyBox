@@ -98,6 +98,7 @@ static void lookup_dir(const std::string& dir, leaf::files_response::file_node& 
             leaf::files_response::file_node child;
             child.name = entry.path().string();
             child.parent = dir;
+            child.type = "dir";
             lookup_dir(child.name, child);
             file.children.push_back(child);
         }
@@ -106,6 +107,7 @@ static void lookup_dir(const std::string& dir, leaf::files_response::file_node& 
             leaf::files_response::file_node child;
             child.name = entry.path().string();
             child.parent = dir;
+            child.type = "file";
             file.children.push_back(child);
         }
     }
@@ -116,6 +118,7 @@ void download_file_handle::on_files_request(const leaf::files_request& msg)
     leaf::files_response response;
     leaf::files_response::file_node file;
     file.name = dir;
+    file.type = "dir";
     file.parent = dir;
     // 递归遍历目录中的所有文件
     lookup_dir(dir, file);

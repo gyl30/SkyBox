@@ -172,7 +172,9 @@ void Widget::download_progress(const leaf::download_event &e)
 
 void Widget::notify_progress(const leaf::notify_event &e) { emit notify_event_slot(e); }
 
-static void dump_files(const std::vector<leaf::files_response::file_node> &files, int dep)
+static void files_to_gfiles(const std::vector<leaf::files_response::file_node> &files,
+                            int dep,
+                            std::vector<leaf::gfile> &gfiles)
 {
     if (dep > 3)
     {
@@ -180,15 +182,26 @@ static void dump_files(const std::vector<leaf::files_response::file_node> &files
     }
     for (const auto &f : files)
     {
+        leaf::gfile gf;
+        gf.filename = f.name;
+        gf.parent = f.parent;
+        gf.type = f.type;
+        gfiles.push_back(gf);
         LOG_DEBUG("on_files_response file {} type {} children size {}", f.name, f.type, f.children.size());
         if (!f.children.empty())
         {
-            dump_files(f.children, dep++);
+            files_to_gfiles(f.children, dep++, gfiles);
         }
     }
 }
 
-void Widget::on_files(const leaf::files_response &files) { dump_files(files.files, 0); }
+void Widget::on_files(const leaf::files_response &files)
+{
+    std::vector<leaf::gfile> gfiles;
+    files_to_gfiles(files.files, 0, gfiles);
+    files_widget_->add_gfiles(gfiles);
+    files_widget_->update();
+}
 
 void Widget::on_notify_event_slot(leaf::notify_event e) { on_files(std::any_cast<leaf::files_response>(e.data)); }
 
