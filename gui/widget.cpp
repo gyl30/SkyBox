@@ -22,7 +22,7 @@
 #include "gui/table_widget.h"
 #include "gui/login_widget.h"
 #include "gui/table_delegate.h"
-#include "gui/files_widget.h"
+#include "gui/files_view.h"
 #include "protocol/message.h"
 
 static void append_task_to_wiget(QTableWidget *table, const leaf::task &task, const QTime &t)
@@ -81,7 +81,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     style_btn_->setText("切换主题");
     finish_list_widget_ = new leaf::file_table_widget(this);
     stacked_widget_ = new QStackedWidget(this);
-    files_widget_ = new leaf::files_widget(this);
+    files_widget_ = new leaf::files_view(this);
     upload_list_index_ = stacked_widget_->addWidget(table_view_);
     finish_list_index_ = stacked_widget_->addWidget(finish_list_widget_);
     files_list_index_ = stacked_widget_->addWidget(files_widget_);

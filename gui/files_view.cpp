@@ -9,7 +9,7 @@
 #include <filesystem>
 
 #include "log/log.h"
-#include "gui/files_widget.h"
+#include "gui/files_view.h"
 
 namespace leaf
 {
@@ -30,47 +30,22 @@ QWidget *create_file_widget(const gfile &file, QWidget *parent)
     widget->setLayout(layout);
     return widget;
 }
-files_widget::files_widget(QWidget *parent) : QWidget(parent)
+files_view::files_view(QWidget *parent) : QTableView(parent)
 {
     rename_action_ = new QAction("重命名", this);
     new_directory_action_ = new QAction("新建文件夹", this);
 
-    table_ = new QTableWidget(5, 6, this);
-    table_->setShowGrid(false);
-    table_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    table_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
-    auto *layout = new QVBoxLayout(this);
-    layout->addWidget(table_);
-    setLayout(layout);
-    connect(rename_action_, &QAction::triggered, this, &files_widget::on_new_file_clicked);
-    connect(new_directory_action_, &QAction::triggered, this, &files_widget::on_new_directory_clicked);
+    connect(rename_action_, &QAction::triggered, this, &files_view::on_new_file_clicked);
+    connect(new_directory_action_, &QAction::triggered, this, &files_view::on_new_directory_clicked);
 }
 
-files_widget::~files_widget()
+files_view::~files_view()
 {
     delete rename_action_;
     delete new_directory_action_;
 }
 
-void files_widget::update()
-{
-    auto &gfiles = gfiles_[current_path_];
-    for (size_t i = 0; i < 5; i++)
-    {
-        for (size_t j = 0; j < 6; j++)
-        {
-            auto index = i * 5 + j;
-            if (index >= gfiles.size())
-            {
-                break;
-            }
-            auto *widget = create_file_widget(gfiles[index], table_);
-            table_->setCellWidget(static_cast<int>(i), static_cast<int>(j), widget);
-        }
-    }
-}
-void files_widget::add_gfile(const gfile &gf)
+void files_view::add_gfile(const gfile &gf)
 {
     if (current_path_.empty())
     {
@@ -87,7 +62,7 @@ void files_widget::add_gfile(const gfile &gf)
     files.push_back(gf);
 }
 
-void files_widget::add_gfiles(const std::vector<gfile> &gfiles)
+void files_view::add_gfiles(const std::vector<gfile> &gfiles)
 {
     for (const auto &gfile : gfiles)
     {
@@ -95,7 +70,7 @@ void files_widget::add_gfiles(const std::vector<gfile> &gfiles)
     }
 }
 
-void files_widget::contextMenuEvent(QContextMenuEvent *event)
+void files_view::contextMenuEvent(QContextMenuEvent *event)
 {
     QMenu menu(this);
     menu.addAction(rename_action_);
@@ -103,8 +78,8 @@ void files_widget::contextMenuEvent(QContextMenuEvent *event)
     menu.exec(event->globalPos());
 }
 
-void files_widget::on_new_file_clicked() { LOG_INFO("new file clicked"); }
+void files_view::on_new_file_clicked() { LOG_INFO("new file clicked"); }
 
-void files_widget::on_new_directory_clicked() { LOG_INFO("new directory clicked"); }
+void files_view::on_new_directory_clicked() { LOG_INFO("new directory clicked"); }
 
 }    // namespace leaf

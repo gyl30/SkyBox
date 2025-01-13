@@ -9,7 +9,7 @@
 #include "gui/task.h"
 #include "gui/table_view.h"
 #include "gui/table_model.h"
-#include "gui/files_widget.h"
+#include "gui/files_view.h"
 #include "file/file_transfer_client.h"
 
 class Widget : public QWidget
@@ -51,7 +51,7 @@ class Widget : public QWidget
     QStringList style_list_;
     int style_index_ = 0;
     QTableWidget* finish_list_widget_ = nullptr;
-    leaf::files_widget* files_widget_ = nullptr;
+    leaf::files_view* files_widget_ = nullptr;
     int finish_list_index_ = -1;
     int upload_list_index_ = -1;
     int files_list_index_ = -1;
