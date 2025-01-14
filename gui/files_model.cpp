@@ -4,22 +4,38 @@ static const int kColumnCount = 5;
 
 namespace leaf
 {
+
 files_model::files_model(QObject *parent) : QAbstractTableModel(parent) {}
 
 void files_model::add_or_update_file(const leaf::gfile &file)
 {
     bool update = false;
     beginResetModel();
+    for (auto &f : files_)
+    {
+        if (f.filename == file.filename && f.type == file.type && f.parent == file.parent)
+        {
+            f = file;
+            update = true;
+            break;
+        }
+    }
     if (!update)
     {
+        files_.push_back(file);
     }
-
     endResetModel();
 }
 
 void files_model::delete_file(const leaf::gfile &file)
 {
     beginResetModel();
+    files_.erase(
+        std::remove_if(files_.begin(),
+                       files_.end(),
+                       [&file](const leaf::gfile &f)
+                       { return f.filename == file.filename && f.type == file.type && f.parent == file.parent; }),
+        files_.end());
     endResetModel();
 }
 
@@ -44,7 +60,7 @@ QVariant files_model::headerData(int section, Qt::Orientation orientation, int r
     return QAbstractTableModel::headerData(section, orientation, role);
 }
 
-QVariant files_model::display_data(const QModelIndex &index, int role) const
+QVariant files_model::display_data(const QModelIndex &index) const
 {
     if (!index.isValid() || index.column() >= columnCount(index) || index.row() >= rowCount(index))
     {
@@ -64,7 +80,7 @@ QVariant files_model::data(const QModelIndex &index, int role) const
 {
     if (role == Qt::DisplayRole)
     {
-        return display_data(index, role);
+        return display_data(index);
     }
     return {};
 }

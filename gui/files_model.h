@@ -23,7 +23,7 @@ class files_model : public QAbstractTableModel
     [[nodiscard]] int columnCount(const QModelIndex & /*parent*/) const override;
     [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
-    [[nodiscard]] QVariant display_data(const QModelIndex &index, int role) const;
+    [[nodiscard]] QVariant display_data(const QModelIndex &index) const;
 
    private:
     std::vector<leaf::gfile> files_;

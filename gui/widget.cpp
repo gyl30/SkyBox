@@ -23,6 +23,7 @@
 #include "gui/login_widget.h"
 #include "gui/table_delegate.h"
 #include "gui/files_view.h"
+#include "gui/files_model.h"
 #include "protocol/message.h"
 
 static void append_task_to_wiget(QTableWidget *table, const leaf::task &task, const QTime &t)
@@ -81,10 +82,12 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     style_btn_->setText("切换主题");
     finish_list_widget_ = new leaf::file_table_widget(this);
     stacked_widget_ = new QStackedWidget(this);
-    files_widget_ = new leaf::files_view(this);
+    files_view_ = new leaf::files_view(this);
+    files_model_ = new leaf::files_model();
+    files_view_->setModel(files_model_);
     upload_list_index_ = stacked_widget_->addWidget(table_view_);
     finish_list_index_ = stacked_widget_->addWidget(finish_list_widget_);
-    files_list_index_ = stacked_widget_->addWidget(files_widget_);
+    files_list_index_ = stacked_widget_->addWidget(files_view_);
 
     finish_list_widget_->setSelectionBehavior(QAbstractItemView::SelectRows);     // 设置选中模式为选中行
     finish_list_widget_->setSelectionMode(QAbstractItemView::SingleSelection);    // 设置选中单个
@@ -199,8 +202,10 @@ void Widget::on_files(const leaf::files_response &files)
 {
     std::vector<leaf::gfile> gfiles;
     files_to_gfiles(files.files, 0, gfiles);
-    files_widget_->add_gfiles(gfiles);
-    files_widget_->update();
+    for (const auto &f : gfiles)
+    {
+        files_model_->add_or_update_file(f);
+    }
 }
 
 void Widget::on_notify_event_slot(leaf::notify_event e) { on_files(std::any_cast<leaf::files_response>(e.data)); }

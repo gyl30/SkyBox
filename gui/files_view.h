@@ -17,11 +17,7 @@ class files_view : public QTableView
 {
    public:
     explicit files_view(QWidget *parent);
-    ~files_view();
-
-   public:
-    void add_gfile(const gfile &gfile);
-    void add_gfiles(const std::vector<gfile> &gfiles);
+    ~files_view() override;
 
    public:
     void contextMenuEvent(QContextMenuEvent *event) override;
