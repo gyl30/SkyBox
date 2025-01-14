@@ -56,7 +56,7 @@ QVariant files_model::display_data(const QModelIndex &index, int role) const
     {
         return {};
     }
-    const auto &t = files_[row * kColumnCount + column];
+    const auto &t = files_[(row * kColumnCount) + column];
     return QString::fromStdString(t.filename);
 }
 
