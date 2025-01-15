@@ -10,11 +10,19 @@
 
 #include "log/log.h"
 #include "gui/files_view.h"
+#include <qheaderview.h>
 
 namespace leaf
 {
 files_view::files_view(QWidget *parent) : QTableView(parent)
 {
+    setFocusPolicy(Qt::NoFocus);
+    setShowGrid(false);
+    verticalHeader()->setVisible(false);
+    horizontalHeader()->setVisible(false);
+    horizontalHeader()->setDefaultAlignment(Qt::AlignHCenter);
+    horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
     rename_action_ = new QAction("重命名", this);
     new_directory_action_ = new QAction("新建文件夹", this);
     connect(rename_action_, &QAction::triggered, this, &files_view::on_new_file_clicked);

@@ -49,7 +49,15 @@ int files_model::rowCount(const QModelIndex & /*parent*/) const
     return static_cast<int>(row);
 }
 
-int files_model::columnCount(const QModelIndex & /*parent*/) const { return kColumnCount; }
+int files_model::columnCount(const QModelIndex & /*parent*/) const
+{
+    if (files_.size() < kColumnCount)
+    {
+        return static_cast<int>(files_.size());
+    }
+
+    return kColumnCount;
+}
 
 QVariant files_model::headerData(int section, Qt::Orientation orientation, int role) const
 {
