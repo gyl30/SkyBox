@@ -19,6 +19,7 @@ add_executable(gclient
     table_model.cpp
     table_delegate.cpp
     files_widget.cpp
+    files_delegate.cpp
     ${CLI_GUI_SOURCE_FILE})
 
 target_link_libraries(gclient ${LINK_LIBS} Qt${QT_VERSION_MAJOR}::Widgets)
