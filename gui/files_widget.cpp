@@ -9,7 +9,6 @@
 
 #include "log/log.h"
 #include "gui/files_widget.h"
-#include "gui/files_delegate.h"
 
 namespace leaf
 {
@@ -18,17 +17,16 @@ files_widget::files_widget(QWidget *parent) : QWidget(parent)
     list_widget_ = new QListWidget(this);
     list_widget_->setWordWrap(true);
     list_widget_->setViewMode(QListView::IconMode);
-    list_widget_->setGridSize(QSize(100, 100));
-
+    list_widget_->setIconSize(QSize(100, 100));
+    list_widget_->setGridSize(QSize(200, 200));
     list_widget_->setUniformItemSizes(true);
     list_widget_->setViewMode(QListView::IconMode);
     list_widget_->setResizeMode(QListView::Adjust);
     list_widget_->setFlow(QListView::LeftToRight);
-    list_widget_->setMovement(QListView::Static);
+    list_widget_->setMovement(QListView::Snap);
     list_widget_->setLayoutMode(QListView::Batched);
+    list_widget_->setSpacing(0);
 
-    auto *delegate = new files_delegate();
-    list_widget_->setItemDelegate(delegate);
     rename_action_ = new QAction("重命名", this);
     new_directory_action_ = new QAction("新建文件夹", this);
     connect(rename_action_, &QAction::triggered, this, &files_widget::on_new_file_clicked);
@@ -36,6 +34,7 @@ files_widget::files_widget(QWidget *parent) : QWidget(parent)
 
     auto *layout = new QHBoxLayout(this);
     layout->addWidget(list_widget_);
+    layout->setContentsMargins(0, 0, 0, 0);
     setLayout(layout);
 }
 
