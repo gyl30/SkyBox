@@ -73,6 +73,7 @@ void file_transfer_client::on_read_upload_message(const std::shared_ptr<std::vec
     if (ec)
     {
         LOG_ERROR("{} upload read error {}", id_, ec.message());
+        on_error(ec);
         return;
     }
     if (upload_)
@@ -86,6 +87,7 @@ void file_transfer_client::on_read_download_message(const std::shared_ptr<std::v
     if (ec)
     {
         LOG_ERROR("{} download read error {}", id_, ec.message());
+        on_error(ec);
         return;
     }
     if (download_)
@@ -111,6 +113,14 @@ void file_transfer_client::add_download_file(const std::string &filename)
     auto file = std::make_shared<leaf::file_context>();
     file->file_path = filename;
     download_->add_file(file);
+}
+
+void file_transfer_client::on_error(const boost::system::error_code &ec)
+{
+    (void)ec;
+    leaf::notify_event e;
+    e.method = "logout";
+    notify_progress_cb_(e);
 }
 void file_transfer_client::start_timer()
 {

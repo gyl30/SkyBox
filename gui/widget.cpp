@@ -73,7 +73,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     upload_btn_ = new QPushButton(this);
     upload_btn_->setText("上传文件");
     setting_btn_ = new QPushButton(this);
-    setting_btn_->setText("设置");
+    setting_btn_->setText("登录");
     files_btn_ = new QPushButton(this);
     files_btn_->setText("文件列表");
 
@@ -101,17 +101,22 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     connect(files_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(files_list_index_); });
     connect(style_btn_, &QPushButton::clicked, [this]() { on_style_btn_clicked(); });
     // clang-format on
+    stacked_widget_->setCurrentIndex(files_list_index_);
+    auto *btn_layout = new QHBoxLayout();
+    btn_layout->addWidget(upload_btn_);
+    btn_layout->addWidget(setting_btn_);
+    btn_layout->addWidget(style_btn_);
+    btn_layout->setSpacing(0);
+
+    auto *widget_layout = new QHBoxLayout();
+    widget_layout->addWidget(files_btn_);
+    widget_layout->addWidget(progress_btn_);
+    widget_layout->addWidget(finish_btn_);
+    widget_layout->setSpacing(0);
 
     auto *main_layout = new QVBoxLayout();
-    auto *top_layout = new QHBoxLayout();
-    top_layout->addWidget(files_btn_);
-    top_layout->addWidget(progress_btn_);
-    top_layout->addWidget(finish_btn_);
-    top_layout->addWidget(upload_btn_);
-    top_layout->addWidget(setting_btn_);
-    top_layout->addWidget(style_btn_);
-    top_layout->setSpacing(0);
-    main_layout->addLayout(top_layout);
+    main_layout->addLayout(btn_layout);
+    main_layout->addLayout(widget_layout);
     main_layout->addWidget(stacked_widget_);
 
     setLayout(main_layout);
@@ -206,7 +211,21 @@ void Widget::on_files(const leaf::files_response &files)
     }
 }
 
-void Widget::on_notify_event_slot(leaf::notify_event e) { on_files(std::any_cast<leaf::files_response>(e.data)); }
+void Widget::on_notify_event_slot(leaf::notify_event e)
+{
+    if (e.method == "files")
+    {
+        on_files(std::any_cast<leaf::files_response>(e.data));
+    }
+    if (e.method == "login")
+    {
+        setting_btn_->hide();
+    }
+    if (e.method == "logout")
+    {
+        setting_btn_->show();
+    }
+}
 
 void Widget::upload_progress(const leaf::upload_event &e)
 {
