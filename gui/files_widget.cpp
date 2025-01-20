@@ -46,6 +46,10 @@ files_widget::~files_widget()
 
 void files_widget::add_or_update_file(const leaf::gfile &file)
 {
+    if (file.parent == file.filename && file.type == "dir")
+    {
+        return;
+    }
     if (current_path_.empty())
     {
         current_path_ = file.parent;
