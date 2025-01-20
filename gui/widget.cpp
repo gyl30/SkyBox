@@ -137,7 +137,7 @@ void Widget::setting_btn_clicked()
     connect(&login_dialog, &leaf::login_dialog::login_data, this, &Widget::on_login_slot);
     login_dialog.exec();
 }
-void Widget::on_login_slot(QString user, QString passwd)
+void Widget::on_login_slot(const QString &user, const QString &passwd)
 {
     LOG_INFO("login {} {}", user.toStdString(), passwd.toStdString());
     file_client_->login(user.toStdString(), passwd.toStdString());
@@ -152,7 +152,7 @@ void Widget::on_style_btn_clicked()
     qApp->setStyle(QStyleFactory::create(style_list_.at(style_index_)));
     style_index_++;
 }
-void Widget::on_progress_slot(leaf::task e)
+void Widget::on_progress_slot(const leaf::task &e)
 {
     LOG_INFO("{} progress {} {} {} {}", e.op, e.id, e.filename, e.process_size, e.file_size);
     if (e.process_size == e.file_size && e.file_size != 0)
@@ -211,7 +211,7 @@ void Widget::on_files(const leaf::files_response &files)
     }
 }
 
-void Widget::on_notify_event_slot(leaf::notify_event e)
+void Widget::on_notify_event_slot(const leaf::notify_event &e)
 {
     if (e.method == "files")
     {

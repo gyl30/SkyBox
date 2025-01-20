@@ -24,14 +24,14 @@ class Widget : public QWidget
     void on_new_file_clicked();
 
    Q_SIGNALS:
-    void progress_slot(leaf::task e);
-    void notify_event_slot(leaf::notify_event e);
+    void progress_slot(const leaf::task& e);
+    void notify_event_slot(const leaf::notify_event& e);
 
    private Q_SLOTS:
-    void on_progress_slot(leaf::task e);
-    void on_login_slot(QString user, QString passwd);
+    void on_progress_slot(const leaf::task& e);
+    void on_login_slot(const QString& user, const QString& passwd);
     void on_style_btn_clicked();
-    void on_notify_event_slot(leaf::notify_event e);
+    void on_notify_event_slot(const leaf::notify_event& e);
 
    private:
     void notify_progress(const leaf::notify_event& e);
