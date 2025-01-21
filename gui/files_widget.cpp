@@ -16,12 +16,11 @@ files_widget::files_widget(QWidget *parent) : QWidget(parent)
 {
     list_widget_ = new QListWidget(this);
     list_widget_->setWordWrap(true);
-    list_widget_->setViewMode(QListView::IconMode);
+    list_widget_->setDragDropMode(QAbstractItemView::InternalMove);
     list_widget_->setIconSize(QSize(100, 100));
     list_widget_->setGridSize(QSize(200, 200));
     list_widget_->setUniformItemSizes(true);
     list_widget_->setViewMode(QListView::IconMode);
-    list_widget_->setResizeMode(QListView::Adjust);
     list_widget_->setFlow(QListView::LeftToRight);
     list_widget_->setMovement(QListView::Snap);
     list_widget_->setLayoutMode(QListView::Batched);
