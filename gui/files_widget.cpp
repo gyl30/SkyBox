@@ -6,6 +6,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QApplication>
+#include <filesystem>
 
 #include "log/log.h"
 #include "gui/files_widget.h"
@@ -75,7 +76,9 @@ void files_widget::add_or_update_file(const leaf::gfile &file)
     {
         icon = QApplication::style()->standardIcon(QStyle::SP_FileIcon);
     }
-    list_widget_->addItem(new QListWidgetItem(icon, QString::fromStdString(file.filename)));
+
+    std::filesystem::path p(file.filename);
+    list_widget_->addItem(new QListWidgetItem(icon, QString::fromStdString(p.filename().string())));
 }
 
 void files_widget::contextMenuEvent(QContextMenuEvent *event)
