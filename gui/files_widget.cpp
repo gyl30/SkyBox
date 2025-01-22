@@ -26,6 +26,7 @@ files_widget::files_widget(QWidget *parent) : QWidget(parent)
     list_widget_->setMovement(QListView::Snap);
     list_widget_->setLayoutMode(QListView::Batched);
     list_widget_->setSpacing(0);
+    list_widget_->setEditTriggers(QAbstractItemView::DoubleClicked);
 
     rename_action_ = new QAction("重命名", this);
     new_directory_action_ = new QAction("新建文件夹", this);
@@ -78,7 +79,9 @@ void files_widget::add_or_update_file(const leaf::gfile &file)
     }
 
     std::filesystem::path p(file.filename);
-    list_widget_->addItem(new QListWidgetItem(icon, QString::fromStdString(p.filename().string())));
+    auto *item = new QListWidgetItem(icon, QString::fromStdString(p.filename().string()));
+    item->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+    list_widget_->addItem(item);
 }
 
 void files_widget::contextMenuEvent(QContextMenuEvent *event)
