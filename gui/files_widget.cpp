@@ -94,6 +94,11 @@ void files_widget::contextMenuEvent(QContextMenuEvent *event)
 
 void files_widget::on_new_file_clicked() { LOG_INFO("new file clicked"); }
 
-void files_widget::on_new_directory_clicked() { LOG_INFO("new directory clicked"); }
+void files_widget::on_new_directory_clicked()
+{
+    auto icon = QApplication::style()->standardIcon(QStyle::SP_DirIcon);
+    list_widget_->addItem(new QListWidgetItem(icon, QString("新建文件夹")));
+    LOG_INFO("new directory clicked");
+}
 
 }    // namespace leaf
