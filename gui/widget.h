@@ -10,6 +10,7 @@
 #include "gui/table_view.h"
 #include "gui/table_model.h"
 #include "gui/files_widget.h"
+#include "file/event.h"
 #include "file/file_transfer_client.h"
 
 class Widget : public QWidget
