@@ -71,6 +71,19 @@ struct login_response
     std::string token;
 };
 
+struct create_dir_request
+{
+    std::string token;
+    std::string parent;
+    std::string dir;
+};
+
+struct create_dir_response
+{
+    std::string token;
+    std::string parent;
+};
+
 struct keepalive
 {
     uint64_t id = 0;                  // 消息 id
