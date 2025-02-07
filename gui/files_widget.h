@@ -32,13 +32,13 @@ class files_widget : public QWidget
     void notify_event_signal(const leaf::notify_event &e);
 
    public:
-    void on_new_file_clicked();
+    void on_rename_clicked();
     void on_new_directory_clicked();
 
    private:
     QListWidget *list_widget_;
     std::string current_path_;
-    QAction *new_file_action_;
+    QAction *rename_action_;
     QAction *new_directory_action_;
     std::map<std::string, std::vector<gfile>> gfiles_;
 };

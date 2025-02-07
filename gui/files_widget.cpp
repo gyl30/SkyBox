@@ -28,9 +28,9 @@ files_widget::files_widget(QWidget *parent) : QWidget(parent)
     list_widget_->setSpacing(0);
     list_widget_->setEditTriggers(QAbstractItemView::DoubleClicked);
 
-    new_file_action_ = new QAction("新建文件", this);
+    rename_action_ = new QAction("新建文件", this);
     new_directory_action_ = new QAction("新建文件夹", this);
-    connect(new_file_action_, &QAction::triggered, this, &files_widget::on_new_file_clicked);
+    connect(rename_action_, &QAction::triggered, this, &files_widget::on_rename_clicked);
     connect(new_directory_action_, &QAction::triggered, this, &files_widget::on_new_directory_clicked);
 
     auto *layout = new QHBoxLayout(this);
@@ -41,7 +41,7 @@ files_widget::files_widget(QWidget *parent) : QWidget(parent)
 
 files_widget::~files_widget()
 {
-    delete new_file_action_;
+    delete rename_action_;
     delete new_directory_action_;
 }
 
@@ -80,36 +80,25 @@ void files_widget::add_or_update_file(const leaf::gfile &file)
 
     std::filesystem::path p(file.filename);
     auto *item = new QListWidgetItem(icon, QString::fromStdString(p.filename().string()));
-    // item->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+    item->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
     list_widget_->addItem(item);
 }
 
 void files_widget::contextMenuEvent(QContextMenuEvent *event)
 {
     QMenu menu(this);
-    menu.addAction(new_file_action_);
+    menu.addAction(rename_action_);
     menu.addAction(new_directory_action_);
     menu.exec(event->globalPos());
 }
 
-void files_widget::on_new_file_clicked()
-{
-    auto icon = QApplication::style()->standardIcon(QStyle::SP_FileIcon);
-    auto *item = new QListWidgetItem(icon, QString("新建文件"));
-    // item->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
-    list_widget_->addItem(item);
-    LOG_INFO("new file clicked");
-    leaf::notify_event e;
-    e.method = "new_file";
-    emit notify_event_signal(e);
-}
+void files_widget::on_rename_clicked() {}
 
 void files_widget::on_new_directory_clicked()
 {
     auto icon = QApplication::style()->standardIcon(QStyle::SP_DirIcon);
-
     auto *item = new QListWidgetItem(icon, QString("新建文件夹"));
-    // item->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+    item->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
     list_widget_->addItem(item);
     LOG_INFO("new directory clicked");
     leaf::notify_event e;
