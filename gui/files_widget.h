@@ -34,6 +34,7 @@ class files_widget : public QWidget
    public:
     void on_rename_clicked();
     void on_new_directory_clicked();
+    void on_item_changed(QListWidgetItem *item);
 
    private:
     QListWidget *list_widget_;

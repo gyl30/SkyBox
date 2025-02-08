@@ -32,6 +32,7 @@ files_widget::files_widget(QWidget *parent) : QWidget(parent)
     new_directory_action_ = new QAction("新建文件夹", this);
     connect(rename_action_, &QAction::triggered, this, &files_widget::on_rename_clicked);
     connect(new_directory_action_, &QAction::triggered, this, &files_widget::on_new_directory_clicked);
+    connect(list_widget_, &QListWidget::itemChanged, this, &files_widget::on_item_changed);
 
     auto *layout = new QHBoxLayout(this);
     layout->addWidget(list_widget_);
@@ -92,6 +93,15 @@ void files_widget::contextMenuEvent(QContextMenuEvent *event)
     menu.exec(event->globalPos());
 }
 
+void files_widget::on_item_changed(QListWidgetItem *item)
+{
+    std::string filename = item->text().toStdString();
+    LOG_INFO("item changed {}", filename);
+    leaf::notify_event e;
+    e.method = "rename";
+    e.data = filename;
+    emit notify_event_signal(e);
+}
 void files_widget::on_rename_clicked() {}
 
 void files_widget::on_new_directory_clicked()
