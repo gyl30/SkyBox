@@ -35,9 +35,11 @@ class files_widget : public QWidget
     void on_rename_clicked();
     void on_new_directory_clicked();
     void on_item_changed(QListWidgetItem *item);
+    void on_item_double_clicked(QListWidgetItem *item);
 
    private:
     QListWidget *list_widget_;
+    std::string old_filename_;
     std::string current_path_;
     QAction *rename_action_;
     QAction *new_directory_action_;
