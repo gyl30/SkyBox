@@ -1,5 +1,5 @@
-#ifndef LEAF_FILE_FILE_SESSION
-#define LEAF_FILE_FILE_SESSION
+#ifndef LEAF_FILE_FILE_SESSION_H
+#define LEAF_FILE_FILE_SESSION_H
 
 #include "net/websocket_session.h"
 
