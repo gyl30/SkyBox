@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <mutex>
 #include "util/singleton.h"
 #include "file/file_session.h"
 
@@ -21,6 +22,7 @@ class file_session_manager
     std::shared_ptr<file_session> get_session(const std::string &id);
 
    private:
+    std::mutex mutex_;
     std::map<std::string, std::shared_ptr<file_session>> sessions_;
 };
 
