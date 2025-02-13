@@ -2,6 +2,7 @@
 
 #include "log/log.h"
 #include "file/file_http_handle.h"
+#include "file/cotrol_file_handle.h"
 #include "file/upload_file_handle.h"
 #include "file/download_file_handle.h"
 
@@ -19,6 +20,11 @@ leaf::websocket_handle::ptr websocket_handle(const std::string &id, const std::s
     {
         return std::make_shared<download_file_handle>(id);
     }
+    if (boost::ends_with(target, "cotrol"))
+    {
+        return std::make_shared<cotrol_file_handle>(id);
+    }
+
     return nullptr;
 }
 
