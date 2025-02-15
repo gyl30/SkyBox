@@ -20,6 +20,7 @@ class file_session_manager
    public:
     void add_session(const std::string &id, const std::shared_ptr<file_session> &session);
     std::shared_ptr<file_session> get_session(const std::string &id);
+    std::string create_token();
 
    private:
     std::mutex mutex_;

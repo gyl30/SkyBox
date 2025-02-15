@@ -1,3 +1,4 @@
+#include "crypt/passwd.h"
 #include "file/file_session_manager.h"
 
 namespace leaf
@@ -16,6 +17,14 @@ std::shared_ptr<file_session> file_session_manager::get_session(const std::strin
         return nullptr;
     }
     return sessions_[id];
+}
+
+std::string file_session_manager::create_token()
+{
+    std::string id = leaf::passwd_hash("token", leaf::passwd_key());
+    auto session = std::make_shared<file_session>();
+    add_session(id, session);
+    return id;
 }
 
 }    // namespace leaf
