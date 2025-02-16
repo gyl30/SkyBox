@@ -28,9 +28,15 @@ struct download_event
     std::string filename;
 };
 
+struct cotrol_event
+{
+    std::string token;
+};
+
 using download_progress_callback = std::function<void(const download_event&)>;
 using upload_progress_callback = std::function<void(const upload_event&)>;
 using notify_progress_callback = std::function<void(const notify_event&)>;
+using cotrol_progress_callback = std::function<void(const cotrol_event&)>;
 
 }    // namespace leaf
 

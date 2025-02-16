@@ -13,7 +13,7 @@ namespace leaf
 class upload_session : public std::enable_shared_from_this<upload_session>
 {
    public:
-    explicit upload_session(std::string id, leaf::upload_progress_callback cb);
+    upload_session(std::string id, leaf::upload_progress_callback cb);
     ~upload_session();
 
    public:
