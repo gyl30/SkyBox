@@ -10,7 +10,7 @@ REFLECT_STRUCT(leaf::upload_file_request, (file_size)(hash)(filename));
 REFLECT_STRUCT(leaf::block_data_finish, (file_id)(hash)(filename));
 REFLECT_STRUCT(leaf::upload_file_exist, (hash)(filename));
 REFLECT_STRUCT(leaf::download_file_response, (hash)(filename)(file_size)(file_id));
-REFLECT_STRUCT(leaf::login_request, (username)(password));
+REFLECT_STRUCT(leaf::login_request, (username)(password)(token));
 REFLECT_STRUCT(leaf::login_response, (username)(token));
 REFLECT_STRUCT(leaf::files_response::file_node, (parent)(name)(type)(children));
 REFLECT_STRUCT(leaf::files_response, (files)(token));

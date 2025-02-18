@@ -63,6 +63,7 @@ struct login_request
 {
     std::string username;
     std::string password;
+    std::string token;
 };
 
 struct login_response
