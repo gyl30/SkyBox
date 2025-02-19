@@ -1,5 +1,7 @@
 #include <filesystem>
 #include "log/log.h"
+#include "crypt/random.h"
+#include "net/http_client.h"
 #include "file/file_transfer_client.h"
 
 namespace leaf
@@ -12,14 +14,27 @@ file_transfer_client::file_transfer_client(const std::string &ip,
                                            leaf::upload_progress_callback upload_progress_cb,
                                            leaf::download_progress_callback download_progress_cb,
                                            leaf::notify_progress_callback notify_progress_cb)
-    : ed_(boost::asio::ip::address::from_string(ip), port),
+    : id_(leaf::random_string(8)),
+      ed_(boost::asio::ip::address::from_string(ip), port),
       upload_progress_cb_(std::move(upload_progress_cb)),
       download_progress_cb_(std::move(download_progress_cb)),
       notify_progress_cb_(std::move(notify_progress_cb)) {};
 
-void file_transfer_client::startup()
+void file_transfer_client::do_login()
 {
-    executors.startup();
+    leaf::http_client c(executors.get_executor());
+    std::string url = "http://" + ed_.address().to_string() + ":" + std::to_string(ed_.port());
+    c.post(url, "", [this](boost::beast::error_code ec, const std::string &res) { on_login(ec, res); });
+}
+
+void file_transfer_client::on_login(boost::beast::error_code ec, const std::string &res)
+{
+    if (ec)
+    {
+        LOG_ERROR("{} login failed {}", id_, ec.message());
+        return;
+    }
+    token_ = res;
     timer_ = std::make_shared<boost::asio::steady_timer>(executors.get_executor());
     upload_ = std::make_shared<leaf::upload_session>("upload", upload_progress_cb_);
     download_ = std::make_shared<leaf::download_session>("download", download_progress_cb_, notify_progress_cb_);
@@ -38,6 +53,13 @@ void file_transfer_client::startup()
 
     start_timer();
 }
+
+void file_transfer_client::startup()
+{
+    executors.startup();
+    do_login();
+}
+
 void file_transfer_client::shutdown()
 {
     boost::system::error_code ec;
@@ -98,8 +120,14 @@ void file_transfer_client::on_read_download_message(const std::shared_ptr<std::v
 
 void file_transfer_client::login(const std::string &user, const std::string &pass)
 {
-    upload_->login(user, pass);
-    download_->login(user, pass);
+    if (token_.empty())
+    {
+        LOG_ERROR("{} token is empty", id_);
+        return;
+    }
+    LOG_INFO("login {} {} token {}", user, pass, token_);
+    upload_->login(user, pass, token_);
+    download_->login(user, pass, token_);
 }
 void file_transfer_client::add_upload_file(const std::string &filename)
 {

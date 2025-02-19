@@ -18,12 +18,13 @@ void upload_session::startup() { LOG_INFO("{} startup", id_); }
 
 void upload_session::shutdown() { LOG_INFO("{} shutdown", id_); }
 
-void upload_session::login(const std::string& user, const std::string& pass)
+void upload_session::login(const std::string& user, const std::string& pass, const std::string& token)
 {
     LOG_INFO("{} login user {} pass {}", id_, user, pass);
     leaf::login_request req;
     req.username = user;
     req.password = pass;
+    req.token = token;
     write_message(req);
 }
 

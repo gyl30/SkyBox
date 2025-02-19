@@ -23,12 +23,13 @@ void download_session::shutdown() { LOG_INFO("{} shutdown", id_); }
 
 void download_session::set_message_cb(std::function<void(std::vector<uint8_t>)> cb) { cb_ = std::move(cb); }
 
-void download_session::login(const std::string& user, const std::string& pass)
+void download_session::login(const std::string& user, const std::string& pass, const std::string& token)
 {
     LOG_INFO("{} login user {} pass {}", id_, user, pass);
     leaf::login_request req;
     req.username = user;
     req.password = pass;
+    req.token = token;
     write_message(req);
 }
 

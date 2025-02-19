@@ -139,7 +139,6 @@ void Widget::setting_btn_clicked()
 }
 void Widget::on_login_slot(const QString &user, const QString &passwd)
 {
-    LOG_INFO("login {} {}", user.toStdString(), passwd.toStdString());
     file_client_->login(user.toStdString(), passwd.toStdString());
 }
 
