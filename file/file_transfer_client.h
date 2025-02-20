@@ -27,7 +27,7 @@ class file_transfer_client
 
    public:
     void do_login();
-    void on_login(boost::beast::error_code ec, const std::string & res);
+    void on_login(boost::beast::error_code ec, const std::string &res);
     void login(const std::string &user, const std::string &pass);
     void add_upload_file(const std::string &filename);
     void add_download_file(const std::string &filename);
@@ -45,6 +45,11 @@ class file_transfer_client
    private:
     std::string id_;
     std::string token_;
+    std::string user_;
+    std::string pass_;
+    std::string login_url_;
+    std::string upload_url_;
+    std::string download_url_;
     leaf::executors executors{4};
     boost::asio::ip::tcp::endpoint ed_;
     std::shared_ptr<leaf::upload_session> upload_;

@@ -18,13 +18,23 @@ file_transfer_client::file_transfer_client(const std::string &ip,
       ed_(boost::asio::ip::address::from_string(ip), port),
       upload_progress_cb_(std::move(upload_progress_cb)),
       download_progress_cb_(std::move(download_progress_cb)),
-      notify_progress_cb_(std::move(notify_progress_cb)) {};
+      notify_progress_cb_(std::move(notify_progress_cb))
+{
+    login_url_ = "http://" + ip + ":" + std::to_string(ed_.port()) + "/leaf/login";
+    download_url_ = "ws://" + ip + ":" + std::to_string(ed_.port()) + "/leaf/ws/download";
+    upload_url_ = "ws://" + ip + ":" + std::to_string(ed_.port()) + "/leaf/ws/upload";
+};
 
 void file_transfer_client::do_login()
 {
-    leaf::http_client c(executors.get_executor());
-    std::string url = "http://" + ed_.address().to_string() + ":" + std::to_string(ed_.port());
-    c.post(url, "", [this](boost::beast::error_code ec, const std::string &res) { on_login(ec, res); });
+    auto c = std::make_shared<leaf::http_client>(executors.get_executor());
+    c->post(login_url_,
+            "",
+            [this, c](boost::beast::error_code ec, const std::string &res)
+            {
+                on_login(ec, res);
+                c->shutdown();
+            });
 }
 
 void file_transfer_client::on_login(boost::beast::error_code ec, const std::string &res)
@@ -35,6 +45,10 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
         return;
     }
     token_ = res;
+    LOG_INFO("login {} {} token {}", user_, pass_, token_);
+    upload_->login(user_, pass_, token_);
+    download_->login(user_, pass_, token_);
+
     timer_ = std::make_shared<boost::asio::steady_timer>(executors.get_executor());
     upload_ = std::make_shared<leaf::upload_session>("upload", upload_progress_cb_);
     download_ = std::make_shared<leaf::download_session>("download", download_progress_cb_, notify_progress_cb_);
@@ -54,11 +68,7 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     start_timer();
 }
 
-void file_transfer_client::startup()
-{
-    executors.startup();
-    do_login();
-}
+void file_transfer_client::startup() { executors.startup(); }
 
 void file_transfer_client::shutdown()
 {
@@ -120,14 +130,9 @@ void file_transfer_client::on_read_download_message(const std::shared_ptr<std::v
 
 void file_transfer_client::login(const std::string &user, const std::string &pass)
 {
-    if (token_.empty())
-    {
-        LOG_ERROR("{} token is empty", id_);
-        return;
-    }
-    LOG_INFO("login {} {} token {}", user, pass, token_);
-    upload_->login(user, pass, token_);
-    download_->login(user, pass, token_);
+    user_ = user;
+    pass_ = pass;
+    do_login();
 }
 void file_transfer_client::add_upload_file(const std::string &filename)
 {
