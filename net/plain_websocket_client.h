@@ -49,6 +49,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     std::atomic<bool> shutdown_{false};
     std::string id_;
     std::string target_;
+    bool connected_ = false;
     message_handler message_handler_;
     boost::beast::flat_buffer buffer_;
     boost::asio::ip::tcp::endpoint ed_;

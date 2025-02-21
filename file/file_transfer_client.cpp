@@ -46,29 +46,31 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     }
     token_ = res;
     LOG_INFO("login {} {} token {}", user_, pass_, token_);
+    upload_->startup();
+    download_->startup();
+    upload_client_->startup();
+    download_client_->startup();
     upload_->login(user_, pass_, token_);
     download_->login(user_, pass_, token_);
 
+    start_timer();
+}
+
+void file_transfer_client::startup()
+{
+    executors.startup();
     timer_ = std::make_shared<boost::asio::steady_timer>(executors.get_executor());
     upload_ = std::make_shared<leaf::upload_session>("upload", upload_progress_cb_);
     download_ = std::make_shared<leaf::download_session>("download", download_progress_cb_, notify_progress_cb_);
     upload_->set_message_cb(std::bind(&file_transfer_client::on_write_upload_message, this, std::placeholders::_1));
     download_->set_message_cb(std::bind(&file_transfer_client::on_write_download_message, this, std::placeholders::_1));
-    upload_->startup();
-    download_->startup();
     // clang-format off
     upload_client_ = std::make_shared<leaf::plain_websocket_client>("upload_ws_cli", upload_uri, ed_, executors.get_executor());
     download_client_ = std::make_shared<leaf::plain_websocket_client>("download_ws_cli", download_uri, ed_, executors.get_executor());
     upload_client_->set_message_handler(std::bind(&file_transfer_client::on_read_upload_message, this, std::placeholders::_1, std::placeholders::_2));
     download_client_->set_message_handler(std::bind(&file_transfer_client::on_read_download_message, this, std::placeholders::_1, std::placeholders::_2));
     // clang-format on
-    upload_client_->startup();
-    download_client_->startup();
-
-    start_timer();
 }
-
-void file_transfer_client::startup() { executors.startup(); }
 
 void file_transfer_client::shutdown()
 {

@@ -67,6 +67,7 @@ void plain_websocket_client::on_handshake(boost::beast::error_code ec)
         shutdown();
         return;
     }
+    connected_ = true;
     do_read();
 }
 
@@ -126,6 +127,7 @@ void plain_websocket_client::shutdown()
 
 void plain_websocket_client::safe_shutdown()
 {
+    connected_ = false;
     LOG_INFO("shutdown {}", id_);
     boost::beast::error_code ec;
     ec = ws_.next_layer().socket().close(ec);
@@ -153,7 +155,10 @@ void plain_websocket_client::do_write()
     {
         return;
     }
-
+    if (!connected_)
+    {
+        return;
+    }
     writing_ = true;
     auto& msg = msg_queue_.front();
 
