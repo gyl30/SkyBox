@@ -32,7 +32,7 @@ leaf::websocket_handle::ptr websocket_handle(const std::string &id, const std::s
 void http_handle(const leaf::http_session::ptr &session, const leaf::http_session::http_request_ptr &req)
 {
     auto target = req->target();
-    if (target != "/login")
+    if (!target.ends_with("login"))
     {
         session->shutdown();
         return;
