@@ -147,6 +147,7 @@ void file_transfer_client::add_download_file(const std::string &filename)
 {
     auto file = std::make_shared<leaf::file_context>();
     file->file_path = filename;
+    file->filename = std::filesystem::path(filename).filename();
     download_->add_file(file);
 }
 
