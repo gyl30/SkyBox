@@ -89,7 +89,7 @@ void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t b
         shutdown();
         return;
     }
-
+    LOG_TRACE("{} read message size {}", id_, bytes_transferred);
     auto bytes = leaf::buffers_to_vector(buffer_.data());
 
     buffer_.consume(buffer_.size());
