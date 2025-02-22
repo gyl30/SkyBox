@@ -84,7 +84,7 @@ void download_session::download_file_request()
         return;
     }
     leaf::download_file_request req;
-    req.filename = file_->file_path;
+    req.filename = file_->filename;
     LOG_INFO("{} download_file_request {}", id_, file_->file_path);
     write_message(req);
 }
@@ -267,7 +267,10 @@ void download_session::update()
     download_file_request();
 }
 
-void download_session::on_error_response(const leaf::error_response& msg) { LOG_ERROR("{} error {}", id_, msg.error); }
+void download_session::on_error_response(const leaf::error_response& msg)
+{
+    LOG_ERROR("{} error {} {}", id_, msg.error, msg.message);
+}
 
 void download_session::on_keepalive_response(const leaf::keepalive& k)
 {

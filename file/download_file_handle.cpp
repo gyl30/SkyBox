@@ -28,14 +28,24 @@ void download_file_handle::on_message(const leaf::websocket_session::ptr& sessio
     auto msg = leaf::deserialize_message(bytes->data(), bytes->size());
     if (!msg)
     {
+        LOG_ERROR("{} on_message error {}", id_, bytes->size());
         return;
     }
+    LOG_TRACE("{} on_message size {}", id_, bytes->size());
     on_message(msg.value());
     while (!msg_queue_.empty())
     {
         session->write(msg_queue_.front());
         msg_queue_.pop();
     }
+}
+
+void download_file_handle::error_message(uint32_t code, const std::string& msg)
+{
+    leaf::error_response response;
+    response.error = code;
+    response.message = msg;
+    commit_message(response);
 }
 
 void download_file_handle::commit_message(const leaf::codec_message& msg)
@@ -140,7 +150,7 @@ void download_file_handle::on_login(const leaf::login_request& msg)
 void download_file_handle::on_download_file_request(const leaf::download_file_request& msg)
 {
     std::string download_file_path = leaf::make_file_path(token_, msg.filename);
-    LOG_INFO("{} on_download_file_request file {} save to {}", id_, msg.filename, download_file_path);
+    LOG_INFO("{} on_download_file_request file {} to {}", id_, msg.filename, download_file_path);
     boost::system::error_code exists_ec;
     bool exist = std::filesystem::exists(download_file_path, exists_ec);
     if (exists_ec)
@@ -150,6 +160,7 @@ void download_file_handle::on_download_file_request(const leaf::download_file_re
     }
     if (!exist)
     {
+        error_message(boost::system::errc::no_such_file_or_directory, "file not exist");
         LOG_ERROR("{} download_file_request file {} not exist", id_, download_file_path);
         return;
     }

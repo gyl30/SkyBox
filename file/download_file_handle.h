@@ -34,6 +34,7 @@ class download_file_handle : public websocket_handle
     void block_data_finish1(uint64_t file_id, const std::string& filename, const std::string& hash);
     void on_error_response(const leaf::error_response& msg);
     void commit_message(const leaf::codec_message& msg);
+    void error_message(uint32_t code, const std::string& msg);
     void on_message(const leaf::codec_message& msg);
     void on_login(const leaf::login_request& msg);
     void on_files_request(const leaf::files_request& msg);
