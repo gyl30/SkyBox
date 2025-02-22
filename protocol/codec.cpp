@@ -1,5 +1,6 @@
 #include <cassert>
 #include <type_traits>
+#include "log/log.h"
 #include "protocol/codec.h"
 #include "net/reflect.hpp"
 #include "net/net_buffer.h"
@@ -388,6 +389,7 @@ std::vector<uint8_t> serialize_error_response(const error_response &msg)
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::error));
     w.write_uint32(msg.error);
+    w.write_bytes(msg.message.data(), msg.message.size());
     std::vector<uint8_t> bytes;
     w.copy_to(&bytes);
     return bytes;
@@ -400,6 +402,7 @@ static std::optional<leaf::error_response> deserialize_error_response(leaf::read
     }
     leaf::error_response resp;
     r.read_uint32(&resp.error);
+    r.read_string(&resp.message, r.size());
     return resp;
 }
 std::vector<uint8_t> serialize_keepalive(const leaf::keepalive &k)
@@ -613,7 +616,6 @@ std::optional<codec_message> deserialize_message(const uint8_t *data, uint64_t l
 
     uint16_t type = 0;
     r.read_uint16(&type);
-
     auto it = funcs.find(static_cast<leaf::message_type>(type));
     if (it == funcs.end())
     {
