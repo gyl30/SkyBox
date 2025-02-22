@@ -9,23 +9,23 @@ namespace leaf
 enum class message_type : uint16_t
 {
     error = 0x00,
-    upload_file_request = 0x01,
-    upload_file_response = 0x02,
-    delete_file_request = 0x03,
-    delete_file_response = 0x04,
-    file_block_request = 0x05,
-    file_block_response = 0x06,
-    block_data_request = 0x07,
-    block_data_response = 0x08,
-    block_data_finish = 0x09,
-    upload_file_exist = 0x10,
-    download_file_request = 0x11,
-    download_file_response = 0x12,
-    keepalive = 0x13,
-    login_request = 0x14,
-    login_response = 0x15,
-    files_request = 0x16,
-    files_response = 0x17
+    upload_file_request = 01,
+    upload_file_response = 2,
+    delete_file_request = 3,
+    delete_file_response = 4,
+    file_block_request = 5,
+    file_block_response = 6,
+    block_data_request = 7,
+    block_data_response = 8,
+    block_data_finish = 9,
+    upload_file_exist = 10,
+    download_file_request = 11,
+    download_file_response = 12,
+    keepalive = 13,
+    login_request = 14,
+    login_response = 15,
+    files_request = 16,
+    files_response = 17
 };
 
 struct files_request
