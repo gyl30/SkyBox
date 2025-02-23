@@ -69,6 +69,7 @@ void plain_websocket_client::on_handshake(boost::beast::error_code ec)
     }
     connected_ = true;
     do_read();
+    do_write();
 }
 
 void plain_websocket_client::do_read()
