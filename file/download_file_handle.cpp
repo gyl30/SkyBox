@@ -132,6 +132,7 @@ void download_file_handle::on_files_request(const leaf::files_request& msg)
     file.parent = dir;
     // 递归遍历目录中的所有文件
     lookup_dir(dir, file);
+    response.token = msg.token;
     response.files.push_back(file);
     LOG_INFO("{} on_files_request dir {}", id_, dir);
     commit_message(response);

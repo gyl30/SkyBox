@@ -308,7 +308,7 @@ void download_session::files_request()
 }
 void download_session::on_files_response(const leaf::files_response& res)
 {
-    LOG_INFO("{} on_files_response {} files {}", id_, res.files.size(), res.token);
+    LOG_INFO("{} on_files_response {} file size {}", id_, res.token, res.files.size());
     leaf::notify_event e;
     e.method = "files";
     e.data = res;
