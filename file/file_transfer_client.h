@@ -13,11 +13,7 @@ namespace leaf
 class file_transfer_client
 {
    public:
-    file_transfer_client(const std::string &ip,
-                         uint16_t port,
-                         leaf::upload_progress_callback upload_progress_cb,
-                         leaf::download_progress_callback download_progress_cb,
-                         leaf::notify_progress_callback notify_progress_cb);
+    file_transfer_client(const std::string &ip, uint16_t port, leaf::progress_handler handler);
 
     ~file_transfer_client() = default;
 
@@ -40,7 +36,7 @@ class file_transfer_client
     void on_read_upload_message(const std::shared_ptr<std::vector<uint8_t>> &msg, const boost::system::error_code &ec);
     void on_read_download_message(const std::shared_ptr<std::vector<uint8_t>> &msg,
                                   const boost::system::error_code &ec);
-    void on_error(const boost::system::error_code &ec);
+    void on_error(const boost::system::error_code &ec) const;
 
    private:
     std::string id_;
@@ -52,12 +48,10 @@ class file_transfer_client
     std::string download_url_;
     leaf::executors executors{4};
     boost::asio::ip::tcp::endpoint ed_;
+    leaf::progress_handler handler_;
     std::shared_ptr<leaf::upload_session> upload_;
     std::shared_ptr<leaf::download_session> download_;
     std::shared_ptr<boost::asio::steady_timer> timer_;
-    leaf::upload_progress_callback upload_progress_cb_;
-    leaf::download_progress_callback download_progress_cb_;
-    leaf::notify_progress_callback notify_progress_cb_;
     std::shared_ptr<leaf::plain_websocket_client> upload_client_;
     std::shared_ptr<leaf::plain_websocket_client> download_client_;
 };

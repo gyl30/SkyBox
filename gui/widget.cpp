@@ -121,10 +121,12 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 
     setLayout(main_layout);
     resize(800, 500);
-    auto upload_cb = [this](const leaf::upload_event &e) { upload_progress(e); };
-    auto download_cb = [this](const leaf::download_event &e) { download_progress(e); };
-    auto notify_cb = [this](const leaf::notify_event &e) { notify_progress(e); };
-    file_client_ = new leaf::file_transfer_client("127.0.0.1", 8080, upload_cb, download_cb, notify_cb);
+    leaf::progress_handler handler;
+    handler.upload = [this](const leaf::upload_event &e) { upload_progress(e); };
+    handler.download = [this](const leaf::download_event &e) { download_progress(e); };
+    handler.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
+
+    file_client_ = new leaf::file_transfer_client("127.0.0.1", 8080, handler);
     file_client_->startup();
     connect(this, &Widget::progress_slot, this, &Widget::on_progress_slot);
     connect(this, &Widget::notify_event_slot, this, &Widget::on_notify_event_slot);

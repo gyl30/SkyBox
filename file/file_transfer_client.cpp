@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <utility>
 #include "log/log.h"
 #include "crypt/random.h"
 #include "net/http_client.h"
@@ -9,16 +10,8 @@ namespace leaf
 static const char *upload_uri = "/leaf/ws/upload";
 static const char *download_uri = "/leaf/ws/download";
 
-file_transfer_client::file_transfer_client(const std::string &ip,
-                                           uint16_t port,
-                                           leaf::upload_progress_callback upload_progress_cb,
-                                           leaf::download_progress_callback download_progress_cb,
-                                           leaf::notify_progress_callback notify_progress_cb)
-    : id_(leaf::random_string(8)),
-      ed_(boost::asio::ip::address::from_string(ip), port),
-      upload_progress_cb_(std::move(upload_progress_cb)),
-      download_progress_cb_(std::move(download_progress_cb)),
-      notify_progress_cb_(std::move(notify_progress_cb))
+file_transfer_client::file_transfer_client(const std::string &ip, uint16_t port, leaf::progress_handler handler)
+    : id_(leaf::random_string(8)), ed_(boost::asio::ip::address::from_string(ip), port), handler_(std::move(handler))
 {
     login_url_ = "http://" + ip + ":" + std::to_string(ed_.port()) + "/leaf/login";
     download_url_ = "ws://" + ip + ":" + std::to_string(ed_.port()) + "/leaf/ws/download";
@@ -60,8 +53,8 @@ void file_transfer_client::startup()
 {
     executors.startup();
     timer_ = std::make_shared<boost::asio::steady_timer>(executors.get_executor());
-    upload_ = std::make_shared<leaf::upload_session>("upload", upload_progress_cb_);
-    download_ = std::make_shared<leaf::download_session>("download", download_progress_cb_, notify_progress_cb_);
+    upload_ = std::make_shared<leaf::upload_session>("upload", handler_.upload);
+    download_ = std::make_shared<leaf::download_session>("download", handler_.download, handler_.notify);
     upload_->set_message_cb(std::bind(&file_transfer_client::on_write_upload_message, this, std::placeholders::_1));
     download_->set_message_cb(std::bind(&file_transfer_client::on_write_download_message, this, std::placeholders::_1));
     // clang-format off
@@ -151,12 +144,12 @@ void file_transfer_client::add_download_file(const std::string &filename)
     download_->add_file(file);
 }
 
-void file_transfer_client::on_error(const boost::system::error_code &ec)
+void file_transfer_client::on_error(const boost::system::error_code &ec) const
 {
     (void)ec;
     leaf::notify_event e;
     e.method = "logout";
-    notify_progress_cb_(e);
+    handler_.notify(e);
 }
 void file_transfer_client::start_timer()
 {

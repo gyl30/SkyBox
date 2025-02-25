@@ -68,6 +68,10 @@ void plain_websocket_client::on_handshake(boost::beast::error_code ec)
         return;
     }
     connected_ = true;
+    if (handshake_handler_)
+    {
+        handshake_handler_(ec);
+    }
     do_read();
     do_write();
 }

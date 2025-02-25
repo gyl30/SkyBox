@@ -25,8 +25,11 @@ int main(int argc, char *argv[])
     leaf::init_log("cli.log");
 
     leaf::set_log_level("trace");
-
-    leaf::file_transfer_client fm("127.0.0.1", 8080, upload_progress, download_progress, notify_progress);
+    leaf::progress_handler handler;
+    handler.download = download_progress;
+    handler.upload = upload_progress;
+    handler.notify = notify_progress;
+    leaf::file_transfer_client fm("127.0.0.1", 8080, handler);
     fm.startup();
 
     fm.login("admin", "123456");

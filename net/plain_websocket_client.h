@@ -12,6 +12,7 @@ namespace leaf
 class plain_websocket_client : public std::enable_shared_from_this<plain_websocket_client>
 {
    public:
+    using handshake_handler = std::function<void(const boost::system::error_code&)>;
     using message_handler =
         std::function<void(const std::shared_ptr<std::vector<uint8_t>>&, const boost::system::error_code&)>;
 
@@ -27,6 +28,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     void shutdown();
     void write(std::vector<uint8_t> msg);
     void set_message_handler(const message_handler& handler) { message_handler_ = handler; }
+    void set_handshake_handler(const handshake_handler& handler) { handshake_handler_ = handler; }
 
    private:
     void on_connect(boost::beast::error_code ec);
@@ -51,6 +53,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     std::string target_;
     bool connected_ = false;
     message_handler message_handler_;
+    handshake_handler handshake_handler_;
     boost::beast::flat_buffer buffer_;
     boost::asio::ip::tcp::endpoint ed_;
     std::queue<std::vector<uint8_t>> msg_queue_;
