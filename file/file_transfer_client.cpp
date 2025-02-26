@@ -20,6 +20,10 @@ file_transfer_client::file_transfer_client(const std::string &ip, uint16_t port,
 
 void file_transfer_client::do_login()
 {
+    if (!upload_connect_ || !download_connect_)
+    {
+        return;
+    }
     auto c = std::make_shared<leaf::http_client>(executors.get_executor());
     c->post(login_url_,
             "",
@@ -37,6 +41,7 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
         LOG_ERROR("{} login failed {}", id_, ec.message());
         return;
     }
+    login_ = true;
     token_ = res;
     LOG_INFO("login {} {} token {}", user_, pass_, token_);
     upload_->startup();
@@ -123,6 +128,25 @@ void file_transfer_client::on_read_download_message(const std::shared_ptr<std::v
     }
 }
 
+void file_transfer_client::on_upload_connect(const boost::system::error_code &ec)
+{
+    if (ec)
+    {
+        return;
+    }
+    upload_connect_ = true;
+    do_login();
+}
+void file_transfer_client::on_download_connect(const boost::system::error_code &ec)
+{
+    if (ec)
+    {
+        return;
+    }
+    download_connect_ = true;
+    do_login();
+}
+
 void file_transfer_client::login(const std::string &user, const std::string &pass)
 {
     user_ = user;
@@ -165,6 +189,11 @@ void file_transfer_client::timer_callback(const boost::system::error_code &ec)
         return;
     }
 
+    if (!login_)
+    {
+        do_login();
+        return;
+    }
     upload_->update();
     download_->update();
 
