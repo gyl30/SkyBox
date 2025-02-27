@@ -24,7 +24,6 @@ plain_websocket_client::~plain_websocket_client()
 
 void plain_websocket_client::startup()
 {
-    timer_ = std::make_shared<boost::asio::steady_timer>(ws_.get_executor());
     auto self = shared_from_this();
     boost::asio::dispatch(ws_.get_executor(),
                           boost::beast::bind_front_handler(&plain_websocket_client::safe_startup, self));
@@ -39,14 +38,44 @@ void plain_websocket_client::safe_startup()
         ed_, boost::beast::bind_front_handler(&plain_websocket_client::on_connect, shared_from_this()));
 }
 
+void plain_websocket_client::reconnect()
+{
+    LOG_INFO("reconnect {}", id_);
+    auto timer = std::make_shared<boost::asio::steady_timer>(ws_.get_executor());
+    auto self = shared_from_this();
+    timer->expires_after(std::chrono::seconds(3));
+    timer->async_wait([self, this, timer](boost::system::error_code ec) { on_reconnect(ec); });
+}
+
+void plain_websocket_client::on_reconnect(boost::beast::error_code ec)
+{
+    if (ec)
+    {
+        LOG_ERROR("{} reconnect failed {}", id_, ec.message());
+        return;
+    }
+    if (ws_.is_open())
+    {
+        boost::system::error_code ec;
+        ec = ws_.next_layer().socket().close(ec);
+    }
+
+    ws_.binary(true);
+    LOG_INFO("on_reconnect {}", id_);
+    boost::beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(3));
+    boost::beast::get_lowest_layer(ws_).async_connect(
+        ed_, boost::beast::bind_front_handler(&plain_websocket_client::on_connect, shared_from_this()));
+}
+
 void plain_websocket_client::on_connect(boost::beast::error_code ec)
 {
     if (ec)
     {
         LOG_ERROR("{} connect to {} failed {}", id_, leaf::get_endpoint_address(ed_), ec.message());
-        shutdown();
+        on_error(ec);
         return;
     }
+    LOG_INFO("{} connect to {}", id_, leaf::get_endpoint_address(ed_));
     auto self = shared_from_this();
     std::string host = leaf::get_endpoint_address(ed_);
     boost::beast::get_lowest_layer(ws_).expires_never();
@@ -64,7 +93,7 @@ void plain_websocket_client::on_handshake(boost::beast::error_code ec)
     if (ec)
     {
         LOG_ERROR("{} handshake failed {}", id_, ec.message());
-        shutdown();
+        on_error(ec);
         return;
     }
     connected_ = true;
@@ -114,18 +143,20 @@ void plain_websocket_client::on_message(const std::shared_ptr<std::vector<uint8_
 }
 void plain_websocket_client::on_error(boost::beast::error_code ec)
 {
-    if (ec == boost::asio::error::operation_aborted)
+    if (shutdown_)
     {
         return;
     }
-    if (ec)
+    if (ec != boost::asio::error::operation_aborted)
     {
         message_handler_(nullptr, ec);
     }
+    reconnect();
 }
 
 void plain_websocket_client::shutdown()
 {
+    shutdown_ = true;
     boost::asio::dispatch(ws_.get_executor(),
                           boost::beast::bind_front_handler(&plain_websocket_client::safe_shutdown, shared_from_this()));
 }

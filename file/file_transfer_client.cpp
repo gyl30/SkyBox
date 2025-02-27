@@ -44,10 +44,6 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     login_ = true;
     token_ = res;
     LOG_INFO("login {} {} token {}", user_, pass_, token_);
-    upload_->startup();
-    download_->startup();
-    upload_client_->startup();
-    download_client_->startup();
     upload_->login(user_, pass_, token_);
     download_->login(user_, pass_, token_);
 
@@ -68,6 +64,10 @@ void file_transfer_client::startup()
     upload_client_->set_message_handler(std::bind(&file_transfer_client::on_read_upload_message, this, std::placeholders::_1, std::placeholders::_2));
     download_client_->set_message_handler(std::bind(&file_transfer_client::on_read_download_message, this, std::placeholders::_1, std::placeholders::_2));
     // clang-format on
+    upload_->startup();
+    download_->startup();
+    upload_client_->startup();
+    download_client_->startup();
 }
 
 void file_transfer_client::shutdown()

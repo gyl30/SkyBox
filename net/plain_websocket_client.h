@@ -35,6 +35,8 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     void on_handshake(boost::beast::error_code ec);
     void safe_startup();
     void safe_shutdown();
+    void reconnect();
+    void on_reconnect(boost::beast::error_code ec);
     // read
     void safe_read();
     void do_read();
@@ -57,7 +59,6 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     boost::beast::flat_buffer buffer_;
     boost::asio::ip::tcp::endpoint ed_;
     std::queue<std::vector<uint8_t>> msg_queue_;
-    std::shared_ptr<boost::asio::steady_timer> timer_;
     boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;
 };
 }    // namespace leaf
