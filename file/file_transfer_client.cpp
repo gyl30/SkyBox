@@ -9,6 +9,7 @@ namespace leaf
 {
 static const char *upload_uri = "/leaf/ws/upload";
 static const char *download_uri = "/leaf/ws/download";
+static const char *cotrol_uri = "/leaf/ws/cotrol";
 
 file_transfer_client::file_transfer_client(const std::string &ip, uint16_t port, leaf::progress_handler handler)
     : id_(leaf::random_string(8)), ed_(boost::asio::ip::address::from_string(ip), port), handler_(std::move(handler))
@@ -54,18 +55,24 @@ void file_transfer_client::startup()
 {
     executors.startup();
     timer_ = std::make_shared<boost::asio::steady_timer>(executors.get_executor());
+    cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", handler_.cotrol);
     upload_ = std::make_shared<leaf::upload_session>("upload", handler_.upload);
     download_ = std::make_shared<leaf::download_session>("download", handler_.download, handler_.notify);
+    cotrol_->set_message_cb(std::bind(&file_transfer_client::on_write_cotrol_message, this, std::placeholders::_1));
     upload_->set_message_cb(std::bind(&file_transfer_client::on_write_upload_message, this, std::placeholders::_1));
     download_->set_message_cb(std::bind(&file_transfer_client::on_write_download_message, this, std::placeholders::_1));
     // clang-format off
+    cotrol_client_ = std::make_shared<leaf::plain_websocket_client>("cotrol_ws_cli", cotrol_uri, ed_, executors.get_executor());
     upload_client_ = std::make_shared<leaf::plain_websocket_client>("upload_ws_cli", upload_uri, ed_, executors.get_executor());
     download_client_ = std::make_shared<leaf::plain_websocket_client>("download_ws_cli", download_uri, ed_, executors.get_executor());
+    cotrol_client_->set_message_handler(std::bind(&file_transfer_client::on_read_cotrol_message, this, std::placeholders::_1, std::placeholders::_2));
     upload_client_->set_message_handler(std::bind(&file_transfer_client::on_read_upload_message, this, std::placeholders::_1, std::placeholders::_2));
     download_client_->set_message_handler(std::bind(&file_transfer_client::on_read_download_message, this, std::placeholders::_1, std::placeholders::_2));
     // clang-format on
+    cotrol_->startup();
     upload_->startup();
     download_->startup();
+    cotrol_client_->startup();
     upload_client_->startup();
     download_client_->startup();
 }
@@ -84,6 +91,13 @@ void file_transfer_client::shutdown()
     download_client_.reset();
     executors.shutdown();
 }
+void file_transfer_client::on_write_cotrol_message(std::vector<uint8_t> msg)
+{
+    if (cotrol_client_)
+    {
+        cotrol_client_->write(std::move(msg));
+    }
+}
 void file_transfer_client::on_write_upload_message(std::vector<uint8_t> msg)
 {
     if (upload_client_)
@@ -99,6 +113,20 @@ void file_transfer_client::on_write_download_message(std::vector<uint8_t> msg)
     }
 }
 
+void file_transfer_client::on_read_cotrol_message(const std::shared_ptr<std::vector<uint8_t>> &msg,
+                                                  const boost::system::error_code &ec)
+{
+    if (ec)
+    {
+        LOG_ERROR("{} cotrol read error {}", id_, ec.message());
+        on_error(ec);
+        return;
+    }
+    if (cotrol_)
+    {
+        cotrol_->on_message(*msg);
+    }
+}
 void file_transfer_client::on_read_upload_message(const std::shared_ptr<std::vector<uint8_t>> &msg,
                                                   const boost::system::error_code &ec)
 {

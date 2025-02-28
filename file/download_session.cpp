@@ -33,7 +33,7 @@ void download_session::login(const std::string& user, const std::string& pass, c
     write_message(req);
 }
 
-void download_session::on_message(std::vector<uint8_t> msg)
+void download_session::on_message(const std::vector<uint8_t>& msg)
 {
     auto c = leaf::deserialize_message(msg.data(), msg.size());
     if (c)

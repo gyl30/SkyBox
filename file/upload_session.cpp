@@ -30,7 +30,7 @@ void upload_session::login(const std::string& user, const std::string& pass, con
 
 void upload_session::set_message_cb(std::function<void(std::vector<uint8_t>)> cb) { cb_ = std::move(cb); }
 
-void upload_session::on_message(std::vector<uint8_t> msg)
+void upload_session::on_message(const std::vector<uint8_t>& msg)
 {
     auto c = leaf::deserialize_message(msg.data(), msg.size());
     if (c)
