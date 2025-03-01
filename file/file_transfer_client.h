@@ -40,6 +40,7 @@ class file_transfer_client
     void on_read_download_message(const std::shared_ptr<std::vector<uint8_t>> &msg,
                                   const boost::system::error_code &ec);
     void on_error(const boost::system::error_code &ec) const;
+    void on_cotrol_connect(const boost::system::error_code &ec);
     void on_upload_connect(const boost::system::error_code &ec);
     void on_download_connect(const boost::system::error_code &ec);
 
@@ -52,6 +53,7 @@ class file_transfer_client
     std::string upload_url_;
     std::string download_url_;
     bool login_ = false;
+    bool cotrol_connect_ = false;
     bool upload_connect_ = false;
     bool download_connect_ = false;
     leaf::executors executors{4};

@@ -21,7 +21,7 @@ file_transfer_client::file_transfer_client(const std::string &ip, uint16_t port,
 
 void file_transfer_client::do_login()
 {
-    if (!upload_connect_ || !download_connect_)
+    if (!cotrol_connect_ || !upload_connect_ || !download_connect_)
     {
         return;
     }
@@ -68,6 +68,9 @@ void file_transfer_client::startup()
     cotrol_client_->set_message_handler(std::bind(&file_transfer_client::on_read_cotrol_message, this, std::placeholders::_1, std::placeholders::_2));
     upload_client_->set_message_handler(std::bind(&file_transfer_client::on_read_upload_message, this, std::placeholders::_1, std::placeholders::_2));
     download_client_->set_message_handler(std::bind(&file_transfer_client::on_read_download_message, this, std::placeholders::_1, std::placeholders::_2));
+    cotrol_client_->set_handshake_handler(std::bind(&file_transfer_client::on_cotrol_connect, this, std::placeholders::_1));
+    upload_client_->set_handshake_handler(std::bind(&file_transfer_client::on_upload_connect, this, std::placeholders::_1));
+    download_client_->set_handshake_handler(std::bind(&file_transfer_client::on_download_connect, this, std::placeholders::_1));
     // clang-format on
     cotrol_->startup();
     upload_->startup();
@@ -156,12 +159,23 @@ void file_transfer_client::on_read_download_message(const std::shared_ptr<std::v
     }
 }
 
+void file_transfer_client::on_cotrol_connect(const boost::system::error_code &ec)
+{
+    if (ec)
+    {
+        return;
+    }
+    cotrol_connect_ = true;
+    LOG_INFO("{} cotrol connect {}", id_, ec.message());
+    do_login();
+}
 void file_transfer_client::on_upload_connect(const boost::system::error_code &ec)
 {
     if (ec)
     {
         return;
     }
+    LOG_INFO("{} upload connect {}", id_, ec.message());
     upload_connect_ = true;
     do_login();
 }
@@ -171,6 +185,7 @@ void file_transfer_client::on_download_connect(const boost::system::error_code &
     {
         return;
     }
+    LOG_INFO("{} download connect {}", id_, ec.message());
     download_connect_ = true;
     do_login();
 }
