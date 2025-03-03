@@ -12,7 +12,16 @@ static void upload_progress(const leaf::upload_event &e)
 {
     LOG_INFO("<-- upload progress {} {} {} {}", e.id, e.filename, e.upload_size, e.file_size);
 }
-static void notify_progress(const leaf::notify_event &e) {}
+static void notify_progress(const leaf::notify_event &e)
+{
+    if (e.method == "file_not_exist")
+    {
+        auto filename = std::any_cast<std::string>(e.data);
+        LOG_INFO("download_file_not_exist {}", filename);
+        return;
+    }
+    LOG_INFO("||| notify {}", e.method);
+}
 
 int main(int argc, char *argv[])
 {
