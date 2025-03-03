@@ -269,6 +269,14 @@ void download_session::update()
 
 void download_session::on_error_response(const leaf::error_response& msg)
 {
+    if (msg.error == boost::system::errc::no_such_file_or_directory)
+    {
+        leaf::notify_event e;
+        e.method = "file_not_exist";
+        e.data = file_->filename;
+        file_.reset();
+        notify_cb_(e);
+    }
     LOG_ERROR("{} error {} {}", id_, msg.error, msg.message);
 }
 
