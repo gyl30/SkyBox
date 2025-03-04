@@ -15,6 +15,7 @@ REFLECT_STRUCT(leaf::login_request, (username)(password)(token));
 REFLECT_STRUCT(leaf::login_response, (username)(token));
 REFLECT_STRUCT(leaf::files_response::file_node, (parent)(name)(type)(children));
 REFLECT_STRUCT(leaf::files_response, (files)(token));
+REFLECT_STRUCT(leaf::login_token, (block_size)(token));
 }    // namespace reflect
 
 template <typename E>
@@ -557,6 +558,38 @@ static std::optional<leaf::files_response> deserialize_files_response(leaf::read
     }
     return f;
 }
+std::vector<uint8_t> serialize_login_token(const leaf::login_token &f)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(leaf::to_underlying(message_type::login_token));
+    std::string str = reflect::serialize_struct(f);
+    w.write_bytes(str.data(), str.size());
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
+}
+
+static std::optional<leaf::login_token> deserialize_login_token(leaf::read_buffer &r)
+{
+    if (r.size() > 2048)
+    {
+        return {};
+    }
+
+    std::string str;
+    r.read_string(&str, r.size());
+    if (str.empty())
+    {
+        return {};
+    }
+    leaf::login_token f;
+    if (!reflect::deserialize_struct(f, str))
+    {
+        return {};
+    }
+    return f;
+}
 
 static std::map<leaf::message_type, std::function<std::optional<codec_message>(leaf::read_buffer &)>> funcs = {
     {leaf::message_type::upload_file_request, deserialize_upload_file_request},
@@ -577,6 +610,7 @@ static std::map<leaf::message_type, std::function<std::optional<codec_message>(l
     {leaf::message_type::login_response, deserialize_login_response},
     {leaf::message_type::files_request, deserialize_files_request},
     {leaf::message_type::files_response, deserialize_files_response},
+    {leaf::message_type::login_token, deserialize_login_token},
 };
 
 std::vector<uint8_t> serialize_message(const codec_message &msg)
@@ -603,6 +637,7 @@ std::vector<uint8_t> serialize_message(const codec_message &msg)
         XXX(login_response)
         XXX(files_request)
         XXX(files_response)
+        XXX(login_token)
 #undef XXX
     };
     return std::visit(message_serializer{}, msg);

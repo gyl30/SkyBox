@@ -9,7 +9,7 @@ namespace leaf
 enum class message_type : uint16_t
 {
     error = 0x00,
-    upload_file_request = 01,
+    upload_file_request = 1,
     upload_file_response = 2,
     delete_file_request = 3,
     delete_file_response = 4,
@@ -25,7 +25,14 @@ enum class message_type : uint16_t
     login_request = 14,
     login_response = 15,
     files_request = 16,
-    files_response = 17
+    files_response = 17,
+    login_token = 18,
+};
+
+struct login_token
+{
+    std::string token;
+    uint32_t block_size = 0;
 };
 
 struct files_request
