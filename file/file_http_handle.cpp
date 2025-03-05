@@ -1,6 +1,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "log/log.h"
+#include "protocol/message.h"
 #include "file/file_http_handle.h"
 #include "file/cotrol_file_handle.h"
 #include "file/upload_file_handle.h"
@@ -37,11 +38,15 @@ void http_handle(const leaf::http_session::ptr &session, const leaf::http_sessio
         session->shutdown();
         return;
     }
-    std::string token = leaf::fsm::instance().create_token();
+
+    leaf::login_token l;
+    l.block_size = 128 * 1024;
+    l.token = leaf::fsm::instance().create_token();
+
     boost::beast::http::response<boost::beast::http::string_body> response;
     response.result(boost::beast::http::status::ok);
     response.set(boost::beast::http::field::content_type, "text/plain");
-    response.body() = token;
+    response.body() = leaf::serialize_message(l);
     response.prepare_payload();
     response.keep_alive(false);
     auto msg = std::make_shared<boost::beast::http::message_generator>(std::move(response));

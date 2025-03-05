@@ -32,6 +32,7 @@ class http_client : public std::enable_shared_from_this<http_client>
    private:
     http_cb cb_;
     std::string id_;
+    bool shutdown_ = false;
     boost::beast::tcp_stream stream_;
     boost::beast::flat_buffer buffer_;
     boost::asio::io_context &io_context_;

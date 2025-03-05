@@ -3,6 +3,7 @@
 #include "log/log.h"
 #include "crypt/random.h"
 #include "net/http_client.h"
+#include "protocol/message.h"
 #include "file/file_transfer_client.h"
 
 namespace leaf
@@ -42,9 +43,15 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
         LOG_ERROR("{} login failed {}", id_, ec.message());
         return;
     }
+    auto l = leaf::deserialize_message(res);
+    if (!l)
+    {
+        LOG_ERROR("{} login deserialize failed {}", id_, res);
+        return;
+    }
     login_ = true;
-    token_ = res;
-    LOG_INFO("login {} {} token {}", user_, pass_, token_);
+    token_ = l->token;
+    LOG_INFO("login {} {} token {} block {}", user_, pass_, token_, l->block_size);
     upload_->login(user_, pass_, token_);
     download_->login(user_, pass_, token_);
 
@@ -166,7 +173,7 @@ void file_transfer_client::on_cotrol_connect(const boost::system::error_code &ec
         return;
     }
     cotrol_connect_ = true;
-    LOG_INFO("{} cotrol connect {}", id_, ec.message());
+    LOG_INFO("{} cotrol connect success", id_);
     do_login();
 }
 void file_transfer_client::on_upload_connect(const boost::system::error_code &ec)
@@ -175,7 +182,7 @@ void file_transfer_client::on_upload_connect(const boost::system::error_code &ec
     {
         return;
     }
-    LOG_INFO("{} upload connect {}", id_, ec.message());
+    LOG_INFO("{} upload connect success", id_);
     upload_connect_ = true;
     do_login();
 }
@@ -185,7 +192,7 @@ void file_transfer_client::on_download_connect(const boost::system::error_code &
     {
         return;
     }
-    LOG_INFO("{} download connect {}", id_, ec.message());
+    LOG_INFO("{} download connect success", id_);
     download_connect_ = true;
     do_login();
 }
