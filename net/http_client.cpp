@@ -118,6 +118,11 @@ void http_client::shutdown()
 
 void http_client::safe_shutdown()
 {
+    if(shutdown_)
+    {
+        return;
+    }
+    shutdown_ = true;
     LOG_DEBUG("{} safe shutdown", id_);
     boost::system::error_code ec;
     ec = stream_.socket().close(ec);
