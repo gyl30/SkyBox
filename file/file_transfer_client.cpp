@@ -52,8 +52,8 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     login_ = true;
     token_ = l->token;
     LOG_INFO("login {} {} token {} block {}", user_, pass_, token_, l->block_size);
-    upload_->login(user_, pass_, token_);
-    download_->login(user_, pass_, token_);
+    upload_->login(user_, pass_, l.value());
+    download_->login(user_, pass_, l.value());
 
     start_timer();
 }

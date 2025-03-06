@@ -18,13 +18,14 @@ void upload_session::startup() { LOG_INFO("{} startup", id_); }
 
 void upload_session::shutdown() { LOG_INFO("{} shutdown", id_); }
 
-void upload_session::login(const std::string& user, const std::string& pass, const std::string& token)
+void upload_session::login(const std::string& user, const std::string& pass, const leaf::login_token& l)
 {
     LOG_INFO("{} login user {} pass {}", id_, user, pass);
     leaf::login_request req;
     req.username = user;
     req.password = pass;
-    req.token = token;
+    req.token = l.token;
+    token_ = l;
     write_message(req);
 }
 
@@ -286,7 +287,7 @@ void upload_session::on_error_response(const leaf::error_response& msg) { LOG_ER
 void upload_session::on_login_response(const leaf::login_response& l)
 {
     login_ = true;
-    token_ = l.token;
+    assert(token_.token == l.token);
     LOG_INFO("{} login_response user {} token {}", id_, l.username, l.token);
 }
 void upload_session::on_keepalive_response(const leaf::keepalive& k)
@@ -328,7 +329,7 @@ void upload_session::keepalive()
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
     k.server_timestamp = 0;
-    k.token = token_;
+    k.token = token_.token;
     write_message(k);
 }
 

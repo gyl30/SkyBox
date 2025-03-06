@@ -23,13 +23,14 @@ void download_session::shutdown() { LOG_INFO("{} shutdown", id_); }
 
 void download_session::set_message_cb(std::function<void(std::vector<uint8_t>)> cb) { cb_ = std::move(cb); }
 
-void download_session::login(const std::string& user, const std::string& pass, const std::string& token)
+void download_session::login(const std::string& user, const std::string& pass, const leaf::login_token& l)
 {
     LOG_INFO("{} login user {} pass {}", id_, user, pass);
     leaf::login_request req;
     req.username = user;
     req.password = pass;
-    req.token = token;
+    req.token = l.token;
+    token_ = l;
     write_message(req);
 }
 
@@ -70,8 +71,8 @@ void download_session::on_message(const leaf::codec_message& msg)
 
 void download_session::on_login_response(const leaf::login_response& l)
 {
+    assert(token_.token == l.token);
     login_ = true;
-    token_ = l.token;
     LOG_INFO("{} login_response user {} token {}", id_, l.username, l.token);
     leaf::notify_event e;
     e.method = "login";
@@ -305,13 +306,13 @@ void download_session::keepalive()
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
     k.server_timestamp = 0;
-    k.token = token_;
+    k.token = token_.token;
     write_message(k);
 }
 void download_session::files_request()
 {
     leaf::files_request r;
-    r.token = token_;
+    r.token = token_.token;
     write_message(r);
 }
 void download_session::on_files_response(const leaf::files_response& res)

@@ -257,7 +257,7 @@ void upload_file_handle::on_login(const leaf::login_request& msg)
 {
     leaf::login_response response;
     response.username = msg.username;
-    response.token = leaf::passwd_hash(msg.password, std::vector<uint8_t>(user_.begin(), user_.end()));
+    response.token = msg.token;
     user_ = response.username;
     token_ = response.token;
     LOG_INFO("{} on_login username {} token {}", id_, msg.username, response.token);

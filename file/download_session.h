@@ -26,7 +26,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     void on_message(const std::vector<uint8_t> &msg);
     void on_message(const leaf::codec_message &msg);
     void set_message_cb(std::function<void(std::vector<uint8_t>)> cb);
-    void login(const std::string &user, const std::string &pass, const std::string &token);
+    void login(const std::string &user, const std::string &pass, const leaf::login_token &l);
 
    private:
     void download_file_request();
@@ -50,7 +50,7 @@ class download_session : public std::enable_shared_from_this<download_session>
    private:
     bool login_ = false;
     std::string id_;
-    std::string token_;
+    leaf::login_token token_;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;
