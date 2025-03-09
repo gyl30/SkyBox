@@ -73,6 +73,7 @@ std::optional<leaf::files_request> deserialize_files_request(leaf::read_buffer &
 std::vector<uint8_t> serialize_files_response(const leaf::files_response &f);
 std::optional<leaf::files_response> deserialize_files_response(leaf::read_buffer &r);
 }    // namespace message
+uint16_t to_underlying(leaf::message_type type);
 std::vector<uint8_t> serialize_message(const codec_message &msg);
 std::string serialize_message(const leaf::login_token &l);
 std::optional<codec_message> deserialize_message(const uint8_t *data, uint64_t len);

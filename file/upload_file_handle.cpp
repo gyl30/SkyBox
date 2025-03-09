@@ -36,50 +36,48 @@ void upload_file_handle::on_message(const leaf::websocket_session::ptr& session,
     {
         return;
     }
-    on_message(msg.value());
+    leaf::read_buffer r(bytes->data(), bytes->size());
+    uint64_t padding = 0;
+    r.read_uint64(&padding);
+
+    uint16_t type = 0;
+    r.read_uint16(&type);
+    if (type == leaf::to_underlying(leaf::message_type::upload_file_request))
+    {
+        auto msg = leaf::message::deserialize_upload_file_request(r);
+        on_upload_file_request(msg);
+    }
+    if (type == leaf::to_underlying(leaf::message_type::block_data_response))
+    {
+        auto msg = leaf::message::deserialize_block_data_response(r);
+        on_block_data_response(msg);
+    }
+    if (type == leaf::to_underlying(leaf::message_type::delete_file_request))
+    {
+        auto msg = leaf::message::deserialize_delete_file_request(r);
+        on_delete_file_request(msg);
+    }
+    if (type == leaf::to_underlying(leaf::message_type::keepalive))
+    {
+        auto msg = leaf::message::deserialize_keepalive_response(r);
+        on_keepalive(msg);
+    }
+    if (type == leaf::to_underlying(leaf::message_type::error))
+    {
+        auto msg = leaf::message::deserialize_error_response(r);
+        on_error_response(msg);
+    }
+    if (type == leaf::to_underlying(leaf::message_type::login_request))
+    {
+        auto msg = leaf::message::deserialize_login_request(r);
+        on_login(msg);
+    }
+
     while (!msg_queue_.empty())
     {
         session->write(msg_queue_.front());
         msg_queue_.pop();
     }
-}
-
-void upload_file_handle::on_message(const leaf::codec_message& msg)
-{
-    std::visit(
-        [this](auto&& arg)
-        {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, leaf::file_block_response>)
-            {
-                on_file_block_response(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::block_data_response>)
-            {
-                on_block_data_response(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::upload_file_request>)
-            {
-                on_upload_file_request(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::delete_file_request>)
-            {
-                on_delete_file_request(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::keepalive>)
-            {
-                on_keepalive(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::error_response>)
-            {
-                on_error_response(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::login_request>)
-            {
-                on_login(arg);
-            }
-        },
-        msg);
 }
 
 void upload_file_handle::commit_message(const leaf::codec_message& msg)
@@ -98,8 +96,13 @@ void upload_file_handle::shutdown()
     LOG_INFO("shutdown {}", id_);
 }
 
-void upload_file_handle::on_upload_file_request(const leaf::upload_file_request& msg)
+void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload_file_request>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
     std::error_code ec;
     std::string upload_file_path = leaf::make_file_path(token_, msg.filename);
     LOG_INFO("{} on_upload_file_request file size {} name {} path {} hash {}",
@@ -158,31 +161,14 @@ void upload_file_handle::upload_file_exist(const leaf::upload_file_request& msg)
     commit_message(exist);
 }
 
-void upload_file_handle::on_delete_file_request(const leaf::delete_file_request& msg)
+void upload_file_handle::on_delete_file_request(const std::optional<leaf::delete_file_request>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    auto msg = message.value();
     LOG_INFO("{} on_delete_file_request name {}", id_, msg.filename);
-}
-
-void upload_file_handle::on_file_block_response(const leaf::file_block_response& msg)
-{
-    assert(file_ && !writer_ && file_->block_size == msg.block_size && file_->id == msg.file_id);
-    LOG_INFO("{} on_file_block_response id {} size {} count {}", id_, msg.file_id, msg.block_size, msg.block_count);
-    if (file_->id != msg.file_id)
-    {
-        LOG_ERROR("{} on_file_block_response file id {} != {}", id_, msg.file_id, file_->id);
-        return;
-    }
-    hash_ = std::make_shared<leaf::blake2b>();
-    writer_ = std::make_shared<leaf::file_writer>(file_->file_path);
-    auto ec = writer_->open();
-    if (ec)
-    {
-        LOG_ERROR("{} open file {} error {}", id_, file_->file_path, ec.message());
-        return;
-    }
-    file_->block_size = msg.block_size;
-    file_->block_count = msg.block_count;
-    block_data_request();
 }
 
 void upload_file_handle::block_data_request()
@@ -217,8 +203,14 @@ void upload_file_handle::block_data_finish1(uint64_t file_id, const std::string&
     finish.hash = hash;
     commit_message(finish);
 }
-void upload_file_handle::on_block_data_response(const leaf::block_data_response& msg)
+void upload_file_handle::on_block_data_response(const std::optional<leaf::block_data_response>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    auto msg = message.value();
+
     assert(file_ && writer_);
     LOG_DEBUG("{} on_block_data_response block id {} file id {} data size {}",
               id_,
@@ -253,8 +245,14 @@ void upload_file_handle::on_block_data_response(const leaf::block_data_response&
     file_->active_block_count = msg.block_id + 1;
     block_data_request();
 }
-void upload_file_handle::on_login(const leaf::login_request& msg)
+void upload_file_handle::on_login(const std::optional<leaf::login_request>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    auto msg = message.value();
+
     leaf::login_response response;
     response.username = msg.username;
     response.token = msg.token;
@@ -264,9 +262,14 @@ void upload_file_handle::on_login(const leaf::login_request& msg)
     commit_message(response);
 }
 
-void upload_file_handle::on_keepalive(const leaf::keepalive& msg)
+void upload_file_handle::on_keepalive(const std::optional<leaf::keepalive>& message)
 {
-    leaf::keepalive k = msg;
+    if (!message.has_value())
+    {
+        return;
+    }
+
+    leaf::keepalive k = message.value();
     k.server_timestamp =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
@@ -278,8 +281,14 @@ void upload_file_handle::on_keepalive(const leaf::keepalive& msg)
               k.token);
     commit_message(k);
 }
-void upload_file_handle::on_error_response(const leaf::error_response& msg)
+void upload_file_handle::on_error_response(const std::optional<leaf::error_response>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    auto msg = message.value();
+
     LOG_INFO("{} on_error_response {}", id_, msg.error);
 }
 
