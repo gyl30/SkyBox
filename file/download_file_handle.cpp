@@ -28,34 +28,25 @@ void download_file_handle::on_message(const leaf::websocket_session::ptr& sessio
     auto msg = leaf::deserialize_message(bytes->data(), bytes->size());
     if (!msg)
     {
-        LOG_ERROR("{} on_message error {}", id_, bytes->size());
         return;
     }
-    LOG_TRACE("{} on_message size {}", id_, bytes->size());
-    on_message(msg.value());
+    leaf::read_buffer r(bytes->data(), bytes->size());
+    uint64_t padding = 0;
+    r.read_uint64(&padding);
+
+    uint16_t type = 0;
+    r.read_uint16(&type);
+    if (type == leaf::to_underlying(leaf::message_type::download_file_request))
+    {
+        auto msg = leaf::message::deserialize_download_file_request(r);
+        on_download_file_request(msg);
+    }
+
     while (!msg_queue_.empty())
     {
         session->write(msg_queue_.front());
         msg_queue_.pop();
     }
-}
-
-void download_file_handle::error_message(uint32_t code, const std::string& msg)
-{
-    leaf::error_response response;
-    response.error = code;
-    response.message = msg;
-    commit_message(response);
-}
-
-void download_file_handle::commit_message(const leaf::codec_message& msg)
-{
-    std::vector<uint8_t> bytes = leaf::serialize_message(msg);
-    if (bytes.empty())
-    {
-        return;
-    }
-    msg_queue_.push(bytes);
 }
 
 void download_file_handle::on_message(const leaf::codec_message& msg)
@@ -122,8 +113,14 @@ static void lookup_dir(const std::string& dir, leaf::files_response::file_node& 
         }
     }
 }
-void download_file_handle::on_files_request(const leaf::files_request& msg)
+void download_file_handle::on_files_request(const std::optional<leaf::files_request>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     std::string dir = leaf::make_file_path(msg.token);
     leaf::files_response response;
     leaf::files_response::file_node file;
@@ -137,8 +134,14 @@ void download_file_handle::on_files_request(const leaf::files_request& msg)
     LOG_INFO("{} on_files_request dir {}", id_, dir);
     commit_message(response);
 }
-void download_file_handle::on_login(const leaf::login_request& msg)
+void download_file_handle::on_login(const std::optional<leaf::login_request>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     leaf::login_response response;
     response.username = msg.username;
     response.token = msg.token;
@@ -148,8 +151,14 @@ void download_file_handle::on_login(const leaf::login_request& msg)
     commit_message(response);
 }
 
-void download_file_handle::on_download_file_request(const leaf::download_file_request& msg)
+void download_file_handle::on_download_file_request(const std::optional<leaf::download_file_request>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     std::string download_file_path = leaf::make_file_path(token_, msg.filename);
     LOG_INFO("{} on_download_file_request file {} to {}", id_, msg.filename, download_file_path);
     boost::system::error_code exists_ec;
@@ -221,8 +230,14 @@ void download_file_handle::on_download_file_request(const leaf::download_file_re
     commit_message(response);
 }
 
-void download_file_handle::on_file_block_request(const leaf::file_block_request& msg)
+void download_file_handle::on_file_block_request(const std::optional<leaf::file_block_request>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     assert(file_ && msg.file_id == file_->id);
     leaf::file_block_response response;
     response.block_count = file_->block_count;
@@ -233,8 +248,14 @@ void download_file_handle::on_file_block_request(const leaf::file_block_request&
         "{} on_file_block_request id {} count {} size {}", id_, msg.file_id, response.block_count, response.block_size);
 }
 
-void download_file_handle::on_block_data_request(const leaf::block_data_request& msg)
+void download_file_handle::on_block_data_request(const std::optional<leaf::block_data_request>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     assert(file_ && reader_ && hash_);
     LOG_DEBUG("{} block_data_request id {} block {}", id_, msg.file_id, msg.block_id);
     if (msg.block_id != file_->active_block_count)
@@ -297,8 +318,14 @@ void download_file_handle::block_data_finish1(uint64_t file_id, const std::strin
     commit_message(finish);
 }
 
-void download_file_handle::on_keepalive(const leaf::keepalive& msg)
+void download_file_handle::on_keepalive(const std::optional<leaf::keepalive>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     leaf::keepalive k = msg;
     k.server_timestamp =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
@@ -311,9 +338,32 @@ void download_file_handle::on_keepalive(const leaf::keepalive& msg)
               k.token);
     commit_message(k);
 }
-void download_file_handle::on_error_response(const leaf::error_response& msg)
+void download_file_handle::on_error_response(const std::optional<leaf::error_response>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     LOG_INFO("{} on_error_response {}", id_, msg.error);
+}
+void download_file_handle::error_message(uint32_t code, const std::string& msg)
+{
+    leaf::error_response response;
+    response.error = code;
+    response.message = msg;
+    commit_message(response);
+}
+
+void download_file_handle::commit_message(const leaf::codec_message& msg)
+{
+    std::vector<uint8_t> bytes = leaf::serialize_message(msg);
+    if (bytes.empty())
+    {
+        return;
+    }
+    msg_queue_.push(bytes);
 }
 
 }    // namespace leaf
