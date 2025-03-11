@@ -41,6 +41,37 @@ void download_file_handle::on_message(const leaf::websocket_session::ptr& sessio
         auto msg = leaf::message::deserialize_download_file_request(r);
         on_download_file_request(msg);
     }
+    if (type == leaf::to_underlying(leaf::message_type::file_block_request))
+    {
+        auto msg = leaf::message::deserialize_file_block_request(r);
+        on_file_block_request(msg);
+    }
+    if (type == leaf::to_underlying(leaf::message_type::block_data_request))
+    {
+        auto msg = leaf::message::deserialize_block_data_request(r);
+        on_block_data_request(msg);
+    }
+    if (type == leaf::to_underlying(leaf::message_type::keepalive))
+    {
+        auto msg = leaf::message::deserialize_keepalive_response(r);
+        on_keepalive(msg);
+    }
+    if (type == leaf::to_underlying(leaf::message_type::error))
+    {
+        auto msg = leaf::message::deserialize_error_response(r);
+        on_error_response(msg);
+    }
+    if (type == leaf::to_underlying(leaf::message_type::login_request))
+    {
+        auto msg = leaf::message::deserialize_login_request(r);
+        on_login(msg);
+    }
+
+    if (type == leaf::to_underlying(leaf::message_type::files_request))
+    {
+        auto msg = leaf::message::deserialize_files_request(r);
+        on_files_request(msg);
+    }
 
     while (!msg_queue_.empty())
     {
@@ -49,43 +80,6 @@ void download_file_handle::on_message(const leaf::websocket_session::ptr& sessio
     }
 }
 
-void download_file_handle::on_message(const leaf::codec_message& msg)
-{
-    std::visit(
-        [this](auto&& arg)
-        {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, leaf::download_file_request>)
-            {
-                on_download_file_request(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::file_block_request>)
-            {
-                on_file_block_request(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::block_data_request>)
-            {
-                on_block_data_request(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::keepalive>)
-            {
-                on_keepalive(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::error_response>)
-            {
-                on_error_response(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::login_request>)
-            {
-                on_login(arg);
-            }
-            if constexpr (std::is_same_v<T, leaf::files_request>)
-            {
-                on_files_request(arg);
-            }
-        },
-        msg);
-}
 static void lookup_dir(const std::string& dir, leaf::files_response::file_node& file)
 {
     if (!std::filesystem::exists(dir))
