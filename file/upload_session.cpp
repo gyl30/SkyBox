@@ -52,7 +52,7 @@ void upload_session::on_message(const leaf::codec_message& msg)
         void operator()(const leaf::keepalive& msg) { session_->on_keepalive_response(msg); }
         void operator()(const leaf::error_response& msg) { session_->on_error_response(msg); }
         void operator()(const leaf::login_response& msg) { session_->on_login_response(msg); }
-        void operator()(const leaf::file_block_request& msg) { session_->on_file_block_request(msg); }
+        void operator()(const leaf::file_block_request& msg) {}
         void operator()(const leaf::block_data_request& msg) { session_->on_block_data_request(msg); }
         void operator()(const leaf::upload_file_request& msg) {}
         void operator()(const leaf::download_file_request& msg) {}
@@ -217,26 +217,6 @@ void upload_session::emit_event(const leaf::upload_event& e)
     {
         progress_cb_(e);
     }
-}
-
-void upload_session::on_file_block_request(const leaf::file_block_request& msg)
-{
-    if (msg.file_id != file_->id)
-    {
-        LOG_ERROR("{} file id not match {} {}", id_, msg.file_id, file_->id);
-        return;
-    }
-    uint64_t block_count = file_->file_size / file_->block_size;
-    if (file_->file_size % file_->block_size != 0)
-    {
-        block_count++;
-    }
-    leaf::file_block_response response;
-    response.block_count = block_count;
-    response.block_size = file_->block_size;
-    response.file_id = file_->id;
-    LOG_INFO("{} file_block_request id {} count {} size {}", id_, file_->id, block_count, file_->block_size);
-    write_message(response);
 }
 
 void upload_session::on_block_data_finish(const leaf::block_data_finish& msg)

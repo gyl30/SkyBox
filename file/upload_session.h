@@ -36,7 +36,6 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void on_upload_file_exist(const leaf::upload_file_exist &);
     void on_delete_file_response(const leaf::delete_file_response &);
     void on_block_data_request(const leaf::block_data_request &);
-    void on_file_block_request(const leaf::file_block_request &);
     void on_block_data_finish(const leaf::block_data_finish &);
     void keepalive();
     void padding_file_event();

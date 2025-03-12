@@ -7,6 +7,8 @@
 #include "file/hash_file.h"
 #include "file/upload_file_handle.h"
 
+constexpr auto kBlockSize = 128 * 1024;
+
 namespace leaf
 {
 
@@ -102,6 +104,7 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     {
         return;
     }
+    assert(!file_ && !writer_);
     const auto& msg = message.value();
     std::error_code ec;
     std::string upload_file_path = leaf::make_file_path(token_, msg.filename);
@@ -134,7 +137,6 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
         }
     }
     assert(file_ == nullptr);
-    constexpr auto kBlockSize = 128 * 1024;
     leaf::upload_file_response response;
     response.block_size = kBlockSize;
     response.filename = msg.filename;
@@ -145,11 +147,26 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     file_->file_path = upload_file_path;
     file_->file_size = msg.file_size;
     file_->block_size = kBlockSize;
+    file_->block_count = msg.file_size / kBlockSize;
+    if (msg.file_size % kBlockSize != 0)
+    {
+        file_->block_count++;
+    }
+    LOG_DEBUG("{} upload_file_response id {} name {} block count {}",
+              id_,
+              response.file_id,
+              file_->file_path,
+              file_->block_count);
     file_->active_block_count = 0;
-    leaf::file_block_request request;
-    request.file_id = response.file_id;
-    LOG_DEBUG("{} file_block_request id {}", id_, request.file_id);
-    commit_message(request);
+    hash_ = std::make_shared<leaf::blake2b>();
+    writer_ = std::make_shared<leaf::file_writer>(file_->file_path);
+    ec = writer_->open();
+    if (ec)
+    {
+        LOG_ERROR("{} open file {} error {}", id_, file_->file_path, ec.message());
+        return;
+    }
+    block_data_request();
 }
 
 void upload_file_handle::upload_file_exist(const leaf::upload_file_request& msg)
