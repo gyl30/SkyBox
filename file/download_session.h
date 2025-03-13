@@ -46,6 +46,7 @@ class download_session : public std::enable_shared_from_this<download_session>
    private:
     void emit_event(const leaf::download_event &);
     void update_download_file();
+    void reset();
 
    private:
     bool login_ = false;

@@ -214,9 +214,23 @@ void download_session::on_block_data_finish(const leaf::block_data_finish& msg)
     }
     hash_->final();
     LOG_INFO("{} on_block_data_finish file {} size {} hash {}", id_, file_->file_path, writer_->size(), hash_->hex());
-    file_.reset();
-    writer_.reset();
-    hash_.reset();
+    this->reset();
+}
+
+void download_session::reset()
+{
+    if (file_)
+    {
+        file_.reset();
+    }
+    if (writer_)
+    {
+        writer_.reset();
+    }
+    if (hash_)
+    {
+        hash_.reset();
+    }
 }
 void download_session::write_message(const codec_message& msg)
 {
@@ -279,6 +293,7 @@ void download_session::on_error_response(const leaf::error_response& msg)
         notify_cb_(e);
     }
     LOG_ERROR("{} error {} {}", id_, msg.error, msg.message);
+    this->reset();
 }
 
 void download_session::on_keepalive_response(const leaf::keepalive& k)
