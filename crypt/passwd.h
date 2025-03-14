@@ -8,5 +8,6 @@ namespace leaf
 {
 std::vector<uint8_t> passwd_key();
 std::string passwd_hash(const std::string& passwd, const std::vector<uint8_t>& key);
+std::string passwd_hash(const std::string& passwd, const std::string& key);
 }    // namespace leaf
 #endif
