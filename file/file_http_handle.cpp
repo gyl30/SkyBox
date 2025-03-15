@@ -1,7 +1,9 @@
 #include <boost/algorithm/string.hpp>
 
 #include "log/log.h"
+#include "crypt/passwd.h"
 #include "protocol/message.h"
+#include "file/file_session.h"
 #include "file/file_http_handle.h"
 #include "file/cotrol_file_handle.h"
 #include "file/upload_file_handle.h"
@@ -38,10 +40,33 @@ void http_handle(const leaf::http_session::ptr &session, const leaf::http_sessio
         session->shutdown();
         return;
     }
+    std::string data = req->body();
+    leaf::read_buffer r(data.data(), data.size());
+    uint64_t padding = 0;
+    r.read_uint64(&padding);
+
+    uint16_t type = 0;
+    r.read_uint16(&type);
+    if (type != leaf::to_underlying(leaf::message_type::login_request))
+    {
+        session->shutdown();
+        return;
+    }
+
+    auto login_req = leaf::message::deserialize_login_request(r);
+    if (!login_req)
+    {
+        session->shutdown();
+        return;
+    }
 
     leaf::login_token l;
     l.block_size = 128 * 1024;
-    l.token = leaf::fsm::instance().create_token();
+    std::string token = leaf::passwd_hash(login_req->username, login_req->password);
+    l.token = token;
+
+    auto s = std::make_shared<leaf::file_session>();
+    leaf::fsm::instance().add_session(token, s);
 
     boost::beast::http::response<boost::beast::http::string_body> response;
     response.result(boost::beast::http::status::ok);

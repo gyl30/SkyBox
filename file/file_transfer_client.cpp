@@ -27,8 +27,12 @@ void file_transfer_client::do_login()
         return;
     }
     auto c = std::make_shared<leaf::http_client>(executors.get_executor());
+    leaf::login_request l;
+    l.username = user_;
+    l.password = pass_;
+    auto data = leaf::message::serialize_login_request(l);
     c->post(login_url_,
-            "",
+            std::string(data.begin(), data.end()),
             [this, c](boost::beast::error_code ec, const std::string &res)
             {
                 on_login(ec, res);
