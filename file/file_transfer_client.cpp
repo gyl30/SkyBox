@@ -66,7 +66,7 @@ void file_transfer_client::startup()
 {
     executors.startup();
     timer_ = std::make_shared<boost::asio::steady_timer>(executors.get_executor());
-    cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", handler_.cotrol);
+    cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", handler_.cotrol, handler_.notify);
     upload_ = std::make_shared<leaf::upload_session>("upload", handler_.upload);
     download_ = std::make_shared<leaf::download_session>("download", handler_.download, handler_.notify);
     cotrol_->set_message_cb(std::bind(&file_transfer_client::on_write_cotrol_message, this, std::placeholders::_1));
