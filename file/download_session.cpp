@@ -64,7 +64,7 @@ void download_session::on_message(const leaf::codec_message& msg)
         void operator()(const leaf::delete_file_request& msg) {}
         void operator()(const leaf::login_request& msg) {}
         void operator()(const leaf::files_request& msg) {}
-        void operator()(const leaf::files_response& msg) { session_->on_files_response(msg); }
+        void operator()(const leaf::files_response& msg) {}
     };
     std::visit(visitor{this}, msg);
 }
@@ -323,20 +323,6 @@ void download_session::keepalive()
     k.server_timestamp = 0;
     k.token = token_.token;
     write_message(k);
-}
-void download_session::files_request()
-{
-    leaf::files_request r;
-    r.token = token_.token;
-    write_message(r);
-}
-void download_session::on_files_response(const leaf::files_response& res)
-{
-    LOG_INFO("{} on_files_response {} file size {}", id_, res.token, res.files.size());
-    leaf::notify_event e;
-    e.method = "files";
-    e.data = res;
-    notify_cb_(e);
 }
 
 }    // namespace leaf
