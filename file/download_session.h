@@ -23,25 +23,25 @@ class download_session : public std::enable_shared_from_this<download_session>
 
    public:
     void add_file(const leaf::file_context::ptr &file);
-    void on_message(const std::vector<uint8_t> &msg);
+    void on_message(const std::vector<uint8_t> &bytes);
     void on_message(const leaf::codec_message &msg);
     void set_message_cb(std::function<void(std::vector<uint8_t>)> cb);
     void login(const std::string &user, const std::string &pass, const leaf::login_token &l);
 
    private:
     void download_file_request();
-    void on_download_file_response(const leaf::download_file_response &);
-    void on_file_block_response(const leaf::file_block_response &);
+    void on_download_file_response(const std::optional<leaf::download_file_response> &);
+    void on_file_block_response(const std::optional<leaf::file_block_response> &);
     void block_data_request(uint32_t block_id);
-    void on_block_data_response(const leaf::block_data_response &);
-    void on_block_data_finish(const leaf::block_data_finish &);
-    void on_error_response(const leaf::error_response &);
+    void on_block_data_response(const std::optional<leaf::block_data_response> &);
+    void on_block_data_finish(const std::optional<leaf::block_data_finish> &);
+    void on_error_response(const std::optional<leaf::error_response> &);
+    void on_keepalive_response(const std::optional<leaf::keepalive> &);
+    void on_login_response(const std::optional<leaf::login_response> &);
+
+
     void write_message(const codec_message &msg);
     void keepalive();
-    void on_keepalive_response(const leaf::keepalive &);
-    void on_login_response(const leaf::login_response &);
-    void on_files_response(const leaf::files_response &);
-
    private:
     void emit_event(const leaf::download_event &);
     void update_download_file();

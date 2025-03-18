@@ -25,11 +25,6 @@ void download_file_handle::shutdown() { LOG_INFO("shutdown {}", id_); }
 void download_file_handle::on_message(const leaf::websocket_session::ptr& session,
                                       const std::shared_ptr<std::vector<uint8_t>>& bytes)
 {
-    auto msg = leaf::deserialize_message(bytes->data(), bytes->size());
-    if (!msg)
-    {
-        return;
-    }
     leaf::read_buffer r(bytes->data(), bytes->size());
     uint64_t padding = 0;
     r.read_uint64(&padding);
