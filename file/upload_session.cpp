@@ -31,50 +31,73 @@ void upload_session::login(const std::string& user, const std::string& pass, con
 
 void upload_session::set_message_cb(std::function<void(std::vector<uint8_t>)> cb) { cb_ = std::move(cb); }
 
-void upload_session::on_message(const std::vector<uint8_t>& msg)
+void upload_session::on_message(const std::vector<uint8_t>& bytes)
 {
-    auto c = leaf::deserialize_message(msg.data(), msg.size());
-    if (c)
+    auto msg = leaf::deserialize_message(bytes.data(), bytes.size());
+    if (!msg)
     {
-        on_message(c.value());
+        return;
+    }
+    leaf::read_buffer r(bytes.data(), bytes.size());
+    uint64_t padding = 0;
+    r.read_uint64(&padding);
+    uint16_t type = 0;
+    r.read_uint16(&type);
+    if (type == leaf::to_underlying(leaf::message_type::upload_file_response))
+    {
+        on_upload_file_response(leaf::message::deserialize_upload_file_response(r));
+    }
+    if (type == leaf::to_underlying(leaf::message_type::delete_file_response))
+    {
+        on_delete_file_response(leaf::message::deserialize_delete_file_response(r));
+    }
+    if (type == leaf::to_underlying(leaf::message_type::block_data_finish))
+    {
+        on_block_data_finish(leaf::message::deserialize_block_data_finish(r));
+    }
+    if (type == leaf::to_underlying(leaf::message_type::upload_file_exist))
+    {
+        on_upload_file_exist(leaf::message::deserialize_upload_file_exist(r));
+    }
+    if (type == leaf::to_underlying(leaf::message_type::keepalive))
+    {
+        on_keepalive_response(leaf::message::deserialize_keepalive_response(r));
+    }
+    if (type == leaf::to_underlying(leaf::message_type::error))
+    {
+        on_error_response(leaf::message::deserialize_error_response(r));
+    }
+    if (type == leaf::to_underlying(leaf::message_type::login_response))
+    {
+        on_login_response(leaf::message::deserialize_login_response(r));
+    }
+    if (type == leaf::to_underlying(leaf::message_type::block_data_request))
+    {
+        on_block_data_request(leaf::message::deserialize_block_data_request(r));
     }
 }
 
-void upload_session::on_message(const leaf::codec_message& msg)
+void upload_session::on_upload_file_response(const std::optional<leaf::upload_file_response>& message)
 {
-    struct visitor
+    if (!message.has_value())
     {
-        upload_session* session_;
-        void operator()(const leaf::upload_file_response& msg) { session_->on_upload_file_response(msg); }
-        void operator()(const leaf::delete_file_response& msg) { session_->on_delete_file_response(msg); }
-        void operator()(const leaf::block_data_finish& msg) { session_->on_block_data_finish(msg); }
-        void operator()(const leaf::upload_file_exist& msg) { session_->on_upload_file_exist(msg); }
-        void operator()(const leaf::keepalive& msg) { session_->on_keepalive_response(msg); }
-        void operator()(const leaf::error_response& msg) { session_->on_error_response(msg); }
-        void operator()(const leaf::login_response& msg) { session_->on_login_response(msg); }
-        void operator()(const leaf::file_block_request& msg) {}
-        void operator()(const leaf::block_data_request& msg) { session_->on_block_data_request(msg); }
-        void operator()(const leaf::upload_file_request& msg) {}
-        void operator()(const leaf::download_file_request& msg) {}
-        void operator()(const leaf::download_file_response& msg) {}
-        void operator()(const leaf::delete_file_request& msg) {}
-        void operator()(const leaf::login_request& msg) {}
-        void operator()(const leaf::file_block_response& msg) {}
-        void operator()(const leaf::block_data_response& msg) {}
-        void operator()(const leaf::files_request& msg) {}
-        void operator()(const leaf::files_response& msg) {}
-    };
-    std::visit(visitor{this}, msg);
-}
-void upload_session::on_upload_file_response(const leaf::upload_file_response& msg)
-{
+        return;
+    }
+    const auto& msg = message.value();
+
     assert(file_ && file_->filename == msg.filename);
     file_->id = msg.file_id;
     file_->block_size = msg.block_size;
     LOG_INFO("{} upload_file_response id {} name {}", id_, msg.file_id, msg.filename);
 }
-void upload_session::on_delete_file_response(const leaf::delete_file_response& msg)
+void upload_session::on_delete_file_response(const std::optional<leaf::delete_file_response>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     LOG_INFO("{} delete_file_response name {}", id_, msg.filename);
 }
 
@@ -174,8 +197,14 @@ void upload_session::update()
     padding_file_event();
 }
 
-void upload_session::on_block_data_request(const leaf::block_data_request& msg)
+void upload_session::on_block_data_request(const std::optional<leaf::block_data_request>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     assert(file_ && reader_ && blake2b_);
     LOG_DEBUG("{} block_data_request id {} block {}", id_, msg.file_id, msg.block_id);
     if (msg.block_id != file_->active_block_count)
@@ -219,8 +248,14 @@ void upload_session::emit_event(const leaf::upload_event& e)
     }
 }
 
-void upload_session::on_block_data_finish(const leaf::block_data_finish& msg)
+void upload_session::on_block_data_finish(const std::optional<leaf::block_data_finish>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     assert(file_ && reader_ && blake2b_);
     blake2b_->final();
     LOG_INFO("{} block_data_finish id {} file {} hash {} size {} read size {} read hash {}",
@@ -243,8 +278,14 @@ void upload_session::on_block_data_finish(const leaf::block_data_finish& msg)
         return;
     }
 }
-void upload_session::on_upload_file_exist(const leaf::upload_file_exist& exist)
+void upload_session::on_upload_file_exist(const std::optional<leaf::upload_file_exist>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     assert(file_ && reader_ && blake2b_);
     auto ec = reader_->close();
     if (ec)
@@ -257,34 +298,55 @@ void upload_session::on_upload_file_exist(const leaf::upload_file_exist& exist)
     blake2b_.reset();
 
     std::string filename = std::filesystem::path(file_->file_path).filename().string();
-    assert(filename == exist.filename);
+    assert(filename == msg.filename);
     file_ = nullptr;
-    LOG_INFO("{} upload_file_exist {} hash {}", id_, exist.filename, exist.hash);
+    LOG_INFO("{} upload_file_exist {} hash {}", id_, msg.filename, msg.hash);
 }
 
-void upload_session::on_error_response(const leaf::error_response& msg) { LOG_ERROR("{} error {}", id_, msg.error); }
-
-void upload_session::on_login_response(const leaf::login_response& l)
+void upload_session::on_error_response(const std::optional<leaf::error_response>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
+    LOG_ERROR("{} error {}", id_, msg.error);
+}
+
+void upload_session::on_login_response(const std::optional<leaf::login_response>& message)
+{
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     login_ = true;
-    assert(token_.token == l.token);
-    LOG_INFO("{} login_response user {} token {}", id_, l.username, l.token);
+    assert(token_.token == msg.token);
+    LOG_INFO("{} login_response user {} token {}", id_, msg.username, msg.token);
 }
-void upload_session::on_keepalive_response(const leaf::keepalive& k)
+void upload_session::on_keepalive_response(const std::optional<leaf::keepalive>& message)
 {
+    if (!message.has_value())
+    {
+        return;
+    }
+    const auto& msg = message.value();
+
     auto now =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
-    auto diff = now - k.client_timestamp;
+    auto diff = now - msg.client_timestamp;
 
     LOG_DEBUG("{} keepalive_response {} client {} client time {} server time {} diff {} token {}",
               id_,
-              k.id,
-              k.client_id,
-              k.client_timestamp,
-              k.server_timestamp,
+              msg.id,
+              msg.client_id,
+              msg.client_timestamp,
+              msg.server_timestamp,
               diff,
-              k.token);
+              msg.token);
 }
 
 void upload_session::padding_file_event()

@@ -23,8 +23,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
 
    public:
     void add_file(const leaf::file_context::ptr &file);
-    void on_message(const std::vector<uint8_t> &msg);
-    void on_message(const leaf::codec_message &msg);
+    void on_message(const std::vector<uint8_t> &bytes);
     void set_message_cb(std::function<void(std::vector<uint8_t>)> cb);
     void login(const std::string &user, const std::string &pass, const leaf::login_token &l);
 
@@ -32,16 +31,16 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void open_file();
     void update_process_file();
     void upload_file_request();
-    void on_upload_file_response(const leaf::upload_file_response &);
-    void on_upload_file_exist(const leaf::upload_file_exist &);
-    void on_delete_file_response(const leaf::delete_file_response &);
-    void on_block_data_request(const leaf::block_data_request &);
-    void on_block_data_finish(const leaf::block_data_finish &);
+    void on_upload_file_response(const std::optional<leaf::upload_file_response> &);
+    void on_upload_file_exist(const std::optional<leaf::upload_file_exist> &);
+    void on_delete_file_response(const std::optional<leaf::delete_file_response> &);
+    void on_block_data_request(const std::optional<leaf::block_data_request> &);
+    void on_block_data_finish(const std::optional<leaf::block_data_finish> &);
     void keepalive();
     void padding_file_event();
-    void on_login_response(const leaf::login_response &);
-    void on_keepalive_response(const leaf::keepalive &);
-    void on_error_response(const leaf::error_response &);
+    void on_login_response(const std::optional<leaf::login_response> &);
+    void on_keepalive_response(const std::optional<leaf::keepalive> &);
+    void on_error_response(const std::optional<leaf::error_response> &);
     void write_message(const codec_message &msg);
     void emit_event(const leaf::upload_event &e);
 
