@@ -136,6 +136,7 @@ void download_session::on_download_file_response(const std::optional<leaf::downl
         }
 
         LOG_WARN("{} on_download_file_response file {} exists remote {} local {}", id_, file_->file_path, msg.hash, h);
+        reset();
         return;
     }
 
