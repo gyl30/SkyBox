@@ -205,6 +205,7 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
     file_->block_count = block_count;
     file_->active_block_count = 0;
     file_->content_hash = h;
+    file_->filename = std::filesystem::path(file_->file_path).filename().string();
     file_->id = file_id();
     LOG_INFO("{} download_file_request file {} size {} hash {}",
              id_,
@@ -212,7 +213,7 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
              file_->file_size,
              file_->content_hash);
     leaf::download_file_response response;
-    response.filename = file_->file_path;
+    response.filename = file_->filename;
     response.file_id = file_->id;
     response.file_size = file_->file_size;
     response.hash = file_->content_hash;
