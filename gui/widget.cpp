@@ -194,11 +194,7 @@ static void files_to_gfiles(const std::vector<leaf::files_response::file_node> &
         gf.parent = f.parent;
         gf.type = f.type;
         gfiles.push_back(gf);
-        LOG_DEBUG("on_files_response file {} type {} children size {}", f.name, f.type, f.children.size());
-        if (!f.children.empty())
-        {
-            files_to_gfiles(f.children, dep++, gfiles);
-        }
+        LOG_DEBUG("on_files_response file {} type {} parent {}", f.name, f.type, f.parent);
     }
 }
 

@@ -1,20 +1,16 @@
+#include <stack>
 #include <utility>
 #include <filesystem>
 #include "log/log.h"
-#include "protocol/codec.h"
-#include "crypt/passwd.h"
 #include "file/file.h"
-#include "protocol/message.h"
+#include "crypt/passwd.h"
+#include "protocol/codec.h"
 #include "file/hash_file.h"
 #include "file/download_file_handle.h"
 
 namespace leaf
 {
-download_file_handle::download_file_handle(std::string id) : id_(std::move(id))
-{
-    LOG_INFO("create {}", id_);
-    key_ = leaf::passwd_key();
-}
+download_file_handle::download_file_handle(std::string id) : id_(std::move(id)) { LOG_INFO("create {}", id_); }
 
 download_file_handle::~download_file_handle() { LOG_INFO("destroy {}", id_); }
 
@@ -75,32 +71,34 @@ void download_file_handle::on_message(const leaf::websocket_session::ptr& sessio
     }
 }
 
-static void lookup_dir(const std::string& dir, leaf::files_response::file_node& file)
+static std::vector<leaf::files_response::file_node> lookup_dir(const std::string& dir)
 {
     if (!std::filesystem::exists(dir))
     {
-        return;
+        return {};
     }
-    for (const auto& entry : std::filesystem::directory_iterator(dir))
+    std::stack<std::string> dirs;
+    dirs.push(dir);
+    std::vector<leaf::files_response::file_node> files;
+    while (!dirs.empty())
     {
-        if (entry.is_directory())
+        std::string path = dirs.top();
+        dirs.pop();
+        for (const auto& entry : std::filesystem::directory_iterator(path))
         {
-            leaf::files_response::file_node child;
-            child.name = entry.path().string();
-            child.parent = dir;
-            child.type = "dir";
-            lookup_dir(child.name, child);
-            file.children.push_back(child);
-        }
-        else
-        {
-            leaf::files_response::file_node child;
-            child.name = entry.path().string();
-            child.parent = dir;
-            child.type = "file";
-            file.children.push_back(child);
+            leaf::files_response::file_node f;
+            f.name = entry.path().string();
+            f.parent = path;
+            f.type = "file";
+            if (entry.is_directory())
+            {
+                f.type = "dir";
+                dirs.push(entry.path().string());
+            }
+            files.push_back(f);
         }
     }
+    return files;
 }
 void download_file_handle::on_files_request(const std::optional<leaf::files_request>& message)
 {
@@ -112,14 +110,10 @@ void download_file_handle::on_files_request(const std::optional<leaf::files_requ
 
     std::string dir = leaf::make_file_path(msg.token);
     leaf::files_response response;
-    leaf::files_response::file_node file;
-    file.name = dir;
-    file.type = "dir";
-    file.parent = dir;
     // 递归遍历目录中的所有文件
-    lookup_dir(dir, file);
+    auto files = lookup_dir(dir);
     response.token = msg.token;
-    response.files.push_back(file);
+    response.files.swap(files);
     LOG_INFO("{} on_files_request dir {}", id_, dir);
     commit_message(response);
 }

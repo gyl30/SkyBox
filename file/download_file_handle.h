@@ -43,7 +43,6 @@ class download_file_handle : public websocket_handle
     std::string id_;
     std::string user_;
     std::string token_;
-    std::vector<uint8_t> key_;
 
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::reader> reader_;
