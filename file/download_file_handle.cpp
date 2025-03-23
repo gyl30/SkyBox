@@ -58,12 +58,6 @@ void download_file_handle::on_message(const leaf::websocket_session::ptr& sessio
         on_login(msg);
     }
 
-    if (type == leaf::to_underlying(leaf::message_type::files_request))
-    {
-        auto msg = leaf::message::deserialize_files_request(r);
-        on_files_request(msg);
-    }
-
     while (!msg_queue_.empty())
     {
         session->write(msg_queue_.front());
@@ -71,52 +65,6 @@ void download_file_handle::on_message(const leaf::websocket_session::ptr& sessio
     }
 }
 
-static std::vector<leaf::files_response::file_node> lookup_dir(const std::string& dir)
-{
-    if (!std::filesystem::exists(dir))
-    {
-        return {};
-    }
-    std::stack<std::string> dirs;
-    dirs.push(dir);
-    std::vector<leaf::files_response::file_node> files;
-    while (!dirs.empty())
-    {
-        std::string path = dirs.top();
-        dirs.pop();
-        for (const auto& entry : std::filesystem::directory_iterator(path))
-        {
-            leaf::files_response::file_node f;
-            f.name = entry.path().string();
-            f.parent = path;
-            f.type = "file";
-            if (entry.is_directory())
-            {
-                f.type = "dir";
-                dirs.push(entry.path().string());
-            }
-            files.push_back(f);
-        }
-    }
-    return files;
-}
-void download_file_handle::on_files_request(const std::optional<leaf::files_request>& message)
-{
-    if (!message.has_value())
-    {
-        return;
-    }
-    const auto& msg = message.value();
-
-    std::string dir = leaf::make_file_path(msg.token);
-    leaf::files_response response;
-    // 递归遍历目录中的所有文件
-    auto files = lookup_dir(dir);
-    response.token = msg.token;
-    response.files.swap(files);
-    LOG_INFO("{} on_files_request dir {}", id_, dir);
-    commit_message(response);
-}
 void download_file_handle::on_login(const std::optional<leaf::login_request>& message)
 {
     if (!message.has_value())

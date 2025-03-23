@@ -1,6 +1,10 @@
 #ifndef LEAF_FILE_COTROL_FILE_HANDLE_H
 #define LEAF_FILE_COTROL_FILE_HANDLE_H
 
+#include <queue>
+
+#include "protocol/codec.h"
+#include "protocol/message.h"
 #include "net/websocket_handle.h"
 
 namespace leaf
@@ -20,7 +24,12 @@ class cotrol_file_handle : public websocket_handle
                     const std::shared_ptr<std::vector<uint8_t>>& bytes) override;
 
    private:
+    void on_files_request(const std::optional<leaf::files_request>& message);
+    void commit_message(const leaf::codec_message& msg);
+
+   private:
     std::string id_;
+    std::queue<std::vector<uint8_t>> msg_queue_;
 };
 
 }    // namespace leaf
