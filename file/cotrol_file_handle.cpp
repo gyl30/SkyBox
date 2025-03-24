@@ -31,6 +31,12 @@ void cotrol_file_handle ::on_message(const leaf::websocket_session::ptr& session
         auto msg = leaf::message::deserialize_files_request(r);
         on_files_request(msg);
     }
+
+    while (!msg_queue_.empty())
+    {
+        session->write(msg_queue_.front());
+        msg_queue_.pop();
+    }
 }
 static std::vector<leaf::files_response::file_node> lookup_dir(const std::string& dir)
 {
