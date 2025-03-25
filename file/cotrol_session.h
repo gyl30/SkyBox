@@ -2,6 +2,7 @@
 #define LEAF_FILE_COTROL_SESSION_H
 
 #include <memory>
+#include <optional>
 #include "file/event.h"
 #include "protocol/codec.h"
 
@@ -19,13 +20,12 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     void update();
     void login(const std::string &user, const std::string &pass, const leaf::login_token &l);
     void set_message_cb(std::function<void(std::vector<uint8_t>)> cb);
-    void on_message(const std::vector<uint8_t> &msg);
-    void on_message(const leaf::codec_message &msg);
+    void on_message(const std::vector<uint8_t> &bytes);
 
    private:
     void files_request();
     void write_message(const codec_message &msg);
-    void on_files_response(const leaf::files_response &);
+    void on_files_response(const std::optional<leaf::files_response> &);
 
    private:
     std::string id_;
