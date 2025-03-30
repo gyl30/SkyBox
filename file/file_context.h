@@ -19,6 +19,7 @@ struct file_context
     std::string file_path;
     std::string filename;
     std::string content_hash;
+    std::string filename_hash;
 };
 
 }    // namespace leaf

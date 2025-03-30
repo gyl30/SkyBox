@@ -1,8 +1,12 @@
 #include <stack>
 #include <utility>
 #include <filesystem>
+
+#include <boost/algorithm/hex.hpp>
+
 #include "log/log.h"
 #include "file/file.h"
+#include "crypt/easy.h"
 #include "crypt/passwd.h"
 #include "protocol/codec.h"
 #include "file/hash_file.h"
@@ -89,8 +93,8 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
         return;
     }
     const auto& msg = message.value();
-
-    std::string download_file_path = leaf::make_file_path(token_, msg.filename);
+    std::string filename = leaf::encode(msg.filename);
+    std::string download_file_path = leaf::make_file_path(token_, filename);
     LOG_INFO("{} on_download_file_request file {} to {}", id_, msg.filename, download_file_path);
     boost::system::error_code exists_ec;
     bool exist = std::filesystem::exists(download_file_path, exists_ec);
@@ -147,7 +151,7 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
     file_->block_count = block_count;
     file_->active_block_count = 0;
     file_->content_hash = h;
-    file_->filename = std::filesystem::path(file_->file_path).filename().string();
+    file_->filename = msg.filename;
     file_->id = file_id();
     LOG_INFO("{} download_file_request file {} size {} hash {}",
              id_,

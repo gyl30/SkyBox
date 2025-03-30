@@ -1,6 +1,7 @@
 #include <utility>
 #include <filesystem>
 #include "log/log.h"
+#include "crypt/easy.h"
 #include "crypt/passwd.h"
 #include "protocol/codec.h"
 #include "protocol/message.h"
@@ -106,8 +107,8 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     }
     assert(!file_ && !writer_);
     const auto& msg = message.value();
-    std::error_code ec;
-    std::string upload_file_path = leaf::make_file_path(token_, msg.filename);
+    std::string filename = leaf::encode(msg.filename);
+    std::string upload_file_path = leaf::make_file_path(token_, filename);
     LOG_INFO("{} on_upload_file_request file size {} name {} path {} hash {}",
              id_,
              msg.file_size,
@@ -115,6 +116,7 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
              upload_file_path,
              msg.hash);
 
+    std::error_code ec;
     bool exist = std::filesystem::exists(upload_file_path, ec);
     if (ec)
     {
@@ -145,6 +147,7 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     file_ = std::make_shared<file_context>();
     file_->id = response.file_id;
     file_->file_path = upload_file_path;
+    file_->filename = msg.filename;
     file_->file_size = msg.file_size;
     file_->block_size = kBlockSize;
     file_->block_count = msg.file_size / kBlockSize;
@@ -206,8 +209,13 @@ void upload_file_handle::block_data_finish()
         return;
     }
     hash_->final();
-    LOG_INFO("{} block_data_finish file {} size {} hash {}", id_, file_->file_path, writer_->size(), hash_->hex());
-    block_data_finish1(file_->id, file_->file_path, hash_->hex());
+    LOG_INFO("{} block_data_finish file {} name {} size {} hash {}",
+             id_,
+             file_->file_path,
+             file_->filename,
+             writer_->size(),
+             hash_->hex());
+    block_data_finish1(file_->id, file_->filename, hash_->hex());
     file_ = nullptr;
     writer_.reset();
     hash_.reset();
