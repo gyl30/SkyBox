@@ -33,7 +33,8 @@ std::string make_file_path(const std::string& id, const std::string& filename)
     {
         return "";
     }
-    std::string name =  dir.append(filename).string();
+    std::string name = dir.append(filename).string();
+    return name;
 }
 class file_impl
 {
