@@ -13,6 +13,23 @@ uint64_t file_id()
     return ++id;
 }
 
+std::string tmp_extension() { return "tmp"; }
+std::string normal_extension() { return "leaf"; }
+
+std::string make_tmp_filename(const std::string& p)
+{
+    return std::filesystem::path(p).replace_extension(tmp_extension()).string();
+}
+
+std::string make_normal_filename(const std::string& p)
+{
+    return std::filesystem::path(p).replace_extension(normal_extension()).string();
+}
+
+std::string tmp_to_normal_filename(const std::string& p)
+{
+    return std::filesystem::path(p).replace_extension(normal_extension()).string();
+}
 std::string make_file_path(const std::string& id) { return std::filesystem::temp_directory_path().append(id).string(); }
 
 std::string make_file_path(const std::string& id, const std::string& filename)
@@ -33,8 +50,7 @@ std::string make_file_path(const std::string& id, const std::string& filename)
     {
         return "";
     }
-    std::string name = dir.append(filename).string();
-    return name;
+    return dir.append(filename).string();
 }
 class file_impl
 {
