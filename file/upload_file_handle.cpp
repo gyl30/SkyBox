@@ -109,6 +109,11 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     const auto& msg = message.value();
     std::string filename = leaf::encode(msg.filename);
     std::string upload_file_path = leaf::make_file_path(token_, filename);
+    upload_file_path = leaf::make_tmp_filename(upload_file_path);
+    if (upload_file_path.empty())
+    {
+        return;
+    }
     LOG_INFO("{} on_upload_file_request file size {} name {} path {} hash {}",
              id_,
              msg.file_size,
@@ -209,9 +214,12 @@ void upload_file_handle::block_data_finish()
         return;
     }
     hash_->final();
-    LOG_INFO("{} block_data_finish file {} name {} size {} hash {}",
+    std::string normal_filename = tmp_to_normal_filename(file_->file_path);
+    std::filesystem::rename(file_->file_path, normal_filename);
+    LOG_INFO("{} block_data_finish file {}:{} name {} size {} hash {}",
              id_,
              file_->file_path,
+             normal_filename,
              file_->filename,
              writer_->size(),
              hash_->hex());
