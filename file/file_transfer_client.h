@@ -16,7 +16,7 @@ class file_transfer_client
    public:
     file_transfer_client(const std::string &ip, uint16_t port, leaf::progress_handler handler);
 
-    ~file_transfer_client() = default;
+    ~file_transfer_client();
 
    public:
     void startup();

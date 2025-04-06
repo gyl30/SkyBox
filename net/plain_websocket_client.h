@@ -6,6 +6,7 @@
 #include <functional>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include <boost/thread/latch.hpp>
 
 namespace leaf
 {
@@ -35,6 +36,7 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     void on_handshake(boost::beast::error_code ec);
     void safe_startup();
     void safe_shutdown();
+    void connect();
     void reconnect();
     void on_reconnect(boost::beast::error_code ec);
     // read
@@ -52,14 +54,17 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     bool writing_ = false;
     std::atomic<bool> shutdown_{false};
     std::string id_;
+    boost::asio::io_context& io_;
     std::string target_;
+    boost::latch latch_{1};
     bool connected_ = false;
     message_handler message_handler_;
     handshake_handler handshake_handler_;
     boost::beast::flat_buffer buffer_;
     boost::asio::ip::tcp::endpoint ed_;
     std::queue<std::vector<uint8_t>> msg_queue_;
-    boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;
+    using ws_stream = boost::beast::websocket::stream<boost::beast::tcp_stream>;
+    std::shared_ptr<ws_stream> ws_;
 };
 }    // namespace leaf
 

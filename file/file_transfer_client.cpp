@@ -20,6 +20,11 @@ file_transfer_client::file_transfer_client(const std::string &ip, uint16_t port,
     upload_url_ = "ws://" + ip + ":" + std::to_string(ed_.port()) + "/leaf/ws/upload";
 };
 
+file_transfer_client::~file_transfer_client()
+{
+    //
+    LOG_INFO("{} shutdown", id_);
+}
 void file_transfer_client::do_login()
 {
     if (!cotrol_connect_ || !upload_connect_ || !download_connect_)
@@ -99,10 +104,12 @@ void file_transfer_client::shutdown()
     download_->shutdown();
     upload_client_->shutdown();
     download_client_->shutdown();
+    cotrol_client_->shutdown();
     upload_.reset();
     download_.reset();
     upload_client_.reset();
     download_client_.reset();
+    cotrol_client_.reset();
     executors.shutdown();
 }
 void file_transfer_client::on_write_cotrol_message(std::vector<uint8_t> msg)
