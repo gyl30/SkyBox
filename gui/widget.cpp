@@ -13,6 +13,8 @@
 #include <QLineEdit>
 #include <QStyleFactory>
 #include <QStyle>
+#include <QPainter>
+#include <QButtonGroup>
 
 #include "log/log.h"
 #include "gui/task.h"
@@ -25,6 +27,20 @@
 #include "gui/files_widget.h"
 #include "protocol/message.h"
 
+QIcon emoji_to_icon(const QString &emoji, int size = 40)
+{
+    QPixmap pixmap(size, size);
+    pixmap.fill(Qt::transparent);    // 背景透明
+
+    QPainter painter(&pixmap);
+    QFont font;
+    font.setPointSizeF(size * 0.5);    // Emoji 大小
+    painter.setFont(font);
+    painter.setPen(Qt::black);    // Emoji 显示颜色（部分平台可控）
+    painter.drawText(pixmap.rect(), Qt::AlignCenter, emoji);
+    painter.end();
+    return pixmap;
+}
 static void append_task_to_wiget(QTableWidget *table, const leaf::task &task, const QTime &t)
 {
     // 0
@@ -66,20 +82,47 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     auto *delegate = new leaf::task_style_delegate();
     table_view_->setItemDelegateForColumn(1, delegate);
 
-    finish_btn_ = new QPushButton(this);
+    finish_btn_ = new QToolButton(this);
     finish_btn_->setText("已完成");
-    progress_btn_ = new QPushButton(this);
+    progress_btn_ = new QToolButton(this);
     progress_btn_->setText("上传中");
-    upload_btn_ = new QPushButton(this);
+    upload_btn_ = new QToolButton(this);
     upload_btn_->setText("上传文件");
-    setting_btn_ = new QPushButton(this);
-    setting_btn_->setText("登录");
-    files_btn_ = new QPushButton(this);
+    login_btn_ = new QToolButton(this);
+    login_btn_->setText("登录");
+    files_btn_ = new QToolButton(this);
     files_btn_->setText("文件列表");
+    style_btn_ = new QToolButton(this);
+    style_btn_->setText("切换主题");
+
+    files_btn_->setIcon(emoji_to_icon("📄", 64));
+    login_btn_->setIcon(emoji_to_icon("👤", 64));
+    upload_btn_->setIcon(emoji_to_icon("📤", 64));
+    progress_btn_->setIcon(emoji_to_icon("⏳", 64));
+    finish_btn_->setIcon(emoji_to_icon("✅", 64));
+    style_btn_->setIcon(emoji_to_icon("🎨", 64));
+    QToolButton *buttons[] = {finish_btn_, progress_btn_, upload_btn_, login_btn_, files_btn_, style_btn_};
+    for (QToolButton *btn : buttons)
+    {
+        btn->setCheckable(true);
+        btn->setAutoRaise(true);
+        btn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+        btn->setIconSize(QSize(64, 64));
+        btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+        btn->setObjectName("SidebarNavButton");
+        btn->setStyleSheet("QToolButton { text-align: center; }");
+    }
+
+    btn_group_ = new QButtonGroup(this);
+    btn_group_->setExclusive(true);
+    btn_group_->addButton(finish_btn_);
+    btn_group_->addButton(progress_btn_);
+    btn_group_->addButton(upload_btn_);
+    btn_group_->addButton(login_btn_);
+    btn_group_->addButton(files_btn_);
+    btn_group_->addButton(style_btn_);
 
     style_list_ = QStyleFactory::keys();
-    style_btn_ = new QPushButton(this);
-    style_btn_->setText("切换主题");
     finish_list_widget_ = new leaf::file_table_widget(this);
     stacked_widget_ = new QStackedWidget(this);
     files_widget_ = new leaf::files_widget(this);
@@ -97,27 +140,23 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     connect(upload_btn_, &QPushButton::clicked, this, &Widget::on_new_file_clicked);
     connect(finish_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(finish_list_index_); });
     connect(progress_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(upload_list_index_); });
-    connect(setting_btn_, &QPushButton::clicked, this, &Widget::setting_btn_clicked);
+    connect(login_btn_, &QPushButton::clicked, this, &Widget::setting_btn_clicked);
     connect(files_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(files_list_index_); });
     connect(style_btn_, &QPushButton::clicked, [this]() { on_style_btn_clicked(); });
     // clang-format on
     stacked_widget_->setCurrentIndex(files_list_index_);
-    auto *btn_layout = new QHBoxLayout();
-    btn_layout->addWidget(upload_btn_);
-    btn_layout->addWidget(setting_btn_);
-    btn_layout->addWidget(style_btn_);
-    btn_layout->setSpacing(0);
+    auto *side_layout = new QVBoxLayout();
+    side_layout->addWidget(upload_btn_);
+    side_layout->addWidget(login_btn_);
+    side_layout->addWidget(style_btn_);
+    side_layout->addWidget(files_btn_);
+    side_layout->addWidget(progress_btn_);
+    side_layout->addWidget(finish_btn_);
 
-    auto *widget_layout = new QHBoxLayout();
-    widget_layout->addWidget(files_btn_);
-    widget_layout->addWidget(progress_btn_);
-    widget_layout->addWidget(finish_btn_);
-    widget_layout->setSpacing(0);
-
-    auto *main_layout = new QVBoxLayout();
-    main_layout->addLayout(btn_layout);
-    main_layout->addLayout(widget_layout);
+    auto *main_layout = new QHBoxLayout();
+    main_layout->addLayout(side_layout);
     main_layout->addWidget(stacked_widget_);
+    main_layout->setSpacing(0);
 
     setLayout(main_layout);
     resize(800, 500);
@@ -216,11 +255,11 @@ void Widget::on_notify_event_slot(const leaf::notify_event &e)
     }
     if (e.method == "login")
     {
-        setting_btn_->hide();
+        login_btn_->hide();
     }
     if (e.method == "logout")
     {
-        setting_btn_->show();
+        login_btn_->show();
     }
 }
 

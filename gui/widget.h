@@ -3,7 +3,7 @@
 
 #include <QWidget>
 #include <QStackedWidget>
-#include <QPushButton>
+#include <QToolButton>
 #include <QTableWidget>
 #include <QStringList>
 #include "gui/task.h"
@@ -42,12 +42,13 @@ class Widget : public QWidget
     void on_files(const leaf::files_response& files);
 
    private:
-    QPushButton* finish_btn_ = nullptr;
-    QPushButton* progress_btn_ = nullptr;
-    QPushButton* upload_btn_ = nullptr;
-    QPushButton* setting_btn_ = nullptr;
-    QPushButton* files_btn_ = nullptr;
-    QPushButton* style_btn_ = nullptr;
+    QToolButton* finish_btn_ = nullptr;
+    QToolButton* progress_btn_ = nullptr;
+    QToolButton* upload_btn_ = nullptr;
+    QToolButton* login_btn_ = nullptr;
+    QToolButton* files_btn_ = nullptr;
+    QToolButton* style_btn_ = nullptr;
+    QButtonGroup* btn_group_ = nullptr;
     QStackedWidget* stacked_widget_ = nullptr;
     QStringList style_list_;
     int style_index_ = 0;
