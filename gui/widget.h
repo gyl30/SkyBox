@@ -40,6 +40,7 @@ class Widget : public QWidget
     void download_progress(const leaf::download_event& e);
     void setting_btn_clicked();
     void on_files(const leaf::files_response& files);
+    void update_progress_btn_icon();
 
    private:
     QToolButton* finish_btn_ = nullptr;
@@ -49,6 +50,9 @@ class Widget : public QWidget
     QToolButton* files_btn_ = nullptr;
     QToolButton* style_btn_ = nullptr;
     QButtonGroup* btn_group_ = nullptr;
+    QTimer* progress_timer_ = nullptr;
+    size_t progress_frame_index_ = 0;
+    QStringList hourglass_frames_ = {"⏳", "⌛"};
     QStackedWidget* stacked_widget_ = nullptr;
     QStringList style_list_;
     int style_index_ = 0;

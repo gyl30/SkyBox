@@ -27,13 +27,15 @@
 #include "gui/files_widget.h"
 #include "protocol/message.h"
 
-QIcon emoji_to_icon(const QString &emoji, int size = 40)
+static QIcon emoji_to_icon(const QString &emoji, int size = 64)
 {
     QPixmap pixmap(size, size);
     pixmap.fill(Qt::transparent);    // 背景透明
 
     QPainter painter(&pixmap);
-    QFont font;
+    // QFont font;
+    // QFont font("Noto Color Emoji");
+    QFont font("EmojiOne");
     font.setPointSizeF(size * 0.5);    // Emoji 大小
     painter.setFont(font);
     painter.setPen(Qt::black);    // Emoji 显示颜色（部分平台可控）
@@ -95,18 +97,18 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     style_btn_ = new QToolButton(this);
     style_btn_->setText("切换主题");
 
-    files_btn_->setIcon(emoji_to_icon("📄", 64));
-    login_btn_->setIcon(emoji_to_icon("👤", 64));
+    files_btn_->setIcon(emoji_to_icon("📁", 64));
+    login_btn_->setIcon(emoji_to_icon("⚙️", 64));
     upload_btn_->setIcon(emoji_to_icon("📤", 64));
     progress_btn_->setIcon(emoji_to_icon("⏳", 64));
     finish_btn_->setIcon(emoji_to_icon("✅", 64));
-    style_btn_->setIcon(emoji_to_icon("🎨", 64));
+    style_btn_->setIcon(emoji_to_icon("🌈", 64));
     QToolButton *buttons[] = {finish_btn_, progress_btn_, upload_btn_, login_btn_, files_btn_, style_btn_};
     for (QToolButton *btn : buttons)
     {
         btn->setCheckable(true);
         btn->setAutoRaise(true);
-        btn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+        btn->setToolButtonStyle(Qt::ToolButtonIconOnly);
         btn->setIconSize(QSize(64, 64));
         btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
         btn->setObjectName("SidebarNavButton");
@@ -167,10 +169,19 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 
     file_client_ = new leaf::file_transfer_client("127.0.0.1", 8080, handler);
     file_client_->startup();
+    progress_timer_ = new QTimer(this);
+    progress_timer_->start(600);
+    connect(progress_timer_, &QTimer::timeout, this, &Widget::update_progress_btn_icon);
     connect(this, &Widget::progress_slot, this, &Widget::on_progress_slot);
     connect(this, &Widget::notify_event_slot, this, &Widget::on_notify_event_slot);
 }
 
+void Widget::update_progress_btn_icon()
+{
+    QIcon icon = emoji_to_icon(hourglass_frames_[static_cast<int>(progress_frame_index_)], 64);
+    progress_btn_->setIcon(icon);
+    progress_frame_index_ = (progress_frame_index_ + 1) % hourglass_frames_.size();
+}
 void Widget::setting_btn_clicked()
 {
     LOG_INFO("setting btn clicked");
