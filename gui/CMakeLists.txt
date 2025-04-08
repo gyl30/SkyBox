@@ -15,6 +15,7 @@ aux_source_directory(${PROJECT_SOURCE_DIR}/protocol CLI_GUI_SOURCE_FILE)
 add_executable(gclient 
     main.cpp 
     widget.cpp
+    titlebar.cpp
     table_view.cpp
     table_model.cpp
     table_delegate.cpp

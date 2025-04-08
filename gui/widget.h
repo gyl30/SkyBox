@@ -33,6 +33,7 @@ class Widget : public QWidget
     void on_login_slot(const QString& user, const QString& passwd);
     void on_style_btn_clicked();
     void on_notify_event_slot(const leaf::notify_event& e);
+    void updateBackgroundGradient();
 
    private:
     void notify_progress(const leaf::notify_event& e);
@@ -41,6 +42,11 @@ class Widget : public QWidget
     void setting_btn_clicked();
     void on_files(const leaf::files_response& files);
     void update_progress_btn_icon();
+
+   public:
+    void mousePressEvent(QMouseEvent* e) override;
+    void mouseMoveEvent(QMouseEvent* e) override;
+    void mouseDoubleClickEvent(QMouseEvent* e) override;
 
    private:
     QToolButton* finish_btn_ = nullptr;
@@ -56,6 +62,9 @@ class Widget : public QWidget
     QStackedWidget* stacked_widget_ = nullptr;
     QStringList style_list_;
     int style_index_ = 0;
+    QPoint click_pos_;
+    QTimer* background_animation_timer_;
+    int hue_;
     QTableWidget* finish_list_widget_ = nullptr;
     leaf::files_widget* files_widget_ = nullptr;
     int finish_list_index_ = -1;

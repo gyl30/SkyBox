@@ -19,6 +19,7 @@
 #include "log/log.h"
 #include "gui/task.h"
 #include "gui/widget.h"
+#include "gui/titlebar.h"
 #include "gui/table_view.h"
 #include "gui/table_model.h"
 #include "gui/table_widget.h"
@@ -30,15 +31,13 @@
 static QIcon emoji_to_icon(const QString &emoji, int size = 64)
 {
     QPixmap pixmap(size, size);
-    pixmap.fill(Qt::transparent);    // 背景透明
+    pixmap.fill(Qt::transparent);
 
     QPainter painter(&pixmap);
-    // QFont font;
-    // QFont font("Noto Color Emoji");
     QFont font("EmojiOne");
-    font.setPointSizeF(size * 0.5);    // Emoji 大小
+    font.setPointSizeF(size * 0.5);
     painter.setFont(font);
-    painter.setPen(Qt::black);    // Emoji 显示颜色（部分平台可控）
+    painter.setPen(Qt::black);
     painter.drawText(pixmap.rect(), Qt::AlignCenter, emoji);
     painter.end();
     return pixmap;
@@ -74,6 +73,8 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     qRegisterMetaType<leaf::task>("leaf::task");
     qRegisterMetaType<leaf::gfile>("leaf::gfile");
     qRegisterMetaType<leaf::notify_event>("leaf::notify_event");
+    setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+    setAutoFillBackground(true);
 
     table_view_ = new leaf::task_table_view(this);
 
@@ -98,7 +99,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     style_btn_->setText("切换主题");
 
     files_btn_->setIcon(emoji_to_icon("📁", 64));
-    login_btn_->setIcon(emoji_to_icon("⚙️", 64));
+    login_btn_->setIcon(emoji_to_icon("✨", 64));
     upload_btn_->setIcon(emoji_to_icon("📤", 64));
     progress_btn_->setIcon(emoji_to_icon("⏳", 64));
     finish_btn_->setIcon(emoji_to_icon("✅", 64));
@@ -108,11 +109,13 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     {
         btn->setCheckable(true);
         btn->setAutoRaise(true);
-        btn->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        // btn->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        btn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
         btn->setIconSize(QSize(64, 64));
         btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
         btn->setObjectName("SidebarNavButton");
         btn->setStyleSheet("QToolButton { text-align: center; }");
+        btn->setStyleSheet("background: transparent;");
     }
 
     btn_group_ = new QButtonGroup(this);
@@ -127,6 +130,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     style_list_ = QStyleFactory::keys();
     finish_list_widget_ = new leaf::file_table_widget(this);
     stacked_widget_ = new QStackedWidget(this);
+    stacked_widget_->setStyleSheet("background: transparent;");
     files_widget_ = new leaf::files_widget(this);
     upload_list_index_ = stacked_widget_->addWidget(table_view_);
     finish_list_index_ = stacked_widget_->addWidget(finish_list_widget_);
@@ -154,11 +158,24 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     side_layout->addWidget(files_btn_);
     side_layout->addWidget(progress_btn_);
     side_layout->addWidget(finish_btn_);
+    side_layout->setSpacing(0);
+    side_layout->setContentsMargins(0, 0, 0, 0);
 
-    auto *main_layout = new QHBoxLayout();
-    main_layout->addLayout(side_layout);
-    main_layout->addWidget(stacked_widget_);
+    auto *title_bar = new TitleBar(this);
+    connect(title_bar, &TitleBar::minimizeClicked, this, &QWidget::showMinimized);
+    connect(title_bar, &TitleBar::closeClicked, this, &QWidget::close);
+
+    auto *content_layout = new QHBoxLayout();
+    content_layout->addLayout(side_layout);
+    content_layout->addWidget(stacked_widget_);
+    content_layout->setSpacing(0);
+    content_layout->setContentsMargins(0, 0, 0, 0);
+
+    auto *main_layout = new QVBoxLayout(this);
     main_layout->setSpacing(0);
+    main_layout->setMargin(0);
+    main_layout->addWidget(title_bar);
+    main_layout->addLayout(content_layout);
 
     setLayout(main_layout);
     resize(800, 500);
@@ -174,8 +191,56 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     connect(progress_timer_, &QTimer::timeout, this, &Widget::update_progress_btn_icon);
     connect(this, &Widget::progress_slot, this, &Widget::on_progress_slot);
     connect(this, &Widget::notify_event_slot, this, &Widget::on_notify_event_slot);
-}
 
+    hue_ = 180;
+    background_animation_timer_ = new QTimer(this);
+    connect(background_animation_timer_, &QTimer::timeout, this, &Widget::updateBackgroundGradient);
+    background_animation_timer_->start(50);
+    setStyleSheet("background: transparent;");
+}
+void Widget::updateBackgroundGradient()
+{
+    hue_ = (hue_ + 1) % 360;
+
+    QColor color1 = QColor::fromHsv(hue_, 150, 255);
+    QColor color2 = QColor::fromHsv((hue_ + 60) % 360, 150, 255);
+
+    // 创建渐变位置也动态变化
+    static int offset = 0;
+    offset = (offset + 1) % width();    // 或使用 height() 更换方向
+
+    QPalette palette;
+    QLinearGradient gradient(0, 0, offset, height());    // 渐变方向横向“滑动”
+    gradient.setColorAt(0.0, color1);
+    gradient.setColorAt(1.0, color2);
+
+    palette.setBrush(QPalette::Window, gradient);
+    setPalette(palette);
+}
+void Widget::mousePressEvent(QMouseEvent *e)
+{
+    if (e->button() == Qt::LeftButton)
+    {
+        click_pos_ = e->globalPos() - frameGeometry().topLeft();
+        e->accept();
+    }
+}
+void Widget::mouseMoveEvent(QMouseEvent *e)
+{
+    if ((e->buttons() & Qt::LeftButton) != 0U)
+    {
+        move(e->globalPos() - click_pos_);
+        e->accept();
+    }
+}
+void Widget::mouseDoubleClickEvent(QMouseEvent *e)
+{
+    if (e->button() == Qt::LeftButton)
+    {
+        hide();
+    }
+    QWidget::mouseDoubleClickEvent(e);
+}
 void Widget::update_progress_btn_icon()
 {
     QIcon icon = emoji_to_icon(hourglass_frames_[static_cast<int>(progress_frame_index_)], 64);
