@@ -37,7 +37,7 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
     close_btn_->setToolTip("关闭");
 
     auto *layout = new QHBoxLayout(this);
-    layout->setContentsMargins(10, 0, 10, 0);
+    layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(10);
     layout->addWidget(title_label_);
     layout->addStretch();
@@ -46,7 +46,6 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
 
     setStyleSheet(R"(
         QWidget#TitleBar {
-            background: #2196F3;
             border-top-left-radius: 4px;
             border-top-right-radius: 4px;
         }
@@ -68,10 +67,9 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
             background: #F44336;
         }
         QLabel#TitleLabel {
-            color: white;
-            font-size: 14px;
+            font-size: 18px;
             font-weight: bold;
-            padding-left: 8px;
+            padding-left: 0px;
         }
     )");
 
@@ -87,18 +85,18 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
 
 void TitleBar::mousePressEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton)
+    if ((event->buttons() & Qt::LeftButton) != 0U)
     {
-        drag_position_ = event->globalPosition().toPoint() - parentWidget()->frameGeometry().topLeft();
+        drag_position_ = event->globalPos() - parentWidget()->frameGeometry().topLeft();
         event->accept();
     }
 }
 
 void TitleBar::mouseMoveEvent(QMouseEvent *event)
 {
-    if (event->buttons() & Qt::LeftButton)
+    if ((event->buttons() & Qt::LeftButton) != 0U)
     {
-        parentWidget()->move(event->globalPosition().toPoint() - drag_position_);
+        parentWidget()->move(event->globalPos() - drag_position_);
         event->accept();
     }
 }

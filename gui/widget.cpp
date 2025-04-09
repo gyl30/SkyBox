@@ -97,14 +97,91 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     style_btn_ = new QToolButton(this);
     style_btn_->setText("切换主题");
 
-    files_btn_->setIcon(emoji_to_icon("📁", 32));
-    login_btn_->setIcon(emoji_to_icon("✨", 32));
-    upload_btn_->setIcon(emoji_to_icon("📤", 32));
-    progress_btn_->setIcon(emoji_to_icon("⏳", 32));
-    finish_btn_->setIcon(emoji_to_icon("✅", 32));
-    style_btn_->setIcon(emoji_to_icon("🌈", 32));
+    files_btn_->setIcon(emoji_to_icon("📁", 64));
+    login_btn_->setIcon(emoji_to_icon("✨", 64));
+    upload_btn_->setIcon(emoji_to_icon("📤", 64));
+    progress_btn_->setIcon(emoji_to_icon("⏳", 64));
+    finish_btn_->setIcon(emoji_to_icon("✅", 64));
+    style_btn_->setIcon(emoji_to_icon("🌈", 64));
     QToolButton *buttons[] = {finish_btn_, progress_btn_, upload_btn_, login_btn_, files_btn_, style_btn_};
 
+    // 设置按钮样式
+    for (QToolButton *btn : buttons)
+    {
+        btn->setCheckable(true);
+        btn->setAutoRaise(true);
+        btn->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        btn->setIconSize(QSize(64, 64));
+        btn->setFixedSize(64, 64);
+        btn->setStyleSheet(R"(
+        QToolButton {
+            background-color: transparent;
+            border: none;
+            border-radius: 8px;
+        }
+        QToolButton:hover {
+            background-color: rgba(0, 0, 0, 20);
+        }
+        QToolButton:checked {
+            background-color: rgba(0, 120, 215, 50);
+        }
+    )");
+    }
+
+    btn_group_ = new QButtonGroup(this);
+    btn_group_->setExclusive(true);
+    btn_group_->addButton(finish_btn_);
+    btn_group_->addButton(progress_btn_);
+    btn_group_->addButton(upload_btn_);
+    btn_group_->addButton(login_btn_);
+    btn_group_->addButton(files_btn_);
+    btn_group_->addButton(style_btn_);
+
+    style_list_ = QStyleFactory::keys();
+    finish_list_widget_ = new leaf::file_table_widget(this);
+    stacked_widget_ = new QStackedWidget(this);
+    files_widget_ = new leaf::files_widget(this);
+    upload_list_index_ = stacked_widget_->addWidget(table_view_);
+    finish_list_index_ = stacked_widget_->addWidget(finish_list_widget_);
+    files_list_index_ = stacked_widget_->addWidget(files_widget_);
+
+    finish_list_widget_->setSelectionBehavior(QAbstractItemView::SelectRows);     // 设置选中模式为选中行
+    finish_list_widget_->setSelectionMode(QAbstractItemView::SingleSelection);    // 设置选中单个
+    finish_list_widget_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    finish_list_widget_->setShowGrid(false);
+    finish_list_widget_->verticalHeader()->setHidden(true);
+    finish_list_widget_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    // clang-format off
+    connect(upload_btn_, &QPushButton::clicked, this, &Widget::on_new_file_clicked);
+    connect(finish_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(finish_list_index_); });
+    connect(progress_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(upload_list_index_); });
+    connect(login_btn_, &QPushButton::clicked, this, &Widget::setting_btn_clicked);
+    connect(files_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(files_list_index_); });
+    connect(style_btn_, &QPushButton::clicked, [this]() { on_style_btn_clicked(); });
+    // clang-format on
+    stacked_widget_->setCurrentIndex(files_list_index_);
+    auto *side_layout = new QVBoxLayout();
+    side_layout->addWidget(upload_btn_);
+    side_layout->addWidget(login_btn_);
+    side_layout->addWidget(style_btn_);
+    side_layout->addWidget(files_btn_);
+    side_layout->addWidget(progress_btn_);
+    side_layout->addWidget(finish_btn_);
+
+    auto *title_bar = new TitleBar(this);
+    connect(title_bar, &TitleBar::minimizeClicked, this, &QWidget::showMinimized);
+    connect(title_bar, &TitleBar::closeClicked, this, &QWidget::close);
+
+    auto *content_layout = new QHBoxLayout();
+    content_layout->addLayout(side_layout);
+    content_layout->addWidget(stacked_widget_);
+    content_layout->setSpacing(8);
+    content_layout->setContentsMargins(0, 0, 0, 0);
+
+    auto *main_layout = new QVBoxLayout(this);
+    main_layout->addWidget(title_bar);
+    main_layout->addLayout(content_layout);
+    main_layout->setContentsMargins(8, 0, 0, 0);
     // 设置窗口样式
     setStyleSheet(R"(
         QWidget {
@@ -163,87 +240,8 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
             background: #9E9E9E;
         }
     )");
-
-    // 设置按钮样式
-    for (QToolButton *btn : buttons)
-    {
-        btn->setCheckable(true);
-        btn->setAutoRaise(true);
-        btn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-        btn->setIconSize(QSize(32, 32));
-        btn->setFixedSize(80, 80);    // 统一按钮大小
-        btn->setObjectName("SidebarNavButton");
-    }
-
-    btn_group_ = new QButtonGroup(this);
-    btn_group_->setExclusive(true);
-    btn_group_->addButton(finish_btn_);
-    btn_group_->addButton(progress_btn_);
-    btn_group_->addButton(upload_btn_);
-    btn_group_->addButton(login_btn_);
-    btn_group_->addButton(files_btn_);
-    btn_group_->addButton(style_btn_);
-
-    style_list_ = QStyleFactory::keys();
-    finish_list_widget_ = new leaf::file_table_widget(this);
-    stacked_widget_ = new QStackedWidget(this);
-    stacked_widget_->setStyleSheet("background: transparent;");
-    files_widget_ = new leaf::files_widget(this);
-    upload_list_index_ = stacked_widget_->addWidget(table_view_);
-    finish_list_index_ = stacked_widget_->addWidget(finish_list_widget_);
-    files_list_index_ = stacked_widget_->addWidget(files_widget_);
-
-    finish_list_widget_->setSelectionBehavior(QAbstractItemView::SelectRows);     // 设置选中模式为选中行
-    finish_list_widget_->setSelectionMode(QAbstractItemView::SingleSelection);    // 设置选中单个
-    finish_list_widget_->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    finish_list_widget_->setShowGrid(false);
-    finish_list_widget_->verticalHeader()->setHidden(true);
-    finish_list_widget_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    // clang-format off
-    connect(upload_btn_, &QPushButton::clicked, this, &Widget::on_new_file_clicked);
-    connect(finish_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(finish_list_index_); });
-    connect(progress_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(upload_list_index_); });
-    connect(login_btn_, &QPushButton::clicked, this, &Widget::setting_btn_clicked);
-    connect(files_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(files_list_index_); });
-    connect(style_btn_, &QPushButton::clicked, [this]() { on_style_btn_clicked(); });
-    // clang-format on
-    stacked_widget_->setCurrentIndex(files_list_index_);
-    auto *side_layout = new QVBoxLayout();
-    side_layout->addWidget(upload_btn_);
-    side_layout->addWidget(login_btn_);
-    side_layout->addWidget(style_btn_);
-    side_layout->addWidget(files_btn_);
-    side_layout->addWidget(progress_btn_);
-    side_layout->addWidget(finish_btn_);
-    side_layout->setSpacing(8);    // 固定间距
-    side_layout->setContentsMargins(12, 12, 12, 12);
-    side_layout->addStretch();
-
-    auto *title_bar = new TitleBar(this);
-    connect(title_bar, &TitleBar::minimizeClicked, this, &QWidget::showMinimized);
-    connect(title_bar, &TitleBar::closeClicked, this, &QWidget::close);
-
-    auto *content_layout = new QHBoxLayout();
-    content_layout->addLayout(side_layout);
-    content_layout->addWidget(stacked_widget_);
-    content_layout->setSpacing(8);
-    content_layout->setContentsMargins(8, 8, 8, 8);
-
-    auto *main_layout = new QVBoxLayout(this);
-    main_layout->setSpacing(0);
-    main_layout->setContentsMargins(0, 0, 0, 0);
-    main_layout->addWidget(title_bar);
-    main_layout->addLayout(content_layout);
-
     setLayout(main_layout);
     resize(800, 500);
-    leaf::progress_handler handler;
-    handler.upload = [this](const leaf::upload_event &e) { upload_progress(e); };
-    handler.download = [this](const leaf::download_event &e) { download_progress(e); };
-    handler.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
-
-    file_client_ = new leaf::file_transfer_client("127.0.0.1", 8080, handler);
-    file_client_->startup();
     progress_timer_ = new QTimer(this);
     progress_timer_->start(600);
     connect(progress_timer_, &QTimer::timeout, this, &Widget::update_progress_btn_icon);
@@ -254,7 +252,7 @@ void Widget::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton)
     {
-        click_pos_ = e->globalPosition().toPoint() - frameGeometry().topLeft();
+        click_pos_ = e->globalPos() - frameGeometry().topLeft();
         e->accept();
     }
 }
@@ -262,7 +260,7 @@ void Widget::mouseMoveEvent(QMouseEvent *e)
 {
     if ((e->buttons() & Qt::LeftButton) != 0U)
     {
-        move(e->globalPosition().toPoint() - click_pos_);
+        move(e->globalPos() - click_pos_);
         e->accept();
     }
 }
@@ -276,7 +274,7 @@ void Widget::mouseDoubleClickEvent(QMouseEvent *e)
 }
 void Widget::update_progress_btn_icon()
 {
-    QIcon icon = emoji_to_icon(hourglass_frames_[static_cast<int>(progress_frame_index_)], 32);
+    QIcon icon = emoji_to_icon(hourglass_frames_[static_cast<int>(progress_frame_index_)], 64);
     progress_btn_->setIcon(icon);
     progress_frame_index_ = (progress_frame_index_ + 1) % hourglass_frames_.size();
 }
@@ -289,6 +287,22 @@ void Widget::setting_btn_clicked()
 }
 void Widget::on_login_slot(const QString &user, const QString &passwd)
 {
+    if (user.isEmpty() || passwd.isEmpty())
+    {
+        return;
+    }
+    if (file_client_ != nullptr)
+    {
+        return;
+    }
+    leaf::progress_handler handler;
+    handler.upload = [this](const leaf::upload_event &e) { upload_progress(e); };
+    handler.download = [this](const leaf::download_event &e) { download_progress(e); };
+    handler.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
+
+    file_client_ = new leaf::file_transfer_client("127.0.0.1", 8080, handler);
+    file_client_->startup();
+
     file_client_->login(user.toStdString(), passwd.toStdString());
 }
 
