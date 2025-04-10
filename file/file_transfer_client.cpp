@@ -63,7 +63,6 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     LOG_INFO("login {} {} token {} block {}", user_, pass_, token_, l->block_size);
     upload_->login(user_, pass_, l.value());
     download_->login(user_, pass_, l.value());
-
     start_timer();
 }
 
@@ -227,6 +226,22 @@ void file_transfer_client::add_download_file(const std::string &filename)
     file->file_path = filename;
     file->filename = std::filesystem::path(filename).filename();
     download_->add_file(file);
+}
+
+void file_transfer_client::on_login_failed() const
+{
+    leaf::notify_event e;
+    e.method = "login";
+    e.data = false;
+    handler_.notify(e);
+}
+
+void file_transfer_client::on_login_success() const
+{
+    leaf::notify_event e;
+    e.method = "login";
+    e.data = true;
+    handler_.notify(e);
 }
 
 void file_transfer_client::on_error(const boost::system::error_code &ec) const

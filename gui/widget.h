@@ -6,6 +6,8 @@
 #include <QToolButton>
 #include <QTableWidget>
 #include <QStringList>
+#include <QLabel>
+#include <QLineEdit>
 #include "gui/task.h"
 #include "gui/table_view.h"
 #include "gui/table_model.h"
@@ -30,7 +32,6 @@ class Widget : public QWidget
 
    private Q_SLOTS:
     void on_progress_slot(const leaf::task& e);
-    void on_login_slot(const QString& user, const QString& passwd);
     void on_style_btn_clicked();
     void on_notify_event_slot(const leaf::notify_event& e);
 
@@ -38,7 +39,7 @@ class Widget : public QWidget
     void notify_progress(const leaf::notify_event& e);
     void upload_progress(const leaf::upload_event& e);
     void download_progress(const leaf::download_event& e);
-    void setting_btn_clicked();
+    void login_btn_clicked();
     void on_files(const leaf::files_response& files);
     void update_progress_btn_icon();
 
@@ -55,6 +56,10 @@ class Widget : public QWidget
     QToolButton* files_btn_ = nullptr;
     QToolButton* style_btn_ = nullptr;
     QButtonGroup* btn_group_ = nullptr;
+    QLabel* user_label_ = nullptr;
+    QLineEdit* user_edit_ = nullptr;
+    QLabel* key_label_ = nullptr;
+    QLineEdit* key_edit_ = nullptr;
     QTimer* progress_timer_ = nullptr;
     size_t progress_frame_index_ = 0;
     QStringList hourglass_frames_ = {"⏳", "⌛"};

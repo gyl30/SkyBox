@@ -84,35 +84,41 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     auto *delegate = new leaf::task_style_delegate();
     table_view_->setItemDelegateForColumn(1, delegate);
 
+    user_label_ = new QLabel(this);
+    user_label_->setText("用户名:");
+    user_edit_ = new QLineEdit(this);
+    user_edit_->setPlaceholderText("请输入用户名");
+    key_label_ = new QLabel(this);
+    key_label_->setText("密码:");
+    key_edit_ = new QLineEdit(this);
+    key_edit_->setEchoMode(QLineEdit::Password);
+
     finish_btn_ = new QToolButton(this);
     finish_btn_->setText("已完成");
     progress_btn_ = new QToolButton(this);
     progress_btn_->setText("上传中");
     upload_btn_ = new QToolButton(this);
     upload_btn_->setText("上传文件");
-    login_btn_ = new QToolButton(this);
-    login_btn_->setText("登录");
     files_btn_ = new QToolButton(this);
     files_btn_->setText("文件列表");
     style_btn_ = new QToolButton(this);
     style_btn_->setText("切换主题");
 
     files_btn_->setIcon(emoji_to_icon("📁", 64));
-    login_btn_->setIcon(emoji_to_icon("✨", 64));
     upload_btn_->setIcon(emoji_to_icon("📤", 64));
     progress_btn_->setIcon(emoji_to_icon("⏳", 64));
     finish_btn_->setIcon(emoji_to_icon("✅", 64));
     style_btn_->setIcon(emoji_to_icon("🌈", 64));
-    QToolButton *buttons[] = {finish_btn_, progress_btn_, upload_btn_, login_btn_, files_btn_, style_btn_};
+    QToolButton *buttons[] = {finish_btn_, progress_btn_, upload_btn_, files_btn_, style_btn_};
 
     // 设置按钮样式
     for (QToolButton *btn : buttons)
     {
         btn->setCheckable(true);
         btn->setAutoRaise(true);
-        btn->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        btn->setToolButtonStyle(Qt::ToolButtonTextOnly);
         btn->setIconSize(QSize(64, 64));
-        btn->setFixedSize(64, 64);
+        // btn->setFixedSize(64, 64);
         btn->setStyleSheet(R"(
         QToolButton {
             background-color: transparent;
@@ -133,7 +139,6 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     btn_group_->addButton(finish_btn_);
     btn_group_->addButton(progress_btn_);
     btn_group_->addButton(upload_btn_);
-    btn_group_->addButton(login_btn_);
     btn_group_->addButton(files_btn_);
     btn_group_->addButton(style_btn_);
 
@@ -153,16 +158,60 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     finish_list_widget_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     // clang-format off
     connect(upload_btn_, &QPushButton::clicked, this, &Widget::on_new_file_clicked);
-    connect(finish_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(finish_list_index_); });
-    connect(progress_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(upload_list_index_); });
-    connect(login_btn_, &QPushButton::clicked, this, &Widget::setting_btn_clicked);
+    connect( finish_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(finish_list_index_); });
+    connect( progress_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(upload_list_index_); });
     connect(files_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(files_list_index_); });
     connect(style_btn_, &QPushButton::clicked, [this]() { on_style_btn_clicked(); });
     // clang-format on
+
+    login_btn_ = new QToolButton(this);
+    login_btn_->setText("登录");
+    login_btn_->setFixedSize(80, 30);
+    connect(login_btn_, &QPushButton::clicked, this, &Widget::login_btn_clicked);
+
+    user_edit_->setMinimumWidth(150);
+    key_edit_->setMinimumWidth(150);
+    user_edit_->setStyleSheet(R"(
+    QLineEdit {
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #fafafa;
+    }
+)");
+
+    key_edit_->setStyleSheet(R"(
+    QLineEdit {
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #fafafa;
+    }
+)");
+
+    login_btn_->setStyleSheet(R"(
+    QToolButton {
+        background-color: #2196F3;
+        color: white;
+        border: none;
+    }
+    QToolButton:hover {
+        background-color: #1976D2;
+    }
+)");
+
+    auto *user_layout = new QHBoxLayout();
+    user_layout->addStretch();
+    user_layout->addWidget(user_label_);
+    user_layout->addWidget(user_edit_);
+    user_layout->addWidget(key_label_);
+    user_layout->addWidget(key_edit_);
+    user_layout->addWidget(login_btn_);
+    user_layout->addStretch();
+
     stacked_widget_->setCurrentIndex(files_list_index_);
     auto *side_layout = new QVBoxLayout();
     side_layout->addWidget(upload_btn_);
-    side_layout->addWidget(login_btn_);
     side_layout->addWidget(style_btn_);
     side_layout->addWidget(files_btn_);
     side_layout->addWidget(progress_btn_);
@@ -180,13 +229,13 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 
     auto *main_layout = new QVBoxLayout(this);
     main_layout->addWidget(title_bar);
+    main_layout->addLayout(user_layout);
     main_layout->addLayout(content_layout);
     main_layout->setContentsMargins(8, 0, 0, 0);
     // 设置窗口样式
     setStyleSheet(R"(
         QWidget {
             background: white;
-            font-family: "Microsoft YaHei";
         }
         QWidget#MainWindow {
             border: 1px solid #E0E0E0;
@@ -278,16 +327,11 @@ void Widget::update_progress_btn_icon()
     progress_btn_->setIcon(icon);
     progress_frame_index_ = (progress_frame_index_ + 1) % hourglass_frames_.size();
 }
-void Widget::setting_btn_clicked()
+void Widget::login_btn_clicked()
 {
-    LOG_INFO("setting btn clicked");
-    leaf::login_dialog login_dialog(this);
-    connect(&login_dialog, &leaf::login_dialog::login_data, this, &Widget::on_login_slot);
-    login_dialog.exec();
-}
-void Widget::on_login_slot(const QString &user, const QString &passwd)
-{
-    if (user.isEmpty() || passwd.isEmpty())
+    QString user = user_edit_->text();
+    QString key = key_edit_->text();
+    if (user.isEmpty() || key.isEmpty())
     {
         return;
     }
@@ -295,6 +339,11 @@ void Widget::on_login_slot(const QString &user, const QString &passwd)
     {
         return;
     }
+    login_btn_->setText("登录中...");
+    login_btn_->setEnabled(false);
+    user_edit_->setEnabled(false);
+    key_edit_->setEnabled(false);
+
     leaf::progress_handler handler;
     handler.upload = [this](const leaf::upload_event &e) { upload_progress(e); };
     handler.download = [this](const leaf::download_event &e) { download_progress(e); };
@@ -302,8 +351,7 @@ void Widget::on_login_slot(const QString &user, const QString &passwd)
 
     file_client_ = new leaf::file_transfer_client("127.0.0.1", 8080, handler);
     file_client_->startup();
-
-    file_client_->login(user.toStdString(), passwd.toStdString());
+    file_client_->login(user.toStdString(), key.toStdString());
 }
 
 void Widget::on_style_btn_clicked()
@@ -378,11 +426,29 @@ void Widget::on_notify_event_slot(const leaf::notify_event &e)
     }
     if (e.method == "login")
     {
-        login_btn_->hide();
+        bool login = std::any_cast<bool>(e.data);
+        if (login)
+        {
+            login_btn_->setText("已登录");
+            user_edit_->setEnabled(false);
+            key_edit_->setEnabled(false);
+            login_btn_->setEnabled(false);
+        }
+        else
+        {
+            login_btn_->setText("登录");
+            user_edit_->setEnabled(true);
+            key_edit_->setEnabled(true);
+
+            login_btn_->setEnabled(true);
+        }
     }
     if (e.method == "logout")
     {
-        login_btn_->show();
+        login_btn_->setText("登录");
+        user_edit_->setEnabled(true);
+        key_edit_->setEnabled(true);
+        login_btn_->setEnabled(true);
     }
 }
 

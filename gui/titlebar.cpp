@@ -37,7 +37,7 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
     close_btn_->setToolTip("关闭");
 
     auto *layout = new QHBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setContentsMargins(0, 0, 8, 0);
     layout->setSpacing(10);
     layout->addWidget(title_label_);
     layout->addStretch();

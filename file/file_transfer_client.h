@@ -23,13 +23,16 @@ class file_transfer_client
     void shutdown();
 
    public:
-    void do_login();
-    void on_login(boost::beast::error_code ec, const std::string &res);
     void login(const std::string &user, const std::string &pass);
     void add_upload_file(const std::string &filename);
     void add_download_file(const std::string &filename);
 
    private:
+    void do_login();
+    void on_login(boost::beast::error_code ec, const std::string &res);
+    void on_login_failed() const;
+    void on_login_success() const;
+
     void start_timer();
     void timer_callback(const boost::system::error_code &ec);
     void on_write_cotrol_message(std::vector<uint8_t> msg);

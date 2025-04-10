@@ -88,6 +88,7 @@ void download_session::on_login_response(const std::optional<leaf::login_respons
     LOG_INFO("{} login_response user {} token {}", id_, l.username, l.token);
     leaf::notify_event e;
     e.method = "login";
+    e.data = true;
     notify_cb_(e);
 }
 
