@@ -513,19 +513,23 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 
     // 修改样式按钮的文本
     style_btn_->setText("切换主题");
-    
+
     // 修改登录按钮的对象名，以便应用特定样式
     login_btn_->setObjectName("LoginButton");
-    
+
     // 设置初始主题
     setStyleSheet(themes_.value("默认主题"));
 
     // 修改主题切换函数
-    connect(style_btn_, &QPushButton::clicked, this, [this]() {
-        current_theme_index_ = (current_theme_index_ + 1) % theme_names_.size();
-        QString theme_name = theme_names_.at(current_theme_index_);
-        setStyleSheet(themes_.value(theme_name));
-    });
+    connect(style_btn_,
+            &QPushButton::clicked,
+            this,
+            [this]()
+            {
+                current_theme_index_ = (current_theme_index_ + 1) % theme_names_.size();
+                QString theme_name = theme_names_.at(current_theme_index_);
+                setStyleSheet(themes_.value(theme_name));
+            });
 
     progress_timer_ = new QTimer(this);
     progress_timer_->start(600);
@@ -533,20 +537,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     connect(this, &Widget::progress_slot, this, &Widget::on_progress_slot);
     connect(this, &Widget::notify_event_slot, this, &Widget::on_notify_event_slot);
 
-    // 在 Widget 类的构造函数中，设置窗口大小
     resize(800, 600);
-    
-    // 设置窗口最小大小
-    setMinimumSize(800, 600);
-    
-    // 设置窗口最大大小
-    setMaximumSize(1200, 800);
-    
-    // 设置窗口居中显示
-    QRect screenGeometry = QApplication::primaryScreen()->geometry();
-    int x = (screenGeometry.width() - width()) / 2;
-    int y = (screenGeometry.height() - height()) / 2;
-    move(x, y);
 }
 void Widget::mousePressEvent(QMouseEvent *e)
 {
@@ -600,7 +591,7 @@ void Widget::login_btn_clicked()
     handler.download = [this](const leaf::download_event &e) { download_progress(e); };
     handler.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
 
-    file_client_ = new leaf::file_transfer_client("127.0.0.1", 8080, handler);
+    file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, handler);
     file_client_->startup();
     file_client_->login(user.toStdString(), key.toStdString());
 }
@@ -716,8 +707,11 @@ void Widget::upload_progress(const leaf::upload_event &e)
 
 Widget::~Widget()
 {
-    file_client_->shutdown();
-    delete file_client_;
+    if (file_client_ != nullptr)
+    {
+        file_client_->shutdown();
+        file_client_.reset();
+    }
 }
 
 void Widget::on_new_file_clicked()

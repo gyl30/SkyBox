@@ -74,7 +74,7 @@ class Widget : public QWidget
     int files_list_index_ = -1;
     leaf::task_model* model_ = nullptr;
     leaf::task_table_view* table_view_ = nullptr;
-    leaf::file_transfer_client* file_client_ = nullptr;
+    std::shared_ptr<leaf::file_transfer_client> file_client_ = nullptr;
     QMap<QString, QString> themes_;
     QStringList theme_names_;
     int current_theme_index_{0};
