@@ -23,7 +23,6 @@
 #include "gui/table_view.h"
 #include "gui/table_model.h"
 #include "gui/table_widget.h"
-#include "gui/login_widget.h"
 #include "gui/table_delegate.h"
 #include "gui/files_widget.h"
 #include "protocol/message.h"
