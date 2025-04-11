@@ -62,7 +62,7 @@ class Widget : public QWidget
     QLineEdit* key_edit_ = nullptr;
     QTimer* progress_timer_ = nullptr;
     size_t progress_frame_index_ = 0;
-    QStringList hourglass_frames_ = {"⏳", "⌛"};
+    const std::vector<QString> hourglass_frames_ = {"⌛", "⏳"};
     QStackedWidget* stacked_widget_ = nullptr;
     QStringList style_list_;
     int style_index_ = 0;
@@ -75,5 +75,8 @@ class Widget : public QWidget
     leaf::task_model* model_ = nullptr;
     leaf::task_table_view* table_view_ = nullptr;
     leaf::file_transfer_client* file_client_ = nullptr;
+    QMap<QString, QString> themes_;
+    QStringList theme_names_;
+    int current_theme_index_{0};
 };
 #endif    // WIDGET_H
