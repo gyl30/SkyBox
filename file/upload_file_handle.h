@@ -31,7 +31,7 @@ class upload_file_handle : public websocket_handle
     void on_upload_file_request(const std::optional<leaf::upload_file_request>& message);
     void on_delete_file_request(const std::optional<leaf::delete_file_request>& message);
     void on_block_data_response(const std::optional<leaf::block_data_response>& message);
-    void on_error_response(const std::optional<leaf::error_response>& message);
+    void on_error_response(const std::optional<leaf::error_message>& message);
     void block_data_request();
     void block_data_finish();
     void block_data_finish1(uint64_t file_id, const std::string& filename, const std::string& hash);

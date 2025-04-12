@@ -40,7 +40,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void padding_file_event();
     void on_login_response(const std::optional<leaf::login_response> &);
     void on_keepalive_response(const std::optional<leaf::keepalive> &);
-    void on_error_response(const std::optional<leaf::error_response> &);
+    void on_error_response(const std::optional<leaf::error_message> &);
     void write_message(const codec_message &msg);
     void emit_event(const leaf::upload_event &e);
 

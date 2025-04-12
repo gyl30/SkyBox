@@ -314,7 +314,7 @@ void upload_file_handle::on_keepalive(const std::optional<leaf::keepalive>& mess
               k.token);
     commit_message(k);
 }
-void upload_file_handle::on_error_response(const std::optional<leaf::error_response>& message)
+void upload_file_handle::on_error_response(const std::optional<leaf::error_message>& message)
 {
     if (!message.has_value())
     {

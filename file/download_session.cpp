@@ -324,7 +324,7 @@ void download_session::update()
     download_file_request();
 }
 
-void download_session::on_error_response(const std::optional<leaf::error_response>& message)
+void download_session::on_error_response(const std::optional<leaf::error_message>& message)
 {
     if (!message.has_value())
     {

@@ -21,6 +21,7 @@ class download_file_handle : public websocket_handle
    public:
     void startup() override;
     void shutdown() override;
+    void update(const leaf::websocket_session::ptr&) override;
     std::string type() const override { return "download"; }
     void on_message(const leaf::websocket_session::ptr& session,
                     const std::shared_ptr<std::vector<uint8_t>>& bytes) override;
@@ -28,21 +29,22 @@ class download_file_handle : public websocket_handle
    private:
     void on_keepalive(const std::optional<leaf::keepalive>& message);
     void on_download_file_request(const std::optional<leaf::download_file_request>& message);
-    void on_file_block_request(const std::optional<leaf::file_block_request>& message);
-    void on_block_data_request(const std::optional<leaf::block_data_request>& message);
     void block_data_finish();
     void block_data_finish1(uint64_t file_id, const std::string& filename, const std::string& hash);
-    void on_error_response(const std::optional<leaf::error_response>& message);
-    void on_login(const std::optional<leaf::login_request>& message);
-    void commit_message(const leaf::codec_message& msg);
+    void on_error_response(const std::optional<leaf::error_message>& message);
+    void on_login(const std::optional<leaf::login_token>& message);
     void error_message(uint32_t code, const std::string& msg);
-    void on_message(const leaf::codec_message& msg);
 
    private:
+    enum status : uint8_t
+    {
+        wait_login = 0,
+        wait_download_file_request,
+        file_data,
+    };
     std::string id_;
-    std::string user_;
     std::string token_;
-
+    status status_ = wait_login;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> hash_;

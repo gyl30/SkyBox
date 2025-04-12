@@ -35,7 +35,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     void block_data_request(uint32_t block_id);
     void on_block_data_response(const std::optional<leaf::block_data_response> &);
     void on_block_data_finish(const std::optional<leaf::block_data_finish> &);
-    void on_error_response(const std::optional<leaf::error_response> &);
+    void on_error_response(const std::optional<leaf::error_message> &);
     void on_keepalive_response(const std::optional<leaf::keepalive> &);
     void on_login_response(const std::optional<leaf::login_response> &);
 

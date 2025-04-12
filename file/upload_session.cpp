@@ -303,7 +303,7 @@ void upload_session::on_upload_file_exist(const std::optional<leaf::upload_file_
     LOG_INFO("{} upload_file_exist {} hash {}", id_, msg.filename, msg.hash);
 }
 
-void upload_session::on_error_response(const std::optional<leaf::error_response>& message)
+void upload_session::on_error_response(const std::optional<leaf::error_message>& message)
 {
     if (!message.has_value())
     {
