@@ -22,42 +22,44 @@ class download_session : public std::enable_shared_from_this<download_session>
     void update();
 
    public:
-    void add_file(const leaf::file_context::ptr &file);
+    void add_file(const std::string &file);
     void on_message(const std::vector<uint8_t> &bytes);
-    void on_message(const leaf::codec_message &msg);
     void set_message_cb(std::function<void(std::vector<uint8_t>)> cb);
     void login(const std::string &user, const std::string &pass, const leaf::login_token &l);
 
    private:
+    void write_message(std::vector<uint8_t> bytes);
     void download_file_request();
     void on_download_file_response(const std::optional<leaf::download_file_response> &);
-    void on_file_block_response(const std::optional<leaf::file_block_response> &);
-    void block_data_request(uint32_t block_id);
-    void on_block_data_response(const std::optional<leaf::block_data_response> &);
-    void on_block_data_finish(const std::optional<leaf::block_data_finish> &);
-    void on_error_response(const std::optional<leaf::error_message> &);
+    void on_file_data(const std::optional<leaf::file_data> &);
+    void on_error_message(const std::optional<leaf::error_message> &);
+    void on_login_token(const std::optional<leaf::login_token> &message);
     void on_keepalive_response(const std::optional<leaf::keepalive> &);
-    void on_login_response(const std::optional<leaf::login_response> &);
-
-
-    void write_message(const codec_message &msg);
     void keepalive();
+
    private:
     void emit_event(const leaf::download_event &);
-    void update_download_file();
     void reset();
 
    private:
+    enum download_status : uint8_t
+    {
+        wait_download_file = 0,
+        wait_file_data,
+    };
     bool login_ = false;
+    uint32_t seq_ = 0;
     std::string id_;
     leaf::login_token token_;
+    download_status status_ = wait_download_file;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;
     std::function<void(std::vector<uint8_t>)> cb_;
     leaf::download_progress_callback progress_cb_;
     leaf::notify_progress_callback notify_cb_;
-    std::queue<leaf::file_context::ptr> padding_files_;
+    std::queue<std::string> padding_files_;
+    std::function<void(std::vector<uint8_t>)> message_cb_;
 };
 }    // namespace leaf
 

@@ -11,17 +11,14 @@ struct file_context
 {
     using ptr = std::shared_ptr<file_context>;
 
-    uint64_t id = 0;
     uint64_t file_size = 0;
     uint32_t block_size = 0;
     uint32_t padding_size = 0;
     uint32_t hash_block_count = 0;
     uint64_t block_count = 0;
     uint64_t active_block_count = 0;
-    std::string file_path;
     std::string filename;
-    std::string content_hash;
-    std::string filename_hash;
+    std::string file_path;
 };
 
 }    // namespace leaf

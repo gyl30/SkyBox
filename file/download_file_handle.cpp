@@ -148,14 +148,8 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
     file_->block_count = block_count;
     file_->padding_size = padding_size;
     file_->active_block_count = 0;
-    file_->content_hash = h;
     file_->filename = msg.filename;
-    file_->id = file_id();
-    LOG_INFO("{} download_file_request file {} size {} hash {}",
-             id_,
-             file_->file_path,
-             file_->file_size,
-             file_->content_hash);
+    LOG_INFO("{} download_file_request file {} size {}", id_, file_->file_path, file_->file_size);
     leaf::download_file_response response;
     response.filename = file_->filename;
     response.id = message->id;
@@ -181,7 +175,7 @@ void download_file_handle::update(const leaf::websocket_session::ptr& session)
     }
     // read block data
     boost::system::error_code ec;
-    std::vector<uint8_t> buffer(file_->block_size, '0');
+    std::vector<uint8_t> buffer(kBlockSize, '0');
     auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
     if (ec && ec != boost::asio::error::eof)
     {
