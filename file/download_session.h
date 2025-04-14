@@ -25,7 +25,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     void add_file(const std::string &file);
     void on_message(const std::vector<uint8_t> &bytes);
     void set_message_cb(std::function<void(std::vector<uint8_t>)> cb);
-    void login(const std::string &user, const std::string &pass, const leaf::login_token &l);
+    void login(const std::string &token);
 
    private:
     void write_message(std::vector<uint8_t> bytes);
