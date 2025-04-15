@@ -20,16 +20,18 @@ void cotrol_file_handle ::shutdown() { LOG_INFO("shutdown {}", id_); }
 void cotrol_file_handle ::on_message(const leaf::websocket_session::ptr& session,
                                      const std::shared_ptr<std::vector<uint8_t>>& bytes)
 {
-    leaf::read_buffer r(bytes->data(), bytes->size());
-    uint64_t padding = 0;
-    r.read_uint64(&padding);
-
-    uint16_t type = 0;
-    r.read_uint16(&type);
-    if (type == leaf::to_underlying(leaf::message_type::files_request))
+    if (bytes == nullptr)
     {
-        auto msg = leaf::message::deserialize_files_request(r);
-        on_files_request(msg);
+        return;
+    }
+    if (bytes->empty())
+    {
+        return;
+    }
+    auto type = get_message_type(*bytes);
+    if (type == leaf::message_type::files_request)
+    {
+        on_files_request(leaf::deserialize_files_request(*bytes));
     }
 
     while (!msg_queue_.empty())
@@ -83,16 +85,6 @@ void cotrol_file_handle::on_files_request(const std::optional<leaf::files_reques
     response.token = msg.token;
     response.files.swap(files);
     LOG_INFO("{} on_files_request dir {}", id_, dir);
-    commit_message(response);
+    msg_queue_.push(leaf::serialize_files_response(response));
 }
-void cotrol_file_handle::commit_message(const leaf::codec_message& msg)
-{
-    std::vector<uint8_t> bytes = leaf::serialize_message(msg);
-    if (bytes.empty())
-    {
-        return;
-    }
-    msg_queue_.push(bytes);
-}
-
 }    // namespace leaf

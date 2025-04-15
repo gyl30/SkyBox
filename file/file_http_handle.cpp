@@ -41,28 +41,22 @@ void http_handle(const leaf::http_session::ptr &session, const leaf::http_sessio
         return;
     }
     std::string data = req->body();
-    leaf::read_buffer r(data.data(), data.size());
-    uint64_t padding = 0;
-    r.read_uint64(&padding);
-
-    uint16_t type = 0;
-    r.read_uint16(&type);
-    if (type != leaf::to_underlying(leaf::message_type::login_request))
+    auto type = leaf::get_message_type(data);
+    if (type != leaf::message_type::login)
+    {
+        session->shutdown();
+        return;
+    }
+    std::vector<uint8_t> data2(data.begin(), data.end());
+    auto login = leaf::deserialize_login_request(data2);
+    if (!login.has_value())
     {
         session->shutdown();
         return;
     }
 
-    auto login_req = leaf::message::deserialize_login_request(r);
-    if (!login_req)
-    {
-        session->shutdown();
-        return;
-    }
-
+    std::string token = leaf::passwd_hash(login->username, login->password);
     leaf::login_token l;
-    l.block_size = 128 * 1024;
-    std::string token = leaf::passwd_hash(login_req->username, login_req->password);
     l.token = token;
 
     auto s = std::make_shared<leaf::file_session>();
@@ -71,7 +65,8 @@ void http_handle(const leaf::http_session::ptr &session, const leaf::http_sessio
     boost::beast::http::response<boost::beast::http::string_body> response;
     response.result(boost::beast::http::status::ok);
     response.set(boost::beast::http::field::content_type, "text/plain");
-    response.body() = leaf::serialize_message(l);
+    auto token_msg = leaf::serialize_login_token(l);
+    response.body().assign(token_msg.begin(), token_msg.end());
     response.prepare_payload();
     response.keep_alive(false);
     auto msg = std::make_shared<boost::beast::http::message_generator>(std::move(response));

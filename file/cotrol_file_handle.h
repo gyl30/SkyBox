@@ -25,7 +25,6 @@ class cotrol_file_handle : public websocket_handle
 
    private:
     void on_files_request(const std::optional<leaf::files_request>& message);
-    void commit_message(const leaf::codec_message& msg);
 
    private:
     std::string id_;

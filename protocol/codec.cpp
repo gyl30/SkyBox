@@ -6,13 +6,14 @@
 
 namespace reflect
 {
-REFLECT_STRUCT(leaf::keepalive, (id)(client_id)(client_timestamp)(server_timestamp)(token));
+REFLECT_STRUCT(leaf::keepalive, (id)(client_id)(client_timestamp)(server_timestamp));
 REFLECT_STRUCT(leaf::login_request, (username)(password));
 REFLECT_STRUCT(leaf::login_token, (token));
 REFLECT_STRUCT(leaf::error_message, (id)(error));
 REFLECT_STRUCT(leaf::upload_file_request, (id)(block_count)(padding_size)(filename));
 REFLECT_STRUCT(leaf::download_file_response, (id)(block_count)(padding_size)(filename));
 REFLECT_STRUCT(leaf::download_file_request, (id)(filename));
+REFLECT_STRUCT(leaf::delete_file_request, (id)(filename));
 REFLECT_STRUCT(leaf::files_response, (files)(token));
 REFLECT_STRUCT(leaf::files_response::file_node, (parent)(name)(type));
 }    // namespace reflect
@@ -35,6 +36,14 @@ static void read_padding(leaf::read_buffer &r)
     r.read_uint64(&xx);
 }
 
+leaf::message_type get_message_type(const std::string &data)
+{
+    leaf::read_buffer r(data.data(), data.size());
+    read_padding(r);
+    uint16_t type = 0;
+    r.read_uint16(&type);
+    return static_cast<leaf::message_type>(type);
+}
 leaf::message_type get_message_type(const std::vector<uint8_t> &data)
 {
     leaf::read_buffer r(data.data(), data.size());

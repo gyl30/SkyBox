@@ -5,12 +5,12 @@
 
 static void download_progress(const leaf::download_event &e)
 {
-    LOG_INFO("--> download progress {} {} {} {}", e.id, e.filename, e.download_size, e.file_size);
+    LOG_INFO("--> download progress {} {} {}", e.filename, e.download_size, e.file_size);
 }
 
 static void upload_progress(const leaf::upload_event &e)
 {
-    LOG_INFO("<-- upload progress {} {} {} {}", e.id, e.filename, e.upload_size, e.file_size);
+    LOG_INFO("<-- upload progress {} {} {}", e.filename, e.upload_size, e.file_size);
 }
 static void notify_progress(const leaf::notify_event &e)
 {

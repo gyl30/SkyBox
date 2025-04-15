@@ -101,7 +101,6 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
     }
     if (!exist)
     {
-        error_message(boost::system::errc::no_such_file_or_directory, "file not exist");
         LOG_ERROR("{} download_file_request file {} not exist", id_, download_file_path);
         return;
     }
@@ -169,7 +168,6 @@ void download_file_handle::update(const leaf::websocket_session::ptr& session)
     // file data send finish
     if (file_->active_block_count == file_->block_count)
     {
-        block_data_finish();
         status_ = leaf::download_file_handle::status::wait_download_file_request;
         return;
     }
@@ -227,13 +225,12 @@ void download_file_handle::on_keepalive(const std::optional<leaf::keepalive>& me
               k.client_timestamp,
               token_);
 }
-void download_file_handle::on_error_response(const std::optional<leaf::error_message>& message)
+void download_file_handle::on_error_message(const std::optional<leaf::error_message>& e)
 {
-    if (!message.has_value())
+    if (!e.has_value())
     {
         return;
     }
-    const auto& msg = message.value();
-    LOG_INFO("{} on_error_response {}", id_, msg.error);
+    LOG_INFO("{} on_error_response {}", id_, e->error);
 }
 }    // namespace leaf

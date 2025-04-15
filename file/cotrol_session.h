@@ -22,9 +22,9 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     void set_message_cb(std::function<void(std::vector<uint8_t>)> cb);
     void on_message(const std::vector<uint8_t> &bytes);
 
+
    private:
     void files_request();
-    void write_message(const codec_message &msg);
     void on_files_response(const std::optional<leaf::files_response> &);
 
    private:

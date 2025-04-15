@@ -303,7 +303,7 @@ void download_session::on_keepalive_response(const std::optional<leaf::keepalive
               k.client_timestamp,
               k.server_timestamp,
               diff,
-              token_);
+              token_.token);
 }
 void download_session::keepalive()
 {

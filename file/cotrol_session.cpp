@@ -24,28 +24,13 @@ void cotrol_session::set_message_cb(std::function<void(std::vector<uint8_t>)> cb
 
 void cotrol_session::on_message(const std::vector<uint8_t>& bytes)
 {
-    auto msg = leaf::deserialize_message(bytes.data(), bytes.size());
-    if (!msg)
+    auto type = get_message_type(bytes);
+    if (type == leaf::message_type::files_response)
     {
-        return;
-    }
-    leaf::read_buffer r(bytes.data(), bytes.size());
-    uint64_t padding = 0;
-    r.read_uint64(&padding);
-    uint16_t type = 0;
-    r.read_uint16(&type);
-    if (type == leaf::to_underlying(leaf::message_type::files_response))
-    {
-        on_files_response(leaf::message::deserialize_files_response(r));
+        on_files_response(leaf::deserialize_files_response(bytes));
     }
 }
 
-void cotrol_session::files_request()
-{
-    leaf::files_request r;
-    r.token = token_.token;
-    write_message(r);
-}
 void cotrol_session::on_files_response(const std::optional<leaf::files_response>& message)
 {
     if (!message.has_value())
@@ -59,14 +44,6 @@ void cotrol_session::on_files_response(const std::optional<leaf::files_response>
     e.method = "files";
     e.data = msg;
     notify_cb_(e);
-}
-void cotrol_session::write_message(const codec_message& msg)
-{
-    if (cb_)
-    {
-        auto bytes = leaf::serialize_message(msg);
-        cb_(std::move(bytes));
-    }
 }
 
 }    // namespace leaf

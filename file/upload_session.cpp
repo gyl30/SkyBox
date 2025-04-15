@@ -5,6 +5,9 @@
 #include "file/hash_file.h"
 #include "file/upload_session.h"
 
+constexpr auto kBlockSize = 128 * 1024;
+// constexpr auto kHashBlockCount = 10;
+
 namespace leaf
 {
 upload_session::upload_session(std::string id, leaf::upload_progress_callback cb)
@@ -18,87 +21,24 @@ void upload_session::startup() { LOG_INFO("{} startup", id_); }
 
 void upload_session::shutdown() { LOG_INFO("{} shutdown", id_); }
 
-void upload_session::login(const std::string& user, const std::string& pass, const leaf::login_token& l)
+void upload_session::login(const std::string& token)
 {
-    LOG_INFO("{} login user {} pass {}", id_, user, pass);
-    leaf::login_request req;
-    req.username = user;
-    req.password = pass;
-    req.token = l.token;
-    token_ = l;
-    write_message(req);
+    LOG_INFO("{} login token {}", id_, token);
+    token_.id = seq_++;
+    token_.token = token;
+    cb_(leaf::serialize_login_token(token_));
 }
 
 void upload_session::set_message_cb(std::function<void(std::vector<uint8_t>)> cb) { cb_ = std::move(cb); }
 
 void upload_session::on_message(const std::vector<uint8_t>& bytes)
 {
-    auto msg = leaf::deserialize_message(bytes.data(), bytes.size());
-    if (!msg)
+    auto type = leaf::get_message_type(bytes);
+    if (type == leaf::message_type::error)
     {
+        on_error_message(leaf::deserialize_error_message(bytes));
         return;
     }
-    leaf::read_buffer r(bytes.data(), bytes.size());
-    uint64_t padding = 0;
-    r.read_uint64(&padding);
-    uint16_t type = 0;
-    r.read_uint16(&type);
-    if (type == leaf::to_underlying(leaf::message_type::upload_file_response))
-    {
-        on_upload_file_response(leaf::message::deserialize_upload_file_response(r));
-    }
-    if (type == leaf::to_underlying(leaf::message_type::delete_file_response))
-    {
-        on_delete_file_response(leaf::message::deserialize_delete_file_response(r));
-    }
-    if (type == leaf::to_underlying(leaf::message_type::block_data_finish))
-    {
-        on_block_data_finish(leaf::message::deserialize_block_data_finish(r));
-    }
-    if (type == leaf::to_underlying(leaf::message_type::upload_file_exist))
-    {
-        on_upload_file_exist(leaf::message::deserialize_upload_file_exist(r));
-    }
-    if (type == leaf::to_underlying(leaf::message_type::keepalive))
-    {
-        on_keepalive_response(leaf::message::deserialize_keepalive_response(r));
-    }
-    if (type == leaf::to_underlying(leaf::message_type::error))
-    {
-        on_error_response(leaf::message::deserialize_error_response(r));
-    }
-    if (type == leaf::to_underlying(leaf::message_type::login_response))
-    {
-        on_login_response(leaf::message::deserialize_login_response(r));
-    }
-    if (type == leaf::to_underlying(leaf::message_type::block_data_request))
-    {
-        on_block_data_request(leaf::message::deserialize_block_data_request(r));
-    }
-}
-
-void upload_session::on_upload_file_response(const std::optional<leaf::upload_file_response>& message)
-{
-    if (!message.has_value())
-    {
-        return;
-    }
-    const auto& msg = message.value();
-
-    assert(file_ && file_->filename == msg.filename);
-    file_->id = msg.file_id;
-    file_->block_size = msg.block_size;
-    LOG_INFO("{} upload_file_response id {} name {}", id_, msg.file_id, msg.filename);
-}
-void upload_session::on_delete_file_response(const std::optional<leaf::delete_file_response>& message)
-{
-    if (!message.has_value())
-    {
-        return;
-    }
-    const auto& msg = message.value();
-
-    LOG_INFO("{} delete_file_response name {}", id_, msg.filename);
 }
 
 void upload_session::upload_file_request()
@@ -127,21 +67,16 @@ void upload_session::upload_file_request()
         return;
     }
     LOG_DEBUG("{} upload_file_request {} size {} hash {}", id_, file_->file_path, file_size, h);
-    leaf::upload_file_request create;
-    create.file_size = file_size;
-    create.hash = h;
-    create.filename = std::filesystem::path(file_->file_path).filename().string();
-    file_->file_size = file_size;
-    file_->filename = create.filename;
-    write_message(create);
-}
-void upload_session::write_message(const codec_message& msg)
-{
-    if (cb_)
+    leaf::upload_file_request u;
+    u.id = seq_++;
+    u.filename = std::filesystem::path(file_->file_path).filename().string();
+    u.block_count = file_size / kBlockSize;
+    if (file_size % kBlockSize != 0)
     {
-        auto bytes = leaf::serialize_message(msg);
-        cb_(std::move(bytes));
+        u.block_count++;
+        u.padding_size = kBlockSize - (file_size % kBlockSize);
     }
+    cb_(leaf::serialize_upload_file_request(u));
 }
 void upload_session::open_file()
 {
@@ -197,49 +132,6 @@ void upload_session::update()
     padding_file_event();
 }
 
-void upload_session::on_block_data_request(const std::optional<leaf::block_data_request>& message)
-{
-    if (!message.has_value())
-    {
-        return;
-    }
-    const auto& msg = message.value();
-
-    assert(file_ && reader_ && blake2b_);
-    LOG_DEBUG("{} block_data_request id {} block {}", id_, msg.file_id, msg.block_id);
-    if (msg.block_id != file_->active_block_count)
-    {
-        LOG_ERROR(
-            "{} block_data_request block {} less than send block {}", id_, msg.block_id, file_->active_block_count);
-        return;
-    }
-
-    boost::system::error_code ec;
-    std::vector<uint8_t> buffer(file_->block_size, '0');
-    auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
-    if (ec)
-    {
-        LOG_ERROR("{} block_data_request {} error {}", id_, msg.block_id, ec.message());
-        return;
-    }
-    blake2b_->update(buffer.data(), read_size);
-    buffer.resize(read_size);
-    file_->active_block_count = msg.block_id;
-    LOG_DEBUG("{} block_data_request id {} block {} size {}", id_, msg.file_id, msg.block_id, read_size);
-    leaf::block_data_response response;
-    response.file_id = msg.file_id;
-    response.block_id = msg.block_id;
-    response.data = std::move(buffer);
-    write_message(response);
-    file_->active_block_count = msg.block_id + 1;
-    upload_event e;
-    e.file_size = file_->file_size;
-    e.upload_size = reader_->size();
-    e.filename = file_->filename;
-    e.id = file_->id;
-    emit_event(e);
-}
-
 void upload_session::emit_event(const leaf::upload_event& e)
 {
     if (progress_cb_)
@@ -248,83 +140,24 @@ void upload_session::emit_event(const leaf::upload_event& e)
     }
 }
 
-void upload_session::on_block_data_finish(const std::optional<leaf::block_data_finish>& message)
+void upload_session::on_error_message(const std::optional<leaf::error_message>& e)
 {
-    if (!message.has_value())
+    if (!e.has_value())
     {
         return;
     }
-    const auto& msg = message.value();
 
-    assert(file_ && reader_ && blake2b_);
-    blake2b_->final();
-    LOG_INFO("{} block_data_finish id {} file {} hash {} size {} read size {} read hash {}",
-             id_,
-             msg.file_id,
-             msg.filename,
-             msg.hash,
-             file_->file_size,
-             reader_->size(),
-             blake2b_->hex());
-
-    file_ = nullptr;
-    blake2b_.reset();
-    auto r = reader_;
-    reader_ = nullptr;
-    auto ec = r->close();
-    if (ec)
-    {
-        LOG_ERROR("{} close file error {}", id_, ec.message());
-        return;
-    }
-}
-void upload_session::on_upload_file_exist(const std::optional<leaf::upload_file_exist>& message)
-{
-    if (!message.has_value())
-    {
-        return;
-    }
-    const auto& msg = message.value();
-
-    assert(file_ && reader_ && blake2b_);
-    auto ec = reader_->close();
-    if (ec)
-    {
-        LOG_ERROR("{} close file error {}", id_, ec.message());
-        return;
-    }
-    reader_.reset();
-    blake2b_->final();
-    blake2b_.reset();
-
-    std::string filename = std::filesystem::path(file_->file_path).filename().string();
-    assert(filename == msg.filename);
-    file_ = nullptr;
-    LOG_INFO("{} upload_file_exist {} hash {}", id_, msg.filename, msg.hash);
+    LOG_ERROR("{} error {}", id_, e->error);
 }
 
-void upload_session::on_error_response(const std::optional<leaf::error_message>& message)
+void upload_session::on_login_token(const std::optional<leaf::login_token>& l)
 {
-    if (!message.has_value())
+    if (!l.has_value())
     {
         return;
     }
-    const auto& msg = message.value();
-
-    LOG_ERROR("{} error {}", id_, msg.error);
-}
-
-void upload_session::on_login_response(const std::optional<leaf::login_response>& message)
-{
-    if (!message.has_value())
-    {
-        return;
-    }
-    const auto& msg = message.value();
-
     login_ = true;
-    assert(token_.token == msg.token);
-    LOG_INFO("{} login_response user {} token {}", id_, msg.username, msg.token);
+    LOG_INFO("{} login_response token {}", id_, l->token);
 }
 void upload_session::on_keepalive_response(const std::optional<leaf::keepalive>& message)
 {
@@ -346,7 +179,7 @@ void upload_session::on_keepalive_response(const std::optional<leaf::keepalive>&
               msg.client_timestamp,
               msg.server_timestamp,
               diff,
-              msg.token);
+              token_);
 }
 
 void upload_session::padding_file_event()
@@ -357,7 +190,6 @@ void upload_session::padding_file_event()
         e.file_size = p->file_size;
         e.upload_size = 0;
         e.filename = p->filename;
-        e.id = p->id;
         emit_event(e);
     }
 }
@@ -371,8 +203,7 @@ void upload_session::keepalive()
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
     k.server_timestamp = 0;
-    k.token = token_.token;
-    write_message(k);
+    cb_(leaf::serialize_keepalive(k));
 }
 
 }    // namespace leaf

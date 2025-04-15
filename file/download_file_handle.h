@@ -29,11 +29,8 @@ class download_file_handle : public websocket_handle
    private:
     void on_keepalive(const std::optional<leaf::keepalive>& message);
     void on_download_file_request(const std::optional<leaf::download_file_request>& message);
-    void block_data_finish();
-    void block_data_finish1(uint64_t file_id, const std::string& filename, const std::string& hash);
-    void on_error_response(const std::optional<leaf::error_message>& message);
     void on_login(const std::optional<leaf::login_token>& message);
-    void error_message(uint32_t code, const std::string& msg);
+    void on_error_message(const std::optional<leaf::error_message>& e);
 
    private:
     enum status : uint8_t
