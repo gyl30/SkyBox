@@ -26,22 +26,22 @@ class upload_file_handle : public websocket_handle
                     const std::shared_ptr<std::vector<uint8_t>>& bytes) override;
 
    private:
-    void on_login(const std::optional<leaf::login_request>& message);
-    void on_keepalive(const std::optional<leaf::keepalive>& message);
-    void on_upload_file_request(const std::optional<leaf::upload_file_request>& message);
-    void on_delete_file_request(const std::optional<leaf::delete_file_request>& message);
-    void on_block_data_response(const std::optional<leaf::block_data_response>& message);
-    void on_error_response(const std::optional<leaf::error_message>& message);
-    void block_data_request();
-    void block_data_finish();
-    void block_data_finish1(uint64_t file_id, const std::string& filename, const std::string& hash);
-    void upload_file_exist(const leaf::upload_file_request& msg);
-    void commit_message(const leaf::codec_message& msg);
+    void on_login(const std::optional<leaf::login_token>& l);
+    void on_keepalive(const std::optional<leaf::keepalive>& k);
+    void on_upload_file_request(const std::optional<leaf::upload_file_request>& u);
+    void on_file_data(const std::optional<leaf::file_data>& d);
 
    private:
+    enum upload_state : uint8_t
+    {
+        wait_login,
+        wait_upload_request,
+        wait_file_data
+    };
     std::string id_;
     std::string user_;
     std::string token_;
+    upload_state state_;
     std::vector<uint8_t> key_;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;

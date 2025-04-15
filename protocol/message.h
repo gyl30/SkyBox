@@ -10,8 +10,7 @@ enum class message_type : uint16_t
 {
     error = 0x00,
     login = 0x01,
-    upload_file_request = 0x2,
-    upload_file_response = 3,
+    upload_file_request = 2,
     delete_file_request = 4,
     delete_file_response = 5,
     download_file_request = 6,
@@ -55,7 +54,7 @@ struct files_response
 struct upload_file_request
 {
     uint32_t id = 0;
-    uint32_t block_size = 0;
+    uint32_t block_count = 0;
     uint32_t padding_size = 0;
     std::string filename;
 };
