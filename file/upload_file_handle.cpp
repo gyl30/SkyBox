@@ -12,7 +12,8 @@ constexpr auto kBlockSize = 128 * 1024;
 namespace leaf
 {
 
-upload_file_handle::upload_file_handle(std::string id) : id_(std::move(id))
+upload_file_handle::upload_file_handle(std::string id, leaf::websocket_session::ptr& session)
+    : id_(std::move(id)), session_(session)
 {
     LOG_INFO("create {}", id_);
     key_ = leaf::passwd_key();
@@ -30,31 +31,26 @@ void upload_file_handle::startup()
     LOG_INFO("startup {}", id_);
 }
 
-void upload_file_handle::on_message(const leaf::websocket_session::ptr& session,
-                                    const std::shared_ptr<std::vector<uint8_t>>& bytes)
+void upload_file_handle::on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes)
 {
-    if (bytes == nullptr)
+    if (ec)
+    {
+        shutdown();
+        return;
+    }
+    if (bytes.empty())
     {
         return;
     }
-    if (bytes->empty())
-    {
-        return;
-    }
-    auto type = get_message_type(*bytes);
+    auto type = get_message_type(bytes);
 
     if (type == leaf::message_type::upload_file_request)
     {
-        on_upload_file_request(leaf::deserialize_upload_file_request(*bytes));
+        on_upload_file_request(leaf::deserialize_upload_file_request(bytes));
     }
     if (type == leaf::message_type::file_data)
     {
-        on_file_data(leaf::deserialize_file_data(*bytes));
-    }
-    while (!msg_queue_.empty())
-    {
-        session->write(msg_queue_.front());
-        msg_queue_.pop();
+        on_file_data(leaf::deserialize_file_data(bytes));
     }
 }
 
@@ -123,7 +119,7 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     leaf::error_message e;
     e.error = 0;
     e.id = u->id;
-    msg_queue_.push(leaf::serialize_error_message(e));
+    session_->write(leaf::serialize_error_message(e));
 }
 
 void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
@@ -170,7 +166,7 @@ void upload_file_handle::on_login(const std::optional<leaf::login_token>& l)
     leaf::error_message e;
     e.id = l->id;
     e.error = 0;
-    msg_queue_.push(leaf::serialize_error_message(e));
+    session_->write(leaf::serialize_error_message(e));
 }
 
 void upload_file_handle::on_keepalive(const std::optional<leaf::keepalive>& k)
@@ -191,6 +187,6 @@ void upload_file_handle::on_keepalive(const std::optional<leaf::keepalive>& k)
               sk.server_timestamp,
               sk.client_timestamp,
               token_);
-    msg_queue_.push(serialize_keepalive(sk));
+    session_->write(serialize_keepalive(sk));
 }
 }    // namespace leaf

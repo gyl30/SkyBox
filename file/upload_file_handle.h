@@ -15,18 +15,18 @@ namespace leaf
 class upload_file_handle : public websocket_handle
 {
    public:
-    explicit upload_file_handle(std::string id);
+    explicit upload_file_handle(std::string id, leaf::websocket_session::ptr& session);
     ~upload_file_handle() override;
 
    public:
     void startup() override;
     void shutdown() override;
-    void update(const leaf::websocket_session::ptr&) override {}
     std::string type() const override { return "upload"; }
-    void on_message(const leaf::websocket_session::ptr& session,
-                    const std::shared_ptr<std::vector<uint8_t>>& bytes) override;
 
    private:
+    void on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes);
+    void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
+
     void on_login(const std::optional<leaf::login_token>& l);
     void on_keepalive(const std::optional<leaf::keepalive>& k);
     void on_upload_file_request(const std::optional<leaf::upload_file_request>& u);
@@ -47,7 +47,7 @@ class upload_file_handle : public websocket_handle
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;
-    std::queue<std::vector<uint8_t>> msg_queue_;
+    leaf::websocket_session::ptr session_;
 };
 
 }    // namespace leaf

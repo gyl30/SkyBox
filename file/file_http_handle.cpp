@@ -13,22 +13,23 @@
 namespace leaf
 {
 
-leaf::websocket_handle::ptr websocket_handle(const std::string &id, const std::string &target)
+leaf::websocket_handle::ptr websocket_handle(leaf::websocket_session::ptr &session,
+                                             const std::string &id,
+                                             const std::string &target)
 {
     LOG_INFO("{} websocket handle target {}", id, target);
     if (boost::ends_with(target, "upload"))
     {
-        return std::make_shared<upload_file_handle>(id);
+        return std::make_shared<upload_file_handle>(id, session);
     }
     if (boost::ends_with(target, "download"))
     {
-        return std::make_shared<download_file_handle>(id);
+        return std::make_shared<download_file_handle>(id, session);
     }
     if (boost::ends_with(target, "cotrol"))
     {
-        return std::make_shared<cotrol_file_handle>(id);
+        return std::make_shared<cotrol_file_handle>(id, session);
     }
-
     return nullptr;
 }
 

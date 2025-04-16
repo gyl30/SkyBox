@@ -17,14 +17,16 @@ class ssl_websocket_session : public leaf::websocket_session
 {
    public:
     explicit ssl_websocket_session(std::string id,
-                                   boost::beast::ssl_stream<boost::beast::tcp_stream> stream,
-                                   leaf::websocket_handle::ptr handle);
+                                   boost::beast::ssl_stream<boost::beast::tcp_stream>&& stream,
+                                   boost::beast::http::request<boost::beast::http::string_body> req);
     ~ssl_websocket_session() override;
 
    public:
-    void startup(const boost::beast::http::request<boost::beast::http::string_body>& req) override;
+    void startup() override;
     void shutdown() override;
     void write(const std::vector<uint8_t>& msg) override;
+    void set_read_cb(leaf::websocket_session::read_cb cb) override;
+    void set_write_cb(leaf::websocket_session::write_cb cb) override;
 
    private:
     void safe_shutdown();
@@ -38,10 +40,13 @@ class ssl_websocket_session : public leaf::websocket_session
 
    private:
     std::string id_;
+    bool writing_ = false;
     std::shared_ptr<void> self_;
-    leaf::websocket_handle::ptr h_;
     boost::beast::flat_buffer buffer_;
+    leaf::websocket_session::read_cb read_cb_;
+    leaf::websocket_session::write_cb write_cb_;
     std::queue<std::vector<uint8_t>> msg_queue_;
+    boost::beast::http::request<boost::beast::http::string_body> req_;
     boost::beast::websocket::stream<boost::beast::ssl_stream<boost::beast::tcp_stream>> ws_;
 };
 

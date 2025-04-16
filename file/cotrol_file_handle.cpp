@@ -9,35 +9,41 @@
 
 namespace leaf
 {
-cotrol_file_handle ::cotrol_file_handle(std::string id) : id_(std::move(id)) { LOG_INFO("create {}", id_); }
+cotrol_file_handle ::cotrol_file_handle(std::string id, leaf::websocket_session::ptr& session)
+    : id_(std::move(id)), session_(session)
+{
+    LOG_INFO("create {}", id_);
+}
 
 cotrol_file_handle::~cotrol_file_handle() { LOG_INFO("destroy {}", id_); }
 
-void cotrol_file_handle ::startup() { LOG_INFO("startup {}", id_); }
+void cotrol_file_handle ::startup()
+{
+    LOG_INFO("startup {}", id_);
+    // clang-format off
+    session_->set_read_cb(std::bind(&cotrol_file_handle::on_read, this, std::placeholders::_1, std::placeholders::_2));
+    session_->set_write_cb(std::bind(&cotrol_file_handle::on_write, this, std::placeholders::_1, std::placeholders::_2));
+    session_->startup();
+    // clang-format on
+}
 
 void cotrol_file_handle ::shutdown() { LOG_INFO("shutdown {}", id_); }
 
-void cotrol_file_handle ::on_message(const leaf::websocket_session::ptr& session,
-                                     const std::shared_ptr<std::vector<uint8_t>>& bytes)
+void cotrol_file_handle ::on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes)
 {
-    if (bytes == nullptr)
+    if (ec)
+    {
+        shutdown();
+        return;
+    }
+    if (bytes.empty())
     {
         return;
     }
-    if (bytes->empty())
-    {
-        return;
-    }
-    auto type = get_message_type(*bytes);
+    auto type = get_message_type(bytes);
     if (type == leaf::message_type::files_request)
     {
-        on_files_request(leaf::deserialize_files_request(*bytes));
-    }
-
-    while (!msg_queue_.empty())
-    {
-        session->write(msg_queue_.front());
-        msg_queue_.pop();
+        on_files_request(leaf::deserialize_files_request(bytes));
     }
 }
 static std::vector<leaf::files_response::file_node> lookup_dir(const std::string& dir)
@@ -85,6 +91,6 @@ void cotrol_file_handle::on_files_request(const std::optional<leaf::files_reques
     response.token = msg.token;
     response.files.swap(files);
     LOG_INFO("{} on_files_request dir {}", id_, dir);
-    msg_queue_.push(leaf::serialize_files_response(response));
+    session_->write(leaf::serialize_files_response(response));
 }
 }    // namespace leaf

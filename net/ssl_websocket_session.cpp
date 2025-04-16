@@ -7,21 +7,18 @@ namespace leaf
 {
 
 ssl_websocket_session::ssl_websocket_session(std::string id,
-                                             boost::beast::ssl_stream<boost::beast::tcp_stream> stream,
-                                             leaf::websocket_handle::ptr handle)
-    : id_(std::move(id)), h_(std::move(handle)), ws_(std::move(stream))
+                                             boost::beast::ssl_stream<boost::beast::tcp_stream>&& stream,
+                                             boost::beast::http::request<boost::beast::http::string_body> req)
+    : id_(std::move(id)), req_(std::move(req)), ws_(std::move(stream))
 {
     LOG_INFO("create {}", id_);
 }
 
-ssl_websocket_session::~ssl_websocket_session()
-{
-    //
-    LOG_INFO("destroy {}", id_);
-}
+ssl_websocket_session::~ssl_websocket_session() { LOG_INFO("destroy {}", id_); }
 
-void ssl_websocket_session::startup(const boost::beast::http::request<boost::beast::http::string_body>& req)
+void ssl_websocket_session::startup()
 {
+    assert(read_cb_ && write_cb_);
     self_ = shared_from_this();
     LOG_INFO("startup {}", id_);
     ws_.set_option(boost::beast::websocket::stream_base::timeout::suggested(boost::beast::role_type::server));
@@ -29,7 +26,7 @@ void ssl_websocket_session::startup(const boost::beast::http::request<boost::bea
     ws_.set_option(boost::beast::websocket::stream_base::decorator(
         [](boost::beast::websocket::response_type& res) { res.set(boost::beast::http::field::server, "leaf/ws"); }));
 
-    ws_.async_accept(req, boost::beast::bind_front_handler(&ssl_websocket_session::on_accept, this));
+    ws_.async_accept(req_, boost::beast::bind_front_handler(&ssl_websocket_session::on_accept, this));
 }
 
 void ssl_websocket_session::on_accept(boost::beast::error_code ec)
@@ -75,15 +72,13 @@ void ssl_websocket_session::on_read(boost::beast::error_code ec, std::size_t byt
 {
     boost::ignore_unused(bytes_transferred);
 
+    std::vector<uint8_t> bytes;
     if (ec)
     {
         LOG_ERROR("{} read failed {}", id_, ec.message());
-        shutdown();
+        read_cb_(ec, bytes);
         return;
     }
-
-    auto bytes = leaf::buffers_to_vector(buffer_.data());
-
     buffer_.consume(buffer_.size());
 
     if (!ws_.binary())
@@ -92,7 +87,8 @@ void ssl_websocket_session::on_read(boost::beast::error_code ec, std::size_t byt
         return;
     }
 
-    h_->on_message(shared_from_this(), bytes);
+    bytes = leaf::buffers_to_vector(buffer_.data());
+    read_cb_(ec, bytes);
 
     do_read();
 }
@@ -114,22 +110,29 @@ void ssl_websocket_session::do_write()
     {
         return;
     }
+    if (writing_)
+    {
+        return;
+    }
+
+    writing_ = true;
     auto& msg = msg_queue_.front();
-    ws_.async_write(boost::asio::buffer(msg.data(), msg.size() - 1),
-                    boost::beast::bind_front_handler(&ssl_websocket_session::on_write, this));
+    ws_.async_write(boost::asio::buffer(msg), boost::beast::bind_front_handler(&ssl_websocket_session::on_write, this));
 }
 
 void ssl_websocket_session::on_write(boost::beast::error_code ec, std::size_t bytes_transferred)
 {
     boost::ignore_unused(bytes_transferred);
 
+    write_cb_(ec, bytes_transferred);
     if (ec)
     {
         LOG_ERROR("{} write failed {}", id_, ec.message());
-        shutdown();
         return;
     }
+    writing_ = false;
     msg_queue_.pop();
+    do_write();
 }
 
 }    // namespace leaf

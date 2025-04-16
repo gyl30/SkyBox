@@ -13,23 +13,22 @@ namespace leaf
 class cotrol_file_handle : public websocket_handle
 {
    public:
-    explicit cotrol_file_handle(std::string id);
+    explicit cotrol_file_handle(std::string id, leaf::websocket_session::ptr& session);
     ~cotrol_file_handle() override;
 
    public:
     void startup() override;
     void shutdown() override;
-    void update(const leaf::websocket_session::ptr&) override {}
     std::string type() const override { return "cotrol"; }
-    void on_message(const leaf::websocket_session::ptr& session,
-                    const std::shared_ptr<std::vector<uint8_t>>& bytes) override;
 
    private:
+    void on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes);
+    void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
     void on_files_request(const std::optional<leaf::files_request>& message);
 
    private:
     std::string id_;
-    std::queue<std::vector<uint8_t>> msg_queue_;
+    leaf::websocket_session::ptr session_;
 };
 
 }    // namespace leaf

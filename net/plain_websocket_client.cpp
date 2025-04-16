@@ -136,7 +136,8 @@ void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t by
 
     buffer_.consume(buffer_.size());
 
-    on_message(msg);
+    auto msg_shared = std::make_shared<std::vector<uint8_t>>(msg);
+    on_message(msg_shared);
 
     do_read();
 }
