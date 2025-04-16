@@ -26,17 +26,19 @@ class download_file_handle : public websocket_handle
    private:
     void on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes);
     void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
-    void on_keepalive(const std::optional<leaf::keepalive>& message);
-    void on_download_file_request(const std::optional<leaf::download_file_request>& message);
-    void on_login(const std::optional<leaf::login_token>& message);
+    void on_keepalive(const std::optional<leaf::keepalive>& k);
+    void on_download_file_request(const std::optional<leaf::download_file_request>& download);
+    void on_login(const std::optional<leaf::login_token>& l);
     void on_error_message(const std::optional<leaf::error_message>& e);
+    void on_file_data(const std::optional<leaf::file_data>& fd);
+    void reset_status();
 
    private:
     enum status : uint8_t
     {
         wait_login = 0,
         wait_download_file_request,
-        file_data,
+        wait_file_data,
     };
     std::string id_;
     std::string token_;

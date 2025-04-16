@@ -44,9 +44,17 @@ void upload_file_handle::on_read(boost::beast::error_code ec, const std::vector<
     }
     auto type = get_message_type(bytes);
 
+    if (type == leaf::message_type::login)
+    {
+        on_login(leaf::deserialize_login_token(bytes));
+    }
     if (type == leaf::message_type::upload_file_request)
     {
         on_upload_file_request(leaf::deserialize_upload_file_request(bytes));
+    }
+    if (type == leaf::message_type::keepalive)
+    {
+        on_keepalive(leaf::deserialize_keepalive_response(bytes));
     }
     if (type == leaf::message_type::file_data)
     {
