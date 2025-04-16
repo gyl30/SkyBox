@@ -46,6 +46,15 @@ void cotrol_file_handle ::on_read(boost::beast::error_code ec, const std::vector
         on_files_request(leaf::deserialize_files_request(bytes));
     }
 }
+
+void cotrol_file_handle::on_write(boost::beast::error_code ec, std::size_t /*transferred*/)
+{
+    if (ec)
+    {
+        shutdown();
+        return;
+    }
+}
 static std::vector<leaf::files_response::file_node> lookup_dir(const std::string& dir)
 {
     if (!std::filesystem::exists(dir))

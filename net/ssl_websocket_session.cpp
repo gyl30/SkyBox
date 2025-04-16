@@ -16,6 +16,10 @@ ssl_websocket_session::ssl_websocket_session(std::string id,
 
 ssl_websocket_session::~ssl_websocket_session() { LOG_INFO("destroy {}", id_); }
 
+void ssl_websocket_session::set_read_cb(leaf::websocket_session::read_cb cb) { read_cb_ = std::move(cb); }
+
+void ssl_websocket_session::set_write_cb(leaf::websocket_session::write_cb cb) { write_cb_ = std::move(cb); }
+
 void ssl_websocket_session::startup()
 {
     assert(read_cb_ && write_cb_);
