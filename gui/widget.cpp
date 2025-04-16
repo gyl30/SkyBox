@@ -607,7 +607,7 @@ void Widget::on_style_btn_clicked()
 }
 void Widget::on_progress_slot(const leaf::task &e)
 {
-    LOG_INFO("{} progress {} {} {} {}", e.op, e.id, e.filename, e.process_size, e.file_size);
+    LOG_INFO("{} progress {} {} {}", e.op, e.filename, e.process_size, e.file_size);
     if (e.process_size == e.file_size && e.file_size != 0)
     {
         model_->delete_task(e);
@@ -622,7 +622,6 @@ void Widget::download_progress(const leaf::download_event &e)
 {
     leaf::task t;
     t.file_size = e.file_size;
-    t.id = e.id;
     t.filename = e.filename;
     t.process_size = e.download_size;
     t.op = "download";
@@ -698,7 +697,6 @@ void Widget::upload_progress(const leaf::upload_event &e)
 {
     leaf::task t;
     t.file_size = e.file_size;
-    t.id = e.id;
     t.filename = e.filename;
     t.process_size = e.upload_size;
     t.op = "upload";

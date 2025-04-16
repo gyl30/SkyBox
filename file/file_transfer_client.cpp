@@ -35,7 +35,7 @@ void file_transfer_client::do_login()
     leaf::login_request l;
     l.username = user_;
     l.password = pass_;
-    auto data = leaf::message::serialize_login_request(l);
+    auto data = leaf::serialize_login_request(l);
     c->post(login_url_,
             std::string(data.begin(), data.end()),
             [this, c](boost::beast::error_code ec, const std::string &res)
@@ -52,7 +52,8 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
         LOG_ERROR("{} login failed {}", id_, ec.message());
         return;
     }
-    auto l = leaf::deserialize_message(res);
+    std::vector<uint8_t> data(res.begin(), res.end());
+    auto l = leaf::deserialize_login_token(data);
     if (!l)
     {
         LOG_ERROR("{} login deserialize failed {}", id_, res);
@@ -60,9 +61,9 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     }
     login_ = true;
     token_ = l->token;
-    LOG_INFO("login {} {} token {} block {}", user_, pass_, token_, l->block_size);
-    upload_->login(user_, pass_, l.value());
-    download_->login(user_, pass_, l.value());
+    LOG_INFO("login {} {} token {}", user_, pass_, token_, l->token);
+    upload_->login(l->token);
+    download_->login(l->token);
     start_timer();
 }
 
@@ -220,13 +221,7 @@ void file_transfer_client::add_upload_file(const std::string &filename)
     file->filename = std::filesystem::path(filename).filename();
     upload_->add_file(file);
 }
-void file_transfer_client::add_download_file(const std::string &filename)
-{
-    auto file = std::make_shared<leaf::file_context>();
-    file->file_path = filename;
-    file->filename = std::filesystem::path(filename).filename();
-    download_->add_file(file);
-}
+void file_transfer_client::add_download_file(const std::string &filename) { download_->add_file(filename); }
 
 void file_transfer_client::on_login_failed() const
 {

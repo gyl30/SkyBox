@@ -19,6 +19,7 @@ class cotrol_file_handle : public websocket_handle
    public:
     void startup() override;
     void shutdown() override;
+    void update(const leaf::websocket_session::ptr&) override {}
     std::string type() const override { return "cotrol"; }
     void on_message(const leaf::websocket_session::ptr& session,
                     const std::shared_ptr<std::vector<uint8_t>>& bytes) override;

@@ -116,7 +116,7 @@ void download_session::on_download_file_response(const std::optional<leaf::downl
     }
 
     const auto& msg = message.value();
-    auto file_size = kBlockSize * msg.block_count;
+    uint32_t file_size = kBlockSize * msg.block_count;
     if (msg.padding_size != 0)
     {
         file_size = kBlockSize - msg.padding_size;
@@ -131,7 +131,7 @@ void download_session::on_download_file_response(const std::optional<leaf::downl
     }
     if (exists)
     {
-        auto exists_size = std::filesystem::file_size(msg.filename, exists_ec);
+        uint32_t exists_size = std::filesystem::file_size(msg.filename, exists_ec);
         if (exists_ec)
         {
             LOG_ERROR("{} download_file {} file size failed {}", id_, msg.filename, exists_ec.message());

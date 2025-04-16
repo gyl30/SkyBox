@@ -179,7 +179,7 @@ void upload_session::on_keepalive_response(const std::optional<leaf::keepalive>&
               msg.client_timestamp,
               msg.server_timestamp,
               diff,
-              token_);
+              token_.token);
 }
 
 void upload_session::padding_file_event()

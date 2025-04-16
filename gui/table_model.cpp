@@ -14,7 +14,6 @@ void task_model::add_or_update_task(const leaf::task &task)
         {
             t.process_size = task.process_size;
             t.file_size = task.file_size;
-            t.id = task.id;
             update = true;
             break;
         }
@@ -55,19 +54,17 @@ QVariant task_model::headerData(int section, Qt::Orientation orientation, int ro
 }
 QVariant task_model::set_header_data(int section, int role)
 {
-    if (role == Qt::DisplayRole)
+    if (role != Qt::DisplayRole)
     {
-        QString value;
-        switch (section)
-        {
-            case 0:
-                value = "源文件";
-                break;
-            case 1:
-                value = "处理进度";
-                break;
-        }
-        return value;
+        return {};
+    }
+    if (section == 0)
+    {
+        return "源文件";
+    }
+    if (section == 1)
+    {
+        return "处理进度";
     }
     return {};
 }
@@ -96,7 +93,7 @@ QVariant task_model::tooltip_data(const QModelIndex &index, int role) const
     return {};
 }
 
-QVariant task_model::display_data(const QModelIndex &index, int role) const
+QVariant task_model::display_data(const QModelIndex &index, int /*role*/) const
 {
     if (!index.isValid() || index.column() >= columnCount(index) || index.row() >= rowCount(index))
     {
