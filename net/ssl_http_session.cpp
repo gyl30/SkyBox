@@ -92,8 +92,9 @@ void ssl_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_tr
     {
         boost::beast::get_lowest_layer(stream_).expires_never();
         boost::beast::http::request<boost::beast::http::string_body> req(parser_->release());
+        std::string target = req.target();
         leaf::websocket_session::ptr s = std::make_shared<leaf::ssl_websocket_session>(id_, std::move(stream_), std::move(req));
-        handle_.ws_handle(s, id_, req.target())->startup();
+        handle_.ws_handle(s, id_, target)->startup();
         return;
     }
     auto req_ptr = std::make_shared<boost::beast::http::request<boost::beast::http::string_body>>(parser_->release());

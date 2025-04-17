@@ -27,7 +27,11 @@ upload_file_handle::~upload_file_handle()
 
 void upload_file_handle::startup()
 {
-    //
+    // clang-format off
+    session_->set_read_cb([this, self = shared_from_this()](boost::beast::error_code ec, const std::vector<uint8_t>& bytes) { on_read(ec, bytes); });
+    session_->set_write_cb([this, self = shared_from_this()](boost::beast::error_code ec, std::size_t bytes_transferred) { on_write(ec, bytes_transferred); });
+    session_->startup();
+    // clang-format on
     LOG_INFO("startup {}", id_);
 }
 
@@ -62,9 +66,23 @@ void upload_file_handle::on_read(boost::beast::error_code ec, const std::vector<
     }
 }
 
-void upload_file_handle::shutdown()
+void upload_file_handle::on_write(boost::beast::error_code ec, std::size_t /*transferred*/)
 {
-    //
+    if (ec)
+    {
+        shutdown();
+        return;
+    }
+}
+void upload_file_handle ::shutdown()
+{
+    std::call_once(shutdown_flag_, [this, self = shared_from_this()]() { safe_shutdown(); });
+}
+
+void upload_file_handle::safe_shutdown()
+{
+    session_->shutdown();
+    session_.reset();
     LOG_INFO("shutdown {}", id_);
 }
 

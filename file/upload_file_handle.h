@@ -2,6 +2,7 @@
 #define LEAF_FILE_UPLOAD_FILE_HANDLE_H
 
 #include <queue>
+#include <mutex>
 #include "file/file.h"
 #include "protocol/codec.h"
 #include "protocol/message.h"
@@ -24,9 +25,9 @@ class upload_file_handle : public websocket_handle
     std::string type() const override { return "upload"; }
 
    private:
+    void safe_shutdown();
     void on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes);
     void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
-
     void on_login(const std::optional<leaf::login_token>& l);
     void on_keepalive(const std::optional<leaf::keepalive>& k);
     void on_upload_file_request(const std::optional<leaf::upload_file_request>& u);
@@ -45,6 +46,7 @@ class upload_file_handle : public websocket_handle
     upload_state state_;
     std::vector<uint8_t> key_;
     leaf::file_context::ptr file_;
+    std::once_flag shutdown_flag_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;
     leaf::websocket_session::ptr session_;

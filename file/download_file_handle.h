@@ -2,6 +2,7 @@
 #define LEAF_FILE_DOWNLOAD_FILE_HANDLE_H
 
 #include <queue>
+#include <mutex>
 #include "file/file.h"
 #include "protocol/codec.h"
 #include "protocol/message.h"
@@ -24,6 +25,7 @@ class download_file_handle : public websocket_handle
     std::string type() const override { return "download"; }
 
    private:
+    void safe_shutdown();
     void on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes);
     void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
     void on_keepalive(const std::optional<leaf::keepalive>& k);
@@ -44,6 +46,7 @@ class download_file_handle : public websocket_handle
     std::string token_;
     status status_ = wait_login;
     leaf::file_context::ptr file_;
+    std::once_flag shutdown_flag_;
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> hash_;
     leaf::websocket_session::ptr session_;
