@@ -52,6 +52,10 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
         LOG_ERROR("{} login failed {}", id_, ec.message());
         return;
     }
+    if (login_)
+    {
+        return;
+    }
     std::vector<uint8_t> data(res.begin(), res.end());
     auto l = leaf::deserialize_login_token(data);
     if (!l)
