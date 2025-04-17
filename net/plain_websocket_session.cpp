@@ -42,6 +42,8 @@ void plain_websocket_session::shutdown()
 void plain_websocket_session::safe_shutdown()
 {
     LOG_INFO("shutdown {}", id_);
+    read_cb_ = nullptr;
+    write_cb_ = nullptr;
     boost::beast::error_code ec;
     ec = ws_.next_layer().socket().close(ec);
     auto self = self_;
@@ -89,7 +91,10 @@ void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t b
     if (ec)
     {
         LOG_ERROR("{} read failed {}", id_, ec.message());
-        read_cb_(ec, bytes);
+        if (read_cb_)
+        {
+            read_cb_(ec, bytes);
+        }
         return;
     }
     if (!ws_.got_binary())
@@ -101,7 +106,10 @@ void plain_websocket_session::on_read(boost::beast::error_code ec, std::size_t b
     LOG_TRACE("{} read message size {}", id_, bytes_transferred);
     bytes = leaf::buffers_to_vector(buffer_.data());
     buffer_.consume(buffer_.size());
-    read_cb_(ec, bytes);
+    if (read_cb_)
+    {
+        read_cb_(ec, bytes);
+    }
     do_read();
 }
 
