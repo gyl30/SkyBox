@@ -8,7 +8,7 @@ namespace reflect
 {
 REFLECT_STRUCT(leaf::keepalive, (id)(client_id)(client_timestamp)(server_timestamp));
 REFLECT_STRUCT(leaf::login_request, (username)(password));
-REFLECT_STRUCT(leaf::login_token, (token));
+REFLECT_STRUCT(leaf::login_token, (id)(token));
 REFLECT_STRUCT(leaf::error_message, (id)(error));
 REFLECT_STRUCT(leaf::upload_file_request, (id)(block_count)(padding_size)(filename));
 REFLECT_STRUCT(leaf::download_file_response, (id)(block_count)(padding_size)(filename));
@@ -348,6 +348,14 @@ std::optional<leaf::login_token> deserialize_login_token(const std::vector<uint8
         return {};
     }
 
+    read_padding(r);
+    uint16_t type = 0;
+    r.read_uint16(&type);
+    if (type != leaf::to_underlying(message_type::login))
+    {
+        return {};
+    }
+
     std::string str;
     r.read_string(&str, r.size());
     if (str.empty())
@@ -380,7 +388,13 @@ std::optional<leaf::files_request> deserialize_files_request(const std::vector<u
     {
         return {};
     }
-
+    read_padding(r);
+    uint16_t type = 0;
+    r.read_uint16(&type);
+    if (type != leaf::to_underlying(message_type::files_request))
+    {
+        return {};
+    }
     std::string str;
     r.read_string(&str, r.size());
     if (str.empty())
