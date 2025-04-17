@@ -256,7 +256,7 @@ void download_session::update()
     {
         return;
     }
-    keepalive();
+    // keepalive();
     download_file_request();
 }
 

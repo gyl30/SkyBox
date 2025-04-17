@@ -142,10 +142,10 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
         return;
     }
     state_ = wait_file_data;
-    leaf::error_message e;
-    e.error = 0;
-    e.id = u->id;
-    session_->write(leaf::serialize_error_message(e));
+    leaf::upload_file_response ufr;
+    ufr.id = u->id;
+    ufr.filename = u->filename;
+    session_->write(leaf::serialize_upload_file_response(ufr));
 }
 
 void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)

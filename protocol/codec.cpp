@@ -11,6 +11,7 @@ REFLECT_STRUCT(leaf::login_request, (username)(password));
 REFLECT_STRUCT(leaf::login_token, (id)(token));
 REFLECT_STRUCT(leaf::error_message, (id)(error));
 REFLECT_STRUCT(leaf::upload_file_request, (id)(block_count)(padding_size)(filename));
+REFLECT_STRUCT(leaf::upload_file_response, (id)(filename));
 REFLECT_STRUCT(leaf::download_file_response, (id)(block_count)(padding_size)(filename));
 REFLECT_STRUCT(leaf::download_file_request, (id)(filename));
 REFLECT_STRUCT(leaf::delete_file_request, (id)(filename));
@@ -92,6 +93,45 @@ std::optional<leaf::upload_file_request> deserialize_upload_file_request(const s
         return {};
     }
     return req;
+}
+// response
+std::vector<uint8_t> serialize_upload_file_response(const upload_file_response &msg)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(leaf::to_underlying(message_type::upload_file_response));
+    std::string str = reflect::serialize_struct(msg);
+    w.write_bytes(str.data(), str.size());
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
+}
+std::optional<leaf::upload_file_response> deserialize_upload_file_response(const std::vector<uint8_t> &data)
+{
+    leaf::read_buffer r(data.data(), data.size());
+    if (r.size() > 2048)
+    {
+        return {};
+    }
+    read_padding(r);
+    uint16_t type = 0;
+    r.read_uint16(&type);
+    if (type != leaf::to_underlying(message_type::upload_file_response))
+    {
+        return {};
+    }
+    std::string str;
+    r.read_string(&str, r.size());
+    if (str.empty())
+    {
+        return {};
+    }
+    leaf::upload_file_response resp;
+    if (!reflect::deserialize_struct(resp, str))
+    {
+        return {};
+    }
+    return resp;
 }
 
 std::vector<uint8_t> serialize_error_message(const error_message &msg)

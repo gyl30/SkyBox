@@ -28,12 +28,12 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void login(const std::string &token);
 
    private:
-    void open_file();
     void update_process_file();
     void upload_file_request();
     void keepalive();
     void padding_file_event();
     void on_keepalive_response(const std::optional<leaf::keepalive> &);
+    void on_upload_file_response(const std::optional<leaf::upload_file_response> &);
     void on_error_message(const std::optional<leaf::error_message> &);
     void on_login_token(const std::optional<leaf::login_token> &l);
     void emit_event(const leaf::upload_event &e);

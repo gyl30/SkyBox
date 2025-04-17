@@ -15,6 +15,7 @@ std::vector<uint8_t> serialize_login_token(const leaf::login_token &l);
 std::vector<uint8_t> serialize_files_request(const leaf::files_request &f);
 std::vector<uint8_t> serialize_files_response(const leaf::files_response &f);
 std::vector<uint8_t> serialize_upload_file_request(const upload_file_request &msg);
+std::vector<uint8_t> serialize_upload_file_response(const upload_file_response &msg);
 std::vector<uint8_t> serialize_download_file_request(const download_file_request &msg);
 std::vector<uint8_t> serialize_download_file_response(const download_file_response &msg);
 std::vector<uint8_t> serialize_delete_file_request(const delete_file_request &msg);
@@ -22,6 +23,7 @@ std::vector<uint8_t> serialize_file_data(const file_data &data);
 
 std::optional<leaf::error_message> deserialize_error_message(const std::vector<uint8_t> &data);
 std::optional<leaf::upload_file_request> deserialize_upload_file_request(const std::vector<uint8_t> &data);
+std::optional<leaf::upload_file_response> deserialize_upload_file_response(const std::vector<uint8_t> &data);
 std::optional<leaf::download_file_request> deserialize_download_file_request(const std::vector<uint8_t> &data);
 std::optional<leaf::download_file_response> deserialize_download_file_response(const std::vector<uint8_t> &data);
 std::optional<leaf::delete_file_request> deserialize_delete_file_request(const std::vector<uint8_t> &data);

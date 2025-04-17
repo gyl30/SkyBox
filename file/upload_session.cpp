@@ -2,7 +2,6 @@
 #include <filesystem>
 #include "log/log.h"
 #include "file/file.h"
-#include "file/hash_file.h"
 #include "file/upload_session.h"
 
 constexpr auto kBlockSize = 128 * 1024;
@@ -39,6 +38,11 @@ void upload_session::on_message(const std::vector<uint8_t>& bytes)
         on_error_message(leaf::deserialize_error_message(bytes));
         return;
     }
+    if (type == leaf::message_type::upload_file_response)
+    {
+        on_upload_file_response(leaf::deserialize_upload_file_response(bytes));
+        return;
+    }
     if (type == leaf::message_type::login)
     {
         on_login_token(leaf::deserialize_login_token(bytes));
@@ -52,13 +56,6 @@ void upload_session::upload_file_request()
     {
         return;
     }
-    boost::system::error_code hash_ec;
-    std::string h = leaf::hash_file(file_->file_path, hash_ec);
-    if (hash_ec)
-    {
-        LOG_ERROR("{} upload_file_request file {} hash error {}", id_, file_->file_path, hash_ec.message());
-        return;
-    }
     std::error_code size_ec;
     auto file_size = std::filesystem::file_size(file_->file_path, size_ec);
     if (size_ec)
@@ -66,25 +63,7 @@ void upload_session::upload_file_request()
         LOG_ERROR("{} upload_file_request file {} size error {}", id_, file_->file_path, size_ec.message());
         return;
     }
-    open_file();
-    if (reader_ == nullptr)
-    {
-        return;
-    }
-    LOG_DEBUG("{} upload_file_request {} size {} hash {}", id_, file_->file_path, file_size, h);
-    leaf::upload_file_request u;
-    u.id = seq_++;
-    u.filename = std::filesystem::path(file_->file_path).filename().string();
-    u.block_count = file_size / kBlockSize;
-    if (file_size % kBlockSize != 0)
-    {
-        u.block_count++;
-        u.padding_size = kBlockSize - (file_size % kBlockSize);
-    }
-    cb_(leaf::serialize_upload_file_request(u));
-}
-void upload_session::open_file()
-{
+
     assert(file_ && !reader_ && !blake2b_);
 
     reader_ = std::make_shared<leaf::file_reader>(file_->file_path);
@@ -95,6 +74,27 @@ void upload_session::open_file()
         return;
     }
     blake2b_ = std::make_shared<leaf::blake2b>();
+    if (reader_ == nullptr)
+    {
+        return;
+    }
+    LOG_DEBUG("{} upload_file_request {} size {}", id_, file_->file_path, file_size);
+    leaf::upload_file_request u;
+    u.id = seq_++;
+    u.filename = std::filesystem::path(file_->file_path).filename().string();
+    u.block_count = file_size / kBlockSize;
+    if (file_size % kBlockSize != 0)
+    {
+        u.block_count++;
+        u.padding_size = kBlockSize - (file_size % kBlockSize);
+    }
+    file_->active_block_count = u.block_count;
+    file_->padding_size = u.padding_size;
+    file_->block_count = u.block_count;
+    file_->file_size = file_size;
+    file_->block_size = kBlockSize;
+    file_->hash_block_count = 0;
+    cb_(leaf::serialize_upload_file_request(u));
 }
 void upload_session::add_file(const leaf::file_context::ptr& file)
 {
@@ -187,6 +187,19 @@ void upload_session::on_keepalive_response(const std::optional<leaf::keepalive>&
               token_.token);
 }
 
+void upload_session::on_upload_file_response(const std::optional<leaf::upload_file_response>& res)
+{
+    if (!res.has_value())
+    {
+        return;
+    }
+    const auto& msg = res.value();
+    LOG_DEBUG("{} upload_file_response {} filename {}", id_, msg.id, msg.filename);
+    if (file_ == nullptr)
+    {
+        return;
+    }
+}
 void upload_session::padding_file_event()
 {
     for (const auto& p : padding_files_)

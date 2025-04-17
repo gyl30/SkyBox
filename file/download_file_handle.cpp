@@ -153,6 +153,7 @@ void download_file_handle::on_login(const std::optional<leaf::login_token>& l)
     {
         return;
     }
+    status_ = wait_download_file_request;
     token_ = l->token;
     LOG_INFO("{} on_login token {}", id_, token_);
     session_->write(leaf::serialize_login_token(l.value()));

@@ -6,11 +6,12 @@
 
 namespace leaf
 {
-enum class message_type : uint16_t
+enum class message_type : uint8_t
 {
     error = 0x00,
     login = 0x01,
     upload_file_request = 2,
+    upload_file_response = 3,
     delete_file_request = 4,
     delete_file_response = 5,
     download_file_request = 6,
@@ -18,7 +19,7 @@ enum class message_type : uint16_t
     keepalive = 8,
     files_request = 9,
     files_response = 10,
-    file_data,
+    file_data = 11,
 };
 
 struct login_request
@@ -56,6 +57,11 @@ struct upload_file_request
     uint32_t id = 0;
     uint32_t block_count = 0;
     uint32_t padding_size = 0;
+    std::string filename;
+};
+struct upload_file_response
+{
+    uint32_t id = 0;
     std::string filename;
 };
 struct file_data
