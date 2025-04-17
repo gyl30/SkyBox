@@ -39,6 +39,11 @@ void upload_session::on_message(const std::vector<uint8_t>& bytes)
         on_error_message(leaf::deserialize_error_message(bytes));
         return;
     }
+    if (type == leaf::message_type::login)
+    {
+        on_login_token(leaf::deserialize_login_token(bytes));
+        return;
+    }
 }
 
 void upload_session::upload_file_request()

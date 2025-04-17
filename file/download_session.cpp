@@ -27,11 +27,10 @@ void download_session::set_message_cb(std::function<void(std::vector<uint8_t>)> 
 
 void download_session::login(const std::string& token)
 {
-    leaf::login_token l;
-    l.token = token;
-    l.id = seq_++;
-    LOG_INFO("{} login token {}:{}", id_, l.id, token);
-    write_message(leaf::serialize_login_token(l));
+    token_.token = token;
+    token_.id = seq_++;
+    LOG_INFO("{} login token {}:{}", id_, token_.id, token);
+    write_message(leaf::serialize_login_token(token_));
 }
 
 void download_session::on_message(const std::vector<uint8_t>& bytes)
@@ -278,7 +277,7 @@ void download_session::on_error_message(const std::optional<leaf::error_message>
         file_.reset();
         notify_cb_(e);
     }
-    LOG_ERROR("{} download_fileerror {} {}", id_, msg.id, msg.error);
+    LOG_ERROR("{} download_file error {} {}", id_, msg.id, msg.error);
     this->reset();
 }
 

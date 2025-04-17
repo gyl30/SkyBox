@@ -59,7 +59,6 @@ class download_session : public std::enable_shared_from_this<download_session>
     leaf::download_progress_callback progress_cb_;
     leaf::notify_progress_callback notify_cb_;
     std::queue<std::string> padding_files_;
-    std::function<void(std::vector<uint8_t>)> message_cb_;
 };
 }    // namespace leaf
 

@@ -189,10 +189,7 @@ void upload_file_handle::on_login(const std::optional<leaf::login_token>& l)
     }
     LOG_INFO("{} on_login token {}", id_, l->token);
 
-    leaf::error_message e;
-    e.id = l->id;
-    e.error = 0;
-    session_->write(leaf::serialize_error_message(e));
+    session_->write(leaf::serialize_login_token(l.value()));
 }
 
 void upload_file_handle::on_keepalive(const std::optional<leaf::keepalive>& k)
