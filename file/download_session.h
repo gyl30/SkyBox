@@ -1,19 +1,24 @@
 #ifndef LEAF_FILE_DOWNLOAD_SESSION_H
 #define LEAF_FILE_DOWNLOAD_SESSION_H
 
-#include <queue>
 #include "file/file.h"
 #include "file/event.h"
 #include "protocol/codec.h"
 #include "crypt/blake2b.h"
 #include "file/file_context.h"
+#include "net/plain_websocket_client.h"
 
 namespace leaf
 {
 class download_session : public std::enable_shared_from_this<download_session>
 {
    public:
-    download_session(std::string id, leaf::download_progress_callback cb, leaf::notify_progress_callback notify_cb);
+    download_session(std::string id,
+                     leaf::download_progress_callback cb,
+                     leaf::notify_progress_callback notify_cb,
+                     boost::asio::ip::tcp::endpoint ed_,
+                     boost::asio::io_context &io);
+
     ~download_session();
 
    public:
@@ -51,14 +56,17 @@ class download_session : public std::enable_shared_from_this<download_session>
     uint32_t seq_ = 0;
     std::string id_;
     leaf::login_token token_;
+    boost::asio::io_context &io_;
+    boost::asio::ip::tcp::endpoint ed_;
     download_status status_ = wait_download_file;
     leaf::file_context::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;
+    std::queue<std::string> padding_files_;
+    leaf::notify_progress_callback notify_cb_;
     std::function<void(std::vector<uint8_t>)> cb_;
     leaf::download_progress_callback progress_cb_;
-    leaf::notify_progress_callback notify_cb_;
-    std::queue<std::string> padding_files_;
+    std::shared_ptr<leaf::plain_websocket_client> ws_client_;
 };
 }    // namespace leaf
 

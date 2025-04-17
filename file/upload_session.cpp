@@ -5,12 +5,16 @@
 #include "file/upload_session.h"
 
 constexpr auto kBlockSize = 128 * 1024;
-// constexpr auto kHashBlockCount = 10;
+constexpr auto kHashBlockCount = 10;
 
 namespace leaf
 {
-upload_session::upload_session(std::string id, leaf::upload_progress_callback cb)
-    : id_(std::move(id)), progress_cb_(std::move(cb))
+
+upload_session::upload_session(std::string id,
+                               leaf::upload_progress_callback cb,
+                               boost::asio::ip::tcp::endpoint ed,
+                               boost::asio::io_context& io)
+    : id_(std::move(id)), io_(io), ed_(std::move(ed)), progress_cb_(std::move(cb))
 {
 }
 
@@ -64,7 +68,7 @@ void upload_session::upload_file_request()
         return;
     }
 
-    assert(file_ && !reader_ && !blake2b_);
+    assert(file_ && !reader_ && !hash_);
 
     reader_ = std::make_shared<leaf::file_reader>(file_->file_path);
     auto ec = reader_->open();
@@ -73,7 +77,7 @@ void upload_session::upload_file_request()
         LOG_ERROR("{} file open error {}", id_, ec.message());
         return;
     }
-    blake2b_ = std::make_shared<leaf::blake2b>();
+    hash_ = std::make_shared<leaf::blake2b>();
     if (reader_ == nullptr)
     {
         return;
@@ -132,7 +136,7 @@ void upload_session::update()
     {
         return;
     }
-    keepalive();
+    // keepalive();
     update_process_file();
     padding_file_event();
 }
@@ -200,6 +204,44 @@ void upload_session::on_upload_file_response(const std::optional<leaf::upload_fi
         return;
     }
 }
+
+void upload_session::update_file_data()
+{
+    assert(file_->active_block_count <= file_->block_count);
+    // read block data
+    std::vector<uint8_t> buffer(kBlockSize, '0');
+    boost::system::error_code ec;
+    auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
+    if (ec && ec != boost::asio::error::eof)
+    {
+        return;
+    }
+    leaf::file_data fd;
+    fd.block_id = file_->active_block_count;
+    fd.data.swap(buffer);
+    file_->active_block_count++;
+    file_->hash_block_count++;
+    hash_->update(buffer.data(), read_size);
+    // block count hash or eof hash
+    if (file_->hash_block_count == kHashBlockCount || ec == boost::asio::error::eof)
+    {
+        hash_->final();
+        fd.hash = hash_->hex();
+        file_->hash_block_count = 0;
+        hash_ = std::make_shared<leaf::blake2b>();
+    }
+    if (!fd.data.empty())
+    {
+        auto bytes = leaf::serialize_file_data(fd);
+        cb_(std::move(bytes));
+    }
+    // eof reset
+    if (ec == boost::asio::error::eof)
+    {
+        return;
+    }
+}
+
 void upload_session::padding_file_event()
 {
     for (const auto& p : padding_files_)

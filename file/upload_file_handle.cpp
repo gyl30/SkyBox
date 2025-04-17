@@ -90,6 +90,7 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
 {
     if (state_ != wait_upload_request)
     {
+        LOG_ERROR("{} upload_file state failed", id_);
         return;
     }
     if (!u.has_value())
@@ -152,11 +153,13 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
 {
     if (state_ != wait_file_data)
     {
+        LOG_ERROR("{} upload_file state failed", id_);
+        reset_state();
         return;
     }
-    state_ = wait_upload_request;
     if (!d.has_value())
     {
+        reset_state();
         return;
     }
     hash_->update(d->data.data(), d->data.size());
@@ -165,21 +168,40 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
     if (ec)
     {
         LOG_ERROR("{} upload_file write error {}", id_, ec.message());
+        reset_state();
         return;
     }
-    if (!d->hash.empty())
+    file_->active_block_count++;
+    LOG_DEBUG("{} upload_file {} block count {} hash {}",
+              id_,
+              file_->filename,
+              file_->active_block_count,
+              d->hash.empty() ? "empty" : d->hash);
+    if (!d->hash.empty() || file_->active_block_count == file_->block_count)
     {
         hash_->final();
         auto hash = hash_->hex();
         if (hash != d->hash)
         {
             LOG_ERROR("{} upload_file hash not match {} {}", id_, hash, d->hash);
+            reset_state();
             return;
         }
         hash_ = std::make_shared<leaf::blake2b>();
-        file_->active_block_count++;
-        return;
     }
+    if (file_->active_block_count == file_->block_count)
+    {
+        reset_state();
+        LOG_INFO("{} upload_file {} done", id_, file_->file_path);
+    }
+}
+void upload_file_handle::reset_state()
+{
+    file_.reset();
+    auto ec = writer_->close();
+    hash_.reset();
+    state_ = wait_upload_request;
+    boost::ignore_unused(ec);
 }
 void upload_file_handle::on_login(const std::optional<leaf::login_token>& l)
 {
@@ -188,7 +210,7 @@ void upload_file_handle::on_login(const std::optional<leaf::login_token>& l)
         return;
     }
     LOG_INFO("{} on_login token {}", id_, l->token);
-
+    state_ = wait_upload_request;
     session_->write(leaf::serialize_login_token(l.value()));
 }
 

@@ -32,6 +32,7 @@ class upload_file_handle : public websocket_handle
     void on_keepalive(const std::optional<leaf::keepalive>& k);
     void on_upload_file_request(const std::optional<leaf::upload_file_request>& u);
     void on_file_data(const std::optional<leaf::file_data>& d);
+    void reset_state();
 
    private:
     enum upload_state : uint8_t

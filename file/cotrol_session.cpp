@@ -9,8 +9,10 @@ namespace leaf
 
 cotrol_session::cotrol_session(std::string id,
                                leaf::cotrol_progress_callback cb,
-                               leaf::notify_progress_callback notify_cb)
-    : id_(std::move(id)), notify_cb_(std::move(notify_cb)), progress_cb_(std::move(cb))
+                               leaf::notify_progress_callback notify_cb,
+                               boost::asio::ip::tcp::endpoint ed,
+                               boost::asio::io_context& io)
+    : id_(std::move(id)), io_(io), ed_(std::move(ed)), notify_cb_(std::move(notify_cb)), progress_cb_(std::move(cb))
 {
 }
 

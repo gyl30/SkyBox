@@ -10,10 +10,13 @@ constexpr auto kDefatuleDownloadDir = "";
 
 namespace leaf
 {
+
 download_session::download_session(std::string id,
                                    leaf::download_progress_callback cb,
-                                   leaf::notify_progress_callback notify_cb)
-    : id_(std::move(id)), progress_cb_(std::move(cb)), notify_cb_(std::move(notify_cb))
+                                   leaf::notify_progress_callback notify_cb,
+                                   boost::asio::ip::tcp::endpoint ed_,
+                                   boost::asio::io_context& io)
+    : id_(std::move(id)), io_(io), ed_(std::move(ed_)), notify_cb_(std::move(notify_cb)), progress_cb_(std::move(cb))
 {
 }
 

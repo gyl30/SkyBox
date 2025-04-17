@@ -90,10 +90,11 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
 }
 void download_file_handle::reset_status()
 {
-    auto _ = reader_->close();
-    // clang-format off
-        file_.reset(); reader_.reset(); hash_.reset();
-    // clang-format on
+    auto ec = reader_->close();
+    boost::ignore_unused(ec);
+    file_.reset();
+    reader_.reset();
+    hash_.reset();
     status_ = leaf::download_file_handle::status::wait_download_file_request;
 }
 void download_file_handle::on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes)
