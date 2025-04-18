@@ -98,43 +98,6 @@ void upload_session::on_write(boost::beast::error_code ec, std::size_t /*transfe
     }
 }
 
-void upload_session::upload_file_request()
-{
-    assert(state_ == upload_file);
-    if (file_ == nullptr)
-    {
-        return;
-    }
-    std::error_code size_ec;
-    auto file_size = std::filesystem::file_size(file_->file_path, size_ec);
-    if (size_ec)
-    {
-        LOG_ERROR("{} upload_file_request file {} size error {}", id_, file_->file_path, size_ec.message());
-        return;
-    }
-
-    assert(file_ && !reader_ && !hash_);
-
-    reader_ = std::make_shared<leaf::file_reader>(file_->file_path);
-    auto ec = reader_->open();
-    if (ec)
-    {
-        LOG_ERROR("{} file open error {}", id_, ec.message());
-        return;
-    }
-    hash_ = std::make_shared<leaf::blake2b>();
-    if (reader_ == nullptr)
-    {
-        return;
-    }
-    LOG_DEBUG("{} upload_file_request {} size {}", id_, file_->file_path, file_size);
-    leaf::upload_file_request u;
-    u.id = seq_++;
-    u.filename = std::filesystem::path(file_->file_path).filename().string();
-    u.filesize = file_size;
-    file_->file_size = file_size;
-    ws_client_->write(leaf::serialize_upload_file_request(u));
-}
 void upload_session::add_file(const leaf::file_context::ptr& file)
 {
     if (file_ != nullptr)
@@ -228,19 +191,58 @@ void upload_session::on_keepalive_response(const std::optional<leaf::keepalive>&
               token_);
 }
 
+void upload_session::upload_file_request()
+{
+    assert(state_ == upload_file);
+    if (file_ == nullptr)
+    {
+        return;
+    }
+    std::error_code size_ec;
+    auto file_size = std::filesystem::file_size(file_->file_path, size_ec);
+    if (size_ec)
+    {
+        LOG_ERROR("{} upload_file request file {} size error {}", id_, file_->file_path, size_ec.message());
+        reset_state();
+        return;
+    }
+
+    assert(file_ && !reader_ && !hash_);
+
+    reader_ = std::make_shared<leaf::file_reader>(file_->file_path);
+    if (reader_ == nullptr)
+    {
+        LOG_ERROR("{} upload_file create file {} error", id_, file_->file_path);
+        reset_state();
+        return;
+    }
+
+    auto ec = reader_->open();
+    if (ec)
+    {
+        LOG_ERROR("{} upload_file open file {} error {}", id_, file_->file_path, ec.message());
+        reset_state();
+        return;
+    }
+    hash_ = std::make_shared<leaf::blake2b>();
+    leaf::upload_file_request u;
+    u.id = seq_++;
+    u.filename = std::filesystem::path(file_->file_path).filename().string();
+    u.filesize = file_size;
+    file_->file_size = file_size;
+    LOG_DEBUG("{} upload_file request {} filename {} filesize {}", id_, u.id, file_->file_path, file_size);
+    ws_client_->write(leaf::serialize_upload_file_request(u));
+}
 void upload_session::on_upload_file_response(const std::optional<leaf::upload_file_response>& res)
 {
     if (!res.has_value())
     {
         return;
     }
-    assert(state_ == upload_file);
+    assert(state_ == upload_file && file_ != nullptr);
+    ;
     const auto& msg = res.value();
-    LOG_DEBUG("{} upload_file_response {} filename {}", id_, msg.id, msg.filename);
-    if (file_ == nullptr)
-    {
-        return;
-    }
+    LOG_DEBUG("{} upload_file response {} filename {}", id_, msg.id, msg.filename);
     state_ = file_data;
     upload_file_data();
 }
@@ -254,7 +256,7 @@ void upload_session::upload_file_data()
     auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
     if (ec && ec != boost::asio::error::eof)
     {
-        LOG_ERROR("{} read file {} error {}", id_, file_->file_path, ec.message());
+        LOG_ERROR("{} upload_file read file {} error {}", id_, file_->file_path, ec.message());
         reset_state();
         return;
     }
@@ -266,26 +268,25 @@ void upload_session::upload_file_data()
         file_->hash_count++;
         hash_->update(fd.data.data(), read_size);
     }
-    LOG_DEBUG("{} upload file {} size {}", id_, file_->file_path, read_size);
     // block count hash or eof hash
     if (file_->file_size == reader_->size() || file_->hash_count == kHashBlockCount || ec == boost::asio::error::eof)
     {
         hash_->final();
         fd.hash = hash_->hex();
         file_->hash_count = 0;
-        LOG_DEBUG("{} upload file {} hash {}", id_, file_->file_path, fd.hash);
         hash_ = std::make_shared<leaf::blake2b>();
+    }
+    LOG_DEBUG(
+        "{} upload_file {} size {} hash {}", id_, file_->file_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
+    // eof reset
+    if (ec == boost::asio::error::eof || reader_->size() == file_->file_size)
+    {
+        LOG_INFO("{} upload_file {} complete", id_, file_->file_path);
+        reset_state();
     }
     if (!fd.data.empty())
     {
         ws_client_->write(leaf::serialize_file_data(fd));
-    }
-    // eof reset
-    if (ec == boost::asio::error::eof || reader_->size() == file_->file_size)
-    {
-        LOG_INFO("{} upload file {} complete", id_, file_->file_path);
-        reset_state();
-        return;
     }
 }
 
