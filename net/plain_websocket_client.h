@@ -32,6 +32,7 @@ class plain_websocket_client : public leaf::websocket_session
     void write(const std::vector<uint8_t>& msg) override;
     void set_read_cb(leaf::websocket_session::read_cb cb) override { read_cb_ = std::move(cb); }
     void set_write_cb(leaf::websocket_session::write_cb cb) override { write_cb_ = std::move(cb); }
+    void set_handshake_cb(leaf::websocket_session::handshake_cb cb) override { handshake_cb_ = std::move(cb); }
 
    private:
     void on_connect(boost::beast::error_code ec);
@@ -63,6 +64,7 @@ class plain_websocket_client : public leaf::websocket_session
     boost::asio::ip::tcp::endpoint ed_;
     leaf::websocket_session::read_cb read_cb_;
     leaf::websocket_session::write_cb write_cb_;
+    leaf::websocket_session::handshake_cb handshake_cb_;
     std::queue<std::vector<uint8_t>> msg_queue_;
     std::shared_ptr<boost::beast::websocket::stream<boost::beast::tcp_stream>> ws_;
 };

@@ -26,14 +26,12 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void startup();
     void shutdown();
     void update();
-
-   public:
     void add_file(const leaf::file_context::ptr &file);
-    void login(const std::string &token);
 
    private:
     void on_read(boost::beast::error_code ec, const std::vector<uint8_t> &bytes);
-    void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
+    void on_write(boost::beast::error_code ec, std::size_t transferred);
+    void on_connect(boost::beast::error_code ec);
     void update_process_file();
     void upload_file_request();
     void keepalive();

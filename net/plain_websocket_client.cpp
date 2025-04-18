@@ -94,12 +94,17 @@ void plain_websocket_client::on_connect(boost::beast::error_code ec)
 
 void plain_websocket_client::on_handshake(boost::beast::error_code ec)
 {
+    if (handshake_cb_)
+    {
+        handshake_cb_(ec);
+    }
+
     if (ec)
     {
         LOG_ERROR("{} handshake failed {}", id_, ec.message());
-        on_error(ec);
         return;
     }
+
     connected_ = true;
     do_read();
     do_write();

@@ -27,6 +27,7 @@ class ssl_websocket_session : public leaf::websocket_session
     void write(const std::vector<uint8_t>& msg) override;
     void set_read_cb(leaf::websocket_session::read_cb cb) override;
     void set_write_cb(leaf::websocket_session::write_cb cb) override;
+    void set_handshake_cb(leaf::websocket_session::handshake_cb cb) override;
 
    private:
     void safe_shutdown();
@@ -45,6 +46,7 @@ class ssl_websocket_session : public leaf::websocket_session
     boost::beast::flat_buffer buffer_;
     leaf::websocket_session::read_cb read_cb_;
     leaf::websocket_session::write_cb write_cb_;
+    leaf::websocket_session::handshake_cb handshake_cb_;
     std::queue<std::vector<uint8_t>> msg_queue_;
     boost::beast::http::request<boost::beast::http::string_body> req_;
     boost::beast::websocket::stream<boost::beast::ssl_stream<boost::beast::tcp_stream>> ws_;

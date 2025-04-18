@@ -26,6 +26,11 @@ void plain_websocket_session::set_read_cb(leaf::websocket_session::read_cb cb) {
 
 void plain_websocket_session::set_write_cb(leaf::websocket_session::write_cb cb) { write_cb_ = std::move(cb); };
 
+void plain_websocket_session::set_handshake_cb(leaf::websocket_session::handshake_cb cb)
+{
+    handshake_cb_ = std::move(cb);
+}
+
 void plain_websocket_session::startup()
 {
     assert(read_cb_ && write_cb_);
@@ -62,6 +67,11 @@ void plain_websocket_session::do_accept(const boost::beast::http::request<boost:
 
 void plain_websocket_session::on_accept(boost::beast::error_code ec)
 {
+    if (handshake_cb_)
+    {
+        handshake_cb_(ec);
+    }
+
     if (ec)
     {
         LOG_ERROR("{} accept failed {}", id_, ec.message());

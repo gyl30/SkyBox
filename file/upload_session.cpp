@@ -27,25 +27,34 @@ void upload_session::startup()
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, url, ed_, io_);
     ws_client_->set_read_cb([this, self = shared_from_this()](auto ec, const auto& msg) { on_read(ec, msg); });
     ws_client_->set_write_cb([this, self = shared_from_this()](auto ec, std::size_t bytes) { on_write(ec, bytes); });
+    ws_client_->set_handshake_cb([this, self = shared_from_this()](auto ec) { on_connect(ec); });
     ws_client_->startup();
     LOG_INFO("{} startup", id_);
 }
 
 void upload_session::shutdown()
 {
-    ws_client_->shutdown();
+    if (ws_client_)
+    {
+        ws_client_->shutdown();
+    }
+
     LOG_INFO("{} shutdown", id_);
 }
 
-void upload_session::login(const std::string& token)
+void upload_session::on_connect(boost::beast::error_code ec)
 {
-    LOG_INFO("{} login token {}", id_, token);
+    if (ec)
+    {
+        shutdown();
+        return;
+    }
+    LOG_INFO("{} connect ws client will login use token {}", id_, token_);
     leaf::login_token lt;
     lt.id = seq_++;
     lt.token = token_;
     cb_(leaf::serialize_login_token(lt));
 }
-
 void upload_session::on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes)
 {
     if (ec)

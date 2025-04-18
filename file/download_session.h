@@ -29,8 +29,10 @@ class download_session : public std::enable_shared_from_this<download_session>
 
    public:
     void add_file(const std::string &file);
-    void on_message(const std::vector<uint8_t> &bytes);
-    void set_message_cb(std::function<void(std::vector<uint8_t>)> cb);
+    void on_read(boost::beast::error_code ec, const std::vector<uint8_t> &bytes);
+    void on_write(boost::beast::error_code ec, std::size_t transferred);
+    void on_connect(boost::beast::error_code ec);
+
     void login(const std::string &token);
 
    private:

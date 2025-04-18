@@ -24,16 +24,17 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     void startup();
     void shutdown();
     void update();
-    void login(const std::string &user, const std::string &pass, const leaf::login_token &l);
-    void set_message_cb(std::function<void(std::vector<uint8_t>)> cb);
-    void on_message(const std::vector<uint8_t> &bytes);
-
+    void on_read(boost::beast::error_code ec, const std::vector<uint8_t> &bytes);
+    void on_write(boost::beast::error_code ec, std::size_t transferred);
+    void on_connect(boost::beast::error_code ec);
+ 
    private:
     void files_request();
     void on_files_response(const std::optional<leaf::files_response> &);
 
    private:
     std::string id_;
+    uint32_t seq_ = 0;
     std::string token_;
     boost::asio::io_context &io_;
     boost::asio::ip::tcp::endpoint ed_;
