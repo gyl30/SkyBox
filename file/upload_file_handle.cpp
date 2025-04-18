@@ -164,11 +164,13 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
     file_->hash_count++;
     hash_->update(d->data.data(), d->data.size());
 
-    LOG_DEBUG("{} upload_file {} hash count {} hash {}",
+    LOG_DEBUG("{} upload_file {} hash count {} hash {} data size {} write size {}",
               id_,
               file_->filename,
               file_->hash_count,
-              d->hash.empty() ? "empty" : d->hash);
+              d->hash.empty() ? "empty" : d->hash,
+              d->data.size(),
+              writer_->size());
 
     if (!d->hash.empty())
     {
