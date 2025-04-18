@@ -39,37 +39,6 @@ void plain_websocket_client::connect()
     auto& l = boost::beast::get_lowest_layer(*ws_);
     l.async_connect(ed_, boost::beast::bind_front_handler(&plain_websocket_client::on_connect, this));
 }
-void plain_websocket_client::reconnect()
-{
-    LOG_INFO("reconnect {}", id_);
-    auto timer = std::make_shared<boost::asio::steady_timer>(io_);
-    timer->expires_after(std::chrono::seconds(3));
-    timer->async_wait(
-        [this, self = shared_from_this(), timer](boost::system::error_code ec)
-        {
-            on_reconnect(ec);
-            timer->cancel(ec);
-        });
-}
-
-void plain_websocket_client::on_reconnect(boost::beast::error_code ec)
-{
-    if (ec)
-    {
-        LOG_ERROR("{} reconnect failed {}", id_, ec.message());
-        return;
-    }
-
-    if (ws_->is_open())
-    {
-        boost::system::error_code ec;
-        ec = ws_->next_layer().socket().close(ec);
-        ws_.reset();
-    }
-
-    LOG_INFO("on_reconnect {}", id_);
-    connect();
-}
 
 void plain_websocket_client::on_connect(boost::beast::error_code ec)
 {
@@ -159,7 +128,6 @@ void plain_websocket_client::on_error(boost::beast::error_code ec)
             read_cb_(ec, {});
         }
     }
-    reconnect();
 }
 
 void plain_websocket_client::shutdown()

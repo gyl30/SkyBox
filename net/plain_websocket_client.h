@@ -40,8 +40,6 @@ class plain_websocket_client : public leaf::websocket_session
     void safe_startup();
     void safe_shutdown();
     void connect();
-    void reconnect();
-    void on_reconnect(boost::beast::error_code ec);
     // read
     void safe_read();
     void do_read();
