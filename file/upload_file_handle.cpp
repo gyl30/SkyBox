@@ -86,20 +86,20 @@ void upload_file_handle::safe_shutdown()
     LOG_INFO("shutdown {}", id_);
 }
 
-void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload_file_request>& u)
+void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload_file_request>& req)
 {
     if (state_ != wait_upload_request)
     {
         LOG_ERROR("{} upload_file state failed", id_);
         return;
     }
-    if (!u.has_value())
+    if (!req.has_value())
     {
         return;
     }
 
     assert(!file_ && !writer_);
-    std::string filename = leaf::encode(u->filename);
+    std::string filename = leaf::encode(req->filename);
     std::string upload_file_path = leaf::make_file_path(token_, filename);
     upload_file_path = leaf::make_tmp_filename(upload_file_path);
     if (upload_file_path.empty())
@@ -118,22 +118,15 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
         LOG_ERROR("{} on_upload_file_request file {} exist", id_, upload_file_path);
         return;
     }
-    auto file_size = u->block_count * kBlockSize;
-    if (u->padding_size != 0)
-    {
-        file_size = kBlockSize - u->padding_size;
-    }
-    LOG_INFO("{} on_upload_file_request file size {} name {} path {}", id_, file_size, u->filename, upload_file_path);
+    LOG_INFO(
+        "{} on_upload_file_request file size {} name {} path {}", id_, req->filesize, req->filename, upload_file_path);
 
     assert(file_ == nullptr);
     file_ = std::make_shared<file_context>();
     file_->file_path = upload_file_path;
-    file_->filename = u->filename;
-    file_->file_size = file_size;
-    file_->block_size = kBlockSize;
-    file_->block_count = u->block_count;
-    file_->active_block_count = 0;
-    LOG_DEBUG("{} upload_file_response name {} block count {}", id_, file_->file_path, file_->block_count);
+    file_->filename = req->filename;
+    file_->file_size = req->filesize;
+    file_->hash_count = 0;
     hash_ = std::make_shared<leaf::blake2b>();
     writer_ = std::make_shared<leaf::file_writer>(file_->file_path);
     ec = writer_->open();
@@ -144,8 +137,8 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     }
     state_ = wait_file_data;
     leaf::upload_file_response ufr;
-    ufr.id = u->id;
-    ufr.filename = u->filename;
+    ufr.id = req->id;
+    ufr.filename = req->filename;
     session_->write(leaf::serialize_upload_file_response(ufr));
 }
 
@@ -162,7 +155,7 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
         reset_state();
         return;
     }
-    hash_->update(d->data.data(), d->data.size());
+    assert(d->data.size() <= kBlockSize);
     boost::system::error_code ec;
     writer_->write(d->data.data(), d->data.size(), ec);
     if (ec)
@@ -171,13 +164,15 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
         reset_state();
         return;
     }
-    file_->active_block_count++;
-    LOG_DEBUG("{} upload_file {} block count {} hash {}",
+    file_->hash_count++;
+    hash_->update(d->data.data(), d->data.size());
+
+    LOG_DEBUG("{} upload_file {} hash count {} hash {}",
               id_,
               file_->filename,
-              file_->active_block_count,
+              file_->hash_count,
               d->hash.empty() ? "empty" : d->hash);
-    if (!d->hash.empty() || file_->active_block_count == file_->block_count)
+    if (!d->hash.empty())
     {
         hash_->final();
         auto hash = hash_->hex();
@@ -187,21 +182,25 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
             reset_state();
             return;
         }
+        file_->hash_count = 0;
         hash_ = std::make_shared<leaf::blake2b>();
     }
-    if (file_->active_block_count == file_->block_count)
+    if (file_->file_size == writer_->size())
     {
-        reset_state();
         LOG_INFO("{} upload_file {} done", id_, file_->file_path);
+        reset_state();
     }
 }
 void upload_file_handle::reset_state()
 {
-    file_.reset();
+    if (file_)
+    {
+        file_.reset();
+    }
     auto ec = writer_->close();
+    boost::ignore_unused(ec);
     hash_.reset();
     state_ = wait_upload_request;
-    boost::ignore_unused(ec);
 }
 void upload_file_handle::on_login(const std::optional<leaf::login_token>& l)
 {

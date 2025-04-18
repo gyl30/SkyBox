@@ -3,7 +3,6 @@
 
 #include "file/file.h"
 #include "file/event.h"
-#include "protocol/codec.h"
 #include "crypt/blake2b.h"
 #include "file/file_context.h"
 #include "net/plain_websocket_client.h"
@@ -36,7 +35,6 @@ class download_session : public std::enable_shared_from_this<download_session>
     void login(const std::string &token);
 
    private:
-    void write_message(std::vector<uint8_t> bytes);
     void download_file_request();
     void on_download_file_response(const std::optional<leaf::download_file_response> &);
     void on_file_data(const std::optional<leaf::file_data> &);
@@ -47,7 +45,7 @@ class download_session : public std::enable_shared_from_this<download_session>
 
    private:
     void emit_event(const leaf::download_event &);
-    void reset();
+    void reset_state();
 
    private:
     enum download_status : uint8_t
@@ -67,7 +65,6 @@ class download_session : public std::enable_shared_from_this<download_session>
     std::shared_ptr<leaf::writer> writer_;
     std::queue<std::string> padding_files_;
     leaf::notify_progress_callback notify_cb_;
-    std::function<void(std::vector<uint8_t>)> cb_;
     leaf::download_progress_callback progress_cb_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
 };

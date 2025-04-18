@@ -41,17 +41,23 @@ void cotrol_session::shutdown()
     if (ws_client_)
     {
         ws_client_->shutdown();
+        ws_client_.reset();
     }
     LOG_INFO("{} shutdown", id_);
 }
 
 void cotrol_session::on_connect(boost::beast::error_code ec)
 {
+    if (ec)
+    {
+        shutdown();
+        return;
+    }
     LOG_INFO("{} connect ws client will login use token {}", id_, token_);
     leaf::login_token lt;
     lt.id = seq_++;
     lt.token = token_;
-    cb_(leaf::serialize_login_token(lt));
+    ws_client_->write(leaf::serialize_login_token(lt));
 }
 void cotrol_session::on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes)
 {
@@ -66,7 +72,7 @@ void cotrol_session::on_read(boost::beast::error_code ec, const std::vector<uint
         on_files_response(leaf::deserialize_files_response(bytes));
     }
 }
-void cotrol_session::on_write(boost::beast::error_code ec, std::size_t  /*transferred*/)
+void cotrol_session::on_write(boost::beast::error_code ec, std::size_t /*transferred*/)
 {
     if (ec)
     {

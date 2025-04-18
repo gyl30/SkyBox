@@ -59,13 +59,13 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     token_ = l->token;
     LOG_INFO("login {} {} token {}", user_, pass_, token_, l->token);
     // clang-format off
-    cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", l->token, handler_.cotrol, handler_.notify, ed_, executors.get_executor());
+    // cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", l->token, handler_.cotrol, handler_.notify, ed_, executors.get_executor());
     upload_ = std::make_shared<leaf::upload_session>("upload", l->token, handler_.upload, ed_, executors.get_executor());
-    download_ = std::make_shared<leaf::download_session>("download", l->token, handler_.download, handler_.notify, ed_, executors.get_executor());
+    // download_ = std::make_shared<leaf::download_session>("download", l->token, handler_.download, handler_.notify, ed_, executors.get_executor());
     // clang-format on
-    cotrol_->startup();
+    // cotrol_->startup();
     upload_->startup();
-    download_->startup();
+    // download_->startup();
     start_timer();
 }
 
@@ -79,12 +79,21 @@ void file_transfer_client::shutdown()
 {
     boost::system::error_code ec;
     timer_->cancel(ec);
-    upload_->shutdown();
-    download_->shutdown();
-    cotrol_->shutdown();
-    upload_.reset();
-    download_.reset();
-    cotrol_.reset();
+    if (upload_)
+    {
+        upload_->shutdown();
+        upload_.reset();
+    }
+    if (download_)
+    {
+        download_.reset();
+        download_->shutdown();
+    }
+    if (cotrol_)
+    {
+        cotrol_->shutdown();
+        cotrol_.reset();
+    }
     executors.shutdown();
 }
 void file_transfer_client::login(const std::string &user, const std::string &pass)
@@ -98,9 +107,18 @@ void file_transfer_client::add_upload_file(const std::string &filename)
     auto file = std::make_shared<leaf::file_context>();
     file->file_path = filename;
     file->filename = std::filesystem::path(filename).filename();
-    upload_->add_file(file);
+    if (upload_)
+    {
+        upload_->add_file(file);
+    }
 }
-void file_transfer_client::add_download_file(const std::string &filename) { download_->add_file(filename); }
+void file_transfer_client::add_download_file(const std::string &filename)
+{
+    if (download_)
+    {
+        download_->add_file(filename);
+    }
+}
 
 void file_transfer_client::on_login_failed() const
 {
@@ -144,8 +162,14 @@ void file_transfer_client::timer_callback(const boost::system::error_code &ec)
         do_login();
         return;
     }
-    upload_->update();
-    download_->update();
+    if (upload_)
+    {
+        upload_->update();
+    }
+    if (download_)
+    {
+        download_->update();
+    }
 
     start_timer();
 }

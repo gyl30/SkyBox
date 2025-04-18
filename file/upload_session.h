@@ -40,10 +40,23 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void on_upload_file_response(const std::optional<leaf::upload_file_response> &);
     void on_error_message(const std::optional<leaf::error_message> &);
     void on_login_token(const std::optional<leaf::login_token> &l);
-    void update_file_data();
+    void upload_file_data();
     void emit_event(const leaf::upload_event &e);
+    void reset_state();
 
    private:
+    enum state : uint8_t
+    {
+        init,
+        connecting,
+        connected,
+        login,
+        logined,
+        upload_file,
+        file_data,
+        padding_file,
+    };
+    state state_ = init;
     bool login_ = false;
     std::string id_;
     uint32_t seq_ = 0;
@@ -54,7 +67,6 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> hash_;
     leaf::upload_progress_callback progress_cb_;
-    std::function<void(std::vector<uint8_t>)> cb_;
     std::deque<leaf::file_context::ptr> padding_files_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
 };

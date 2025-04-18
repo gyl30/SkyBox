@@ -54,7 +54,7 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
     {
         return;
     }
-    assert(file_->active_block_count <= file_->block_count);
+    assert(reader_->size() < file_->file_size);
     // read block data
     std::vector<uint8_t> buffer(kBlockSize, '0');
     auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
@@ -64,17 +64,14 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
         return;
     }
     leaf::file_data fd;
-    fd.block_id = file_->active_block_count;
     fd.data.swap(buffer);
-    file_->active_block_count++;
-    file_->hash_block_count++;
     hash_->update(buffer.data(), read_size);
     // block count hash or eof hash
-    if (file_->hash_block_count == kHashBlockCount || ec == boost::asio::error::eof)
+    if (file_->hash_count == kHashBlockCount || file_->file_size == reader_->size() || ec == boost::asio::error::eof)
     {
         hash_->final();
         fd.hash = hash_->hex();
-        file_->hash_block_count = 0;
+        file_->hash_count = 0;
         hash_ = std::make_shared<leaf::blake2b>();
     }
     if (!fd.data.empty())
@@ -83,8 +80,9 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
         session_->write(bytes);
     }
     // eof reset
-    if (ec == boost::asio::error::eof)
+    if (ec == boost::asio::error::eof || reader_->size() == file_->file_size)
     {
+        reset_status();
         return;
     }
 }
@@ -210,28 +208,16 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
     {
         return;
     }
-    uint64_t block_count = file_size / kBlockSize;
-    uint32_t padding_size = 0;
-    if (file_size % kBlockSize != 0)
-    {
-        padding_size = kBlockSize - (file_size % kBlockSize);
-        block_count++;
-    }
     hash_ = std::make_shared<leaf::blake2b>();
     file_ = std::make_shared<leaf::file_context>();
     file_->file_path = download_file_path;
     file_->file_size = file_size;
-    file_->block_size = kBlockSize;
-    file_->block_count = block_count;
-    file_->padding_size = padding_size;
-    file_->active_block_count = 0;
     file_->filename = msg.filename;
     LOG_INFO("{} download_file file {} size {}", id_, file_->file_path, file_->file_size);
     leaf::download_file_response response;
     response.filename = file_->filename;
     response.id = download->id;
-    response.padding_size = padding_size;
-    response.block_count = block_count;
+    response.filesize = file_->file_size;
     status_ = leaf::download_file_handle::status::wait_file_data;
     session_->write(leaf::serialize_download_file_response(response));
 }

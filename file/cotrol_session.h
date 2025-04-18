@@ -40,7 +40,6 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     boost::asio::ip::tcp::endpoint ed_;
     leaf::notify_progress_callback notify_cb_;
     leaf::cotrol_progress_callback progress_cb_;
-    std::function<void(std::vector<uint8_t>)> cb_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
 };
 

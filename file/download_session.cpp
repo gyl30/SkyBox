@@ -3,6 +3,7 @@
 #include <filesystem>
 #include "log/log.h"
 #include "file/file.h"
+#include "protocol/codec.h"
 #include "file/download_session.h"
 
 constexpr auto kBlockSize = 128L * 1024;
@@ -44,6 +45,7 @@ void download_session::shutdown()
     if (ws_client_)
     {
         ws_client_->shutdown();
+        ws_client_.reset();
     }
 
     LOG_INFO("{} shutdown", id_);
@@ -60,7 +62,7 @@ void download_session::on_connect(boost::beast::error_code ec)
     leaf::login_token lt;
     lt.id = seq_++;
     lt.token = token_;
-    cb_(leaf::serialize_login_token(lt));
+    ws_client_->write(leaf::serialize_login_token(lt));
 }
 void download_session::on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes)
 {
@@ -144,25 +146,19 @@ void download_session::download_file_request()
     req.filename = filename;
     req.id = ++seq_;
     LOG_INFO("{} download_file {}", id_, req.filename);
-    write_message(serialize_download_file_request(req));
+    ws_client_->write(serialize_download_file_request(req));
     status_ = wait_file_data;
 }
 
-void download_session::on_download_file_response(const std::optional<leaf::download_file_response>& message)
+void download_session::on_download_file_response(const std::optional<leaf::download_file_response>& res)
 {
     status_ = wait_download_file;
-    if (!message.has_value())
+    if (!res.has_value())
     {
         return;
     }
 
-    const auto& msg = message.value();
-    uint32_t file_size = kBlockSize * msg.block_count;
-    if (msg.padding_size != 0)
-    {
-        file_size = kBlockSize - msg.padding_size;
-    }
-
+    const auto& msg = res.value();
     boost::system::error_code exists_ec;
     bool exists = std::filesystem::exists(msg.filename, exists_ec);
     if (exists_ec)
@@ -178,9 +174,9 @@ void download_session::on_download_file_response(const std::optional<leaf::downl
             LOG_ERROR("{} download_file {} file size failed {}", id_, msg.filename, exists_ec.message());
             return;
         }
-        if (exists_size != file_size)
+        if (exists_size != res->filesize)
         {
-            LOG_INFO("{} download_file {} file size not match {}:{}", id_, msg.filename, exists_size, file_size);
+            LOG_INFO("{} download_file {} file size not match {}:{}", id_, msg.filename, exists_size, res->filesize);
             return;
         }
     }
@@ -198,21 +194,10 @@ void download_session::on_download_file_response(const std::optional<leaf::downl
     hash_ = std::make_shared<leaf::blake2b>();
     file_ = std::make_shared<leaf::file_context>();
     file_->filename = msg.filename;
-    file_->block_count = msg.block_count;
-    file_->padding_size = msg.padding_size;
-    file_->file_size = kBlockSize * msg.block_count;
+    file_->file_size = res->filesize;
     file_->file_path = file_path;
-    if (msg.padding_size != 0)
-    {
-        file_->file_size = kBlockSize - msg.padding_size;
-    }
 
-    LOG_INFO("{} download_file {} block count {} padding size {} file size {}",
-             id_,
-             file_->filename,
-             file_->block_count,
-             file_->padding_size,
-             file_->file_size);
+    LOG_INFO("{} download_file {} file size {}", id_, file_->filename, file_->file_size);
     status_ = wait_file_data;
 }
 
@@ -223,8 +208,8 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
     {
         return;
     }
-    assert(data->block_id == file_->active_block_count);
-    hash_->update(data->data.data(), data->data.size());
+    assert(data->data.size() == kBlockSize);
+    assert(file_->file_size <= writer_->size());
     boost::system::error_code ec;
     writer_->write(data->data.data(), data->data.size(), ec);
     if (ec)
@@ -232,6 +217,9 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
         LOG_ERROR("{} download_file {} write error {}", id_, file_->filename, ec.message());
         return;
     }
+    file_->hash_count++;
+    hash_->update(data->data.data(), data->data.size());
+
     if (!data->hash.empty())
     {
         hash_->final();
@@ -242,7 +230,6 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
             return;
         }
         hash_ = std::make_shared<leaf::blake2b>();
-        file_->active_block_count++;
     }
     download_event d;
     d.filename = file_->file_path;
@@ -251,11 +238,8 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
     emit_event(d);
     if (file_->file_size == writer_->size())
     {
-        assert(file_->active_block_count == file_->block_count);
-        ec = writer_->close();
-        reset();
-        auto hash = hash_->hex();
-        LOG_INFO("{} download_file {} finish hash {}:{}", id_, file_->filename, hash, data->hash);
+        LOG_INFO("{} download_file {} finish", id_, file_->filename);
+        reset_state();
         return;
     }
     status_ = wait_file_data;
@@ -268,7 +252,7 @@ void download_session::emit_event(const leaf::download_event& e)
     }
 }
 
-void download_session::reset()
+void download_session::reset_state()
 {
     if (file_)
     {
@@ -276,18 +260,13 @@ void download_session::reset()
     }
     if (writer_)
     {
+        auto ec = writer_->close();
+        boost::ignore_unused(ec);
         writer_.reset();
     }
     if (hash_)
     {
         hash_.reset();
-    }
-}
-void download_session::write_message(std::vector<uint8_t> bytes)
-{
-    if (cb_)
-    {
-        cb_(std::move(bytes));
     }
 }
 void download_session::add_file(const std::string& file) { padding_files_.push(file); }
@@ -320,7 +299,7 @@ void download_session::on_error_message(const std::optional<leaf::error_message>
         notify_cb_(e);
     }
     LOG_ERROR("{} download_file error {} {}", id_, msg.id, msg.error);
-    this->reset();
+    this->reset_state();
 }
 
 void download_session::on_keepalive_response(const std::optional<leaf::keepalive>& message)
@@ -355,7 +334,7 @@ void download_session::keepalive()
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
     k.server_timestamp = 0;
-    write_message(leaf::serialize_keepalive(k));
+    ws_client_->write(leaf::serialize_keepalive(k));
 }
 
 }    // namespace leaf

@@ -171,6 +171,9 @@ void plain_websocket_client::shutdown()
 
 void plain_websocket_client::safe_shutdown()
 {
+    read_cb_ = nullptr;
+    write_cb_ = nullptr;
+    handshake_cb_ = nullptr;
     connected_ = false;
     LOG_INFO("shutdown {}", id_);
     boost::beast::error_code ec;

@@ -10,9 +10,9 @@ REFLECT_STRUCT(leaf::keepalive, (id)(client_id)(client_timestamp)(server_timesta
 REFLECT_STRUCT(leaf::login_request, (username)(password));
 REFLECT_STRUCT(leaf::login_token, (id)(token));
 REFLECT_STRUCT(leaf::error_message, (id)(error));
-REFLECT_STRUCT(leaf::upload_file_request, (id)(block_count)(padding_size)(filename));
+REFLECT_STRUCT(leaf::upload_file_request, (id)(filesize)(filename));
 REFLECT_STRUCT(leaf::upload_file_response, (id)(filename));
-REFLECT_STRUCT(leaf::download_file_response, (id)(block_count)(padding_size)(filename));
+REFLECT_STRUCT(leaf::download_file_response, (id)(filesize)(filename));
 REFLECT_STRUCT(leaf::download_file_request, (id)(filename));
 REFLECT_STRUCT(leaf::delete_file_request, (id)(filename));
 REFLECT_STRUCT(leaf::files_response, (files)(token));
@@ -491,7 +491,6 @@ std::vector<uint8_t> serialize_file_data(const file_data &data)
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::file_data));
-    w.write_uint32(data.block_id);
     uint32_t data_size = data.data.size();
     uint32_t hash_size = data.hash.size();
     w.write_uint32(hash_size);
@@ -516,14 +515,11 @@ std::optional<file_data> deserialize_file_data(const std::vector<uint8_t> &data)
     {
         return {};
     }
-    uint32_t block_id = 0;
-    r.read_uint32(&block_id);
     uint32_t hash_size = 0;
     uint32_t data_size = 0;
     r.read_uint32(&hash_size);
     r.read_uint32(&data_size);
     file_data fd;
-    fd.block_id = block_id;
     if (hash_size > 0)
     {
         fd.hash.assign(hash_size, 0);

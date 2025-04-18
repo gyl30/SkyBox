@@ -55,8 +55,7 @@ struct files_response
 struct upload_file_request
 {
     uint32_t id = 0;
-    uint32_t block_count = 0;
-    uint32_t padding_size = 0;
+    uint64_t filesize = 0;
     std::string filename;
 };
 struct upload_file_response
@@ -66,7 +65,6 @@ struct upload_file_response
 };
 struct file_data
 {
-    uint32_t block_id = 0;
     std::string hash;
     std::vector<uint8_t> data;
 };
@@ -93,8 +91,7 @@ struct download_file_request
 struct download_file_response
 {
     uint32_t id = 0;
-    uint32_t block_count = 0;
-    uint32_t padding_size = 0;
+    uint64_t filesize = 0;
     std::string filename;    // 文件名称
 };
 

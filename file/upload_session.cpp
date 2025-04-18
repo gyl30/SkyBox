@@ -23,6 +23,7 @@ upload_session::~upload_session() = default;
 
 void upload_session::startup()
 {
+    state_ = connecting;
     std::string url = "ws://" + ed_.address().to_string() + ":" + std::to_string(ed_.port()) + "/leaf/ws/upload";
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, url, ed_, io_);
     ws_client_->set_read_cb([this, self = shared_from_this()](auto ec, const auto& msg) { on_read(ec, msg); });
@@ -37,6 +38,7 @@ void upload_session::shutdown()
     if (ws_client_)
     {
         ws_client_->shutdown();
+        ws_client_.reset();
     }
 
     LOG_INFO("{} shutdown", id_);
@@ -44,16 +46,19 @@ void upload_session::shutdown()
 
 void upload_session::on_connect(boost::beast::error_code ec)
 {
+    assert(state_ == connecting);
     if (ec)
     {
         shutdown();
         return;
     }
+    state_ = connected;
     LOG_INFO("{} connect ws client will login use token {}", id_, token_);
     leaf::login_token lt;
     lt.id = seq_++;
     lt.token = token_;
-    cb_(leaf::serialize_login_token(lt));
+    state_ = login;
+    ws_client_->write(leaf::serialize_login_token(lt));
 }
 void upload_session::on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes)
 {
@@ -87,10 +92,15 @@ void upload_session::on_write(boost::beast::error_code ec, std::size_t /*transfe
         shutdown();
         return;
     }
+    if (state_ == file_data)
+    {
+        upload_file_data();
+    }
 }
 
 void upload_session::upload_file_request()
 {
+    assert(state_ == upload_file);
     if (file_ == nullptr)
     {
         return;
@@ -121,19 +131,9 @@ void upload_session::upload_file_request()
     leaf::upload_file_request u;
     u.id = seq_++;
     u.filename = std::filesystem::path(file_->file_path).filename().string();
-    u.block_count = file_size / kBlockSize;
-    if (file_size % kBlockSize != 0)
-    {
-        u.block_count++;
-        u.padding_size = kBlockSize - (file_size % kBlockSize);
-    }
-    file_->active_block_count = u.block_count;
-    file_->padding_size = u.padding_size;
-    file_->block_count = u.block_count;
+    u.filesize = file_size;
     file_->file_size = file_size;
-    file_->block_size = kBlockSize;
-    file_->hash_block_count = 0;
-    cb_(leaf::serialize_upload_file_request(u));
+    ws_client_->write(leaf::serialize_upload_file_request(u));
 }
 void upload_session::add_file(const leaf::file_context::ptr& file)
 {
@@ -150,7 +150,7 @@ void upload_session::add_file(const leaf::file_context::ptr& file)
 
 void upload_session::update_process_file()
 {
-    if (file_ != nullptr)
+    if (state_ == upload_file)
     {
         return;
     }
@@ -160,14 +160,15 @@ void upload_session::update_process_file()
         LOG_TRACE("{} padding files empty", id_);
         return;
     }
+    state_ = upload_file;
     file_ = padding_files_.front();
     padding_files_.pop_front();
-    LOG_INFO("{} start_file {} size {}", id_, file_->file_path, padding_files_.size());
+    LOG_INFO("{} start_file {} padding size {}", id_, file_->file_path, padding_files_.size());
     upload_file_request();
 }
 void upload_session::update()
 {
-    if (!login_)
+    if (state_ != logined)
     {
         return;
     }
@@ -200,6 +201,7 @@ void upload_session::on_login_token(const std::optional<leaf::login_token>& l)
     {
         return;
     }
+    state_ = logined;
     login_ = true;
     LOG_INFO("{} login_response token {}", id_, l->token);
 }
@@ -232,51 +234,79 @@ void upload_session::on_upload_file_response(const std::optional<leaf::upload_fi
     {
         return;
     }
+    assert(state_ == upload_file);
     const auto& msg = res.value();
     LOG_DEBUG("{} upload_file_response {} filename {}", id_, msg.id, msg.filename);
     if (file_ == nullptr)
     {
         return;
     }
+    state_ = file_data;
+    upload_file_data();
 }
 
-void upload_session::update_file_data()
+void upload_session::upload_file_data()
 {
-    assert(file_->active_block_count <= file_->block_count);
+    assert(reader_->size() < file_->file_size);
     // read block data
     std::vector<uint8_t> buffer(kBlockSize, '0');
     boost::system::error_code ec;
     auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
     if (ec && ec != boost::asio::error::eof)
     {
+        LOG_ERROR("{} read file {} error {}", id_, file_->file_path, ec.message());
+        reset_state();
         return;
     }
+    buffer.resize(read_size);
     leaf::file_data fd;
-    fd.block_id = file_->active_block_count;
     fd.data.swap(buffer);
-    file_->active_block_count++;
-    file_->hash_block_count++;
-    hash_->update(buffer.data(), read_size);
+    if (read_size != 0)
+    {
+        file_->hash_count++;
+        hash_->update(fd.data.data(), read_size);
+    }
+    LOG_DEBUG("{} upload file {} size {}", id_, file_->file_path, read_size);
     // block count hash or eof hash
-    if (file_->hash_block_count == kHashBlockCount || ec == boost::asio::error::eof)
+    if (file_->file_size == reader_->size() || file_->hash_count == kHashBlockCount || ec == boost::asio::error::eof)
     {
         hash_->final();
         fd.hash = hash_->hex();
-        file_->hash_block_count = 0;
+        file_->hash_count = 0;
+        LOG_DEBUG("{} upload file {} hash {}", id_, file_->file_path, fd.hash);
         hash_ = std::make_shared<leaf::blake2b>();
     }
     if (!fd.data.empty())
     {
-        auto bytes = leaf::serialize_file_data(fd);
-        cb_(std::move(bytes));
+        ws_client_->write(leaf::serialize_file_data(fd));
     }
     // eof reset
-    if (ec == boost::asio::error::eof)
+    if (ec == boost::asio::error::eof || reader_->size() == file_->file_size)
     {
+        LOG_INFO("{} upload file {} complete", id_, file_->file_path);
+        reset_state();
         return;
     }
 }
 
+void upload_session::reset_state()
+{
+    state_ = logined;
+    if (file_ != nullptr)
+    {
+        file_.reset();
+    }
+    if (reader_ != nullptr)
+    {
+        auto ec = reader_->close();
+        boost::ignore_unused(ec);
+        reader_.reset();
+    }
+    if (hash_ != nullptr)
+    {
+        hash_.reset();
+    }
+}
 void upload_session::padding_file_event()
 {
     for (const auto& p : padding_files_)
@@ -298,7 +328,7 @@ void upload_session::keepalive()
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
     k.server_timestamp = 0;
-    cb_(leaf::serialize_keepalive(k));
+    ws_client_->write(leaf::serialize_keepalive(k));
 }
 
 }    // namespace leaf
