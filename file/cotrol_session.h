@@ -13,6 +13,7 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
 {
    public:
     cotrol_session(std::string id,
+                   std::string token,
                    leaf::cotrol_progress_callback cb,
                    leaf::notify_progress_callback notify_cb,
                    boost::asio::ip::tcp::endpoint ed,
@@ -33,7 +34,7 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
 
    private:
     std::string id_;
-    leaf::login_token token_;
+    std::string token_;
     boost::asio::io_context &io_;
     boost::asio::ip::tcp::endpoint ed_;
     leaf::notify_progress_callback notify_cb_;

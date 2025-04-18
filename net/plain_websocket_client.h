@@ -3,14 +3,16 @@
 
 #include <queue>
 #include <atomic>
+#include <mutex>
 #include <functional>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/thread/latch.hpp>
+#include "net/websocket_session.h"
 
 namespace leaf
 {
-class plain_websocket_client : public std::enable_shared_from_this<plain_websocket_client>
+class plain_websocket_client : public leaf::websocket_session
 {
    public:
     using handshake_handler = std::function<void(const boost::system::error_code&)>;
@@ -25,11 +27,11 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     ~plain_websocket_client();
 
    public:
-    void startup();
-    void shutdown();
-    void write(std::vector<uint8_t> msg);
-    void set_message_handler(const message_handler& handler) { message_handler_ = handler; }
-    void set_handshake_handler(const handshake_handler& handler) { handshake_handler_ = handler; }
+    void startup() override;
+    void shutdown() override;
+    void write(const std::vector<uint8_t>& msg) override;
+    void set_read_cb(leaf::websocket_session::read_cb cb) override { read_cb_ = std::move(cb); }
+    void set_write_cb(leaf::websocket_session::write_cb cb) override { write_cb_ = std::move(cb); }
 
    private:
     void on_connect(boost::beast::error_code ec);
@@ -47,7 +49,6 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     void safe_write(const std::vector<uint8_t>& msg);
     void do_write();
     void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
-    void on_message(const std::shared_ptr<std::vector<uint8_t>>& msg);
     void on_error(boost::beast::error_code ec);
 
    private:
@@ -56,15 +57,14 @@ class plain_websocket_client : public std::enable_shared_from_this<plain_websock
     std::string id_;
     boost::asio::io_context& io_;
     std::string target_;
-    boost::latch latch_{1};
     bool connected_ = false;
-    message_handler message_handler_;
-    handshake_handler handshake_handler_;
+    std::once_flag shutdown_flag_;
     boost::beast::flat_buffer buffer_;
     boost::asio::ip::tcp::endpoint ed_;
+    leaf::websocket_session::read_cb read_cb_;
+    leaf::websocket_session::write_cb write_cb_;
     std::queue<std::vector<uint8_t>> msg_queue_;
-    using ws_stream = boost::beast::websocket::stream<boost::beast::tcp_stream>;
-    std::shared_ptr<ws_stream> ws_;
+    std::shared_ptr<boost::beast::websocket::stream<boost::beast::tcp_stream>> ws_;
 };
 }    // namespace leaf
 

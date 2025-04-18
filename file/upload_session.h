@@ -15,6 +15,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
 {
    public:
     upload_session(std::string id,
+                   std::string token,
                    leaf::upload_progress_callback cb,
                    boost::asio::ip::tcp::endpoint ed,
                    boost::asio::io_context &io);
@@ -28,11 +29,11 @@ class upload_session : public std::enable_shared_from_this<upload_session>
 
    public:
     void add_file(const leaf::file_context::ptr &file);
-    void on_message(const std::vector<uint8_t> &bytes);
-    void set_message_cb(std::function<void(std::vector<uint8_t>)> cb);
     void login(const std::string &token);
 
    private:
+    void on_read(boost::beast::error_code ec, const std::vector<uint8_t> &bytes);
+    void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
     void update_process_file();
     void upload_file_request();
     void keepalive();
@@ -48,7 +49,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     bool login_ = false;
     std::string id_;
     uint32_t seq_ = 0;
-    leaf::login_token token_;
+    std::string token_;
     boost::asio::io_context &io_;
     leaf::file_context::ptr file_;
     boost::asio::ip::tcp::endpoint ed_;

@@ -12,11 +12,17 @@ namespace leaf
 {
 
 download_session::download_session(std::string id,
+                                   std::string token,
                                    leaf::download_progress_callback cb,
                                    leaf::notify_progress_callback notify_cb,
                                    boost::asio::ip::tcp::endpoint ed_,
                                    boost::asio::io_context& io)
-    : id_(std::move(id)), io_(io), ed_(std::move(ed_)), notify_cb_(std::move(notify_cb)), progress_cb_(std::move(cb))
+    : id_(std::move(id)),
+      token_(std::move(token)),
+      io_(io),
+      ed_(std::move(ed_)),
+      notify_cb_(std::move(notify_cb)),
+      progress_cb_(std::move(cb))
 {
 }
 
@@ -30,10 +36,11 @@ void download_session::set_message_cb(std::function<void(std::vector<uint8_t>)> 
 
 void download_session::login(const std::string& token)
 {
-    token_.token = token;
-    token_.id = seq_++;
-    LOG_INFO("{} login token {}:{}", id_, token_.id, token);
-    write_message(leaf::serialize_login_token(token_));
+    leaf::login_token lt;
+    lt.token = token_;
+    lt.id = seq_++;
+    LOG_INFO("{} login token {}", id_, token);
+    write_message(leaf::serialize_login_token(lt));
 }
 
 void download_session::on_message(const std::vector<uint8_t>& bytes)
@@ -73,7 +80,7 @@ void download_session::on_login_token(const std::optional<leaf::login_token>& me
     }
 
     const auto& l = message.value();
-    assert(token_.token == l.token);
+    assert(token_ == l.token);
     login_ = true;
     LOG_INFO("{} login_token {}", id_, l.token);
     leaf::notify_event e;
@@ -305,7 +312,7 @@ void download_session::on_keepalive_response(const std::optional<leaf::keepalive
               k.client_timestamp,
               k.server_timestamp,
               diff,
-              token_.token);
+              token_);
 }
 void download_session::keepalive()
 {

@@ -14,6 +14,7 @@ class download_session : public std::enable_shared_from_this<download_session>
 {
    public:
     download_session(std::string id,
+                     std::string token,
                      leaf::download_progress_callback cb,
                      leaf::notify_progress_callback notify_cb,
                      boost::asio::ip::tcp::endpoint ed_,
@@ -55,7 +56,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     bool login_ = false;
     uint32_t seq_ = 0;
     std::string id_;
-    leaf::login_token token_;
+    std::string token_;
     boost::asio::io_context &io_;
     boost::asio::ip::tcp::endpoint ed_;
     download_status status_ = wait_download_file;

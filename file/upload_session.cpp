@@ -11,31 +11,48 @@ namespace leaf
 {
 
 upload_session::upload_session(std::string id,
+                               std::string token,
                                leaf::upload_progress_callback cb,
                                boost::asio::ip::tcp::endpoint ed,
                                boost::asio::io_context& io)
-    : id_(std::move(id)), io_(io), ed_(std::move(ed)), progress_cb_(std::move(cb))
+    : id_(std::move(id)), token_(std::move(token)), io_(io), ed_(std::move(ed)), progress_cb_(std::move(cb))
 {
 }
 
 upload_session::~upload_session() = default;
 
-void upload_session::startup() { LOG_INFO("{} startup", id_); }
+void upload_session::startup()
+{
+    std::string url = "ws://" + ed_.address().to_string() + ":" + std::to_string(ed_.port()) + "/leaf/ws/upload";
+    ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, url, ed_, io_);
+    ws_client_->set_read_cb([this, self = shared_from_this()](auto ec, const auto& msg) { on_read(ec, msg); });
+    ws_client_->set_write_cb([this, self = shared_from_this()](auto ec, std::size_t bytes) { on_write(ec, bytes); });
+    ws_client_->startup();
+    LOG_INFO("{} startup", id_);
+}
 
-void upload_session::shutdown() { LOG_INFO("{} shutdown", id_); }
+void upload_session::shutdown()
+{
+    ws_client_->shutdown();
+    LOG_INFO("{} shutdown", id_);
+}
 
 void upload_session::login(const std::string& token)
 {
     LOG_INFO("{} login token {}", id_, token);
-    token_.id = seq_++;
-    token_.token = token;
-    cb_(leaf::serialize_login_token(token_));
+    leaf::login_token lt;
+    lt.id = seq_++;
+    lt.token = token_;
+    cb_(leaf::serialize_login_token(lt));
 }
 
-void upload_session::set_message_cb(std::function<void(std::vector<uint8_t>)> cb) { cb_ = std::move(cb); }
-
-void upload_session::on_message(const std::vector<uint8_t>& bytes)
+void upload_session::on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes)
 {
+    if (ec)
+    {
+        shutdown();
+        return;
+    }
     auto type = leaf::get_message_type(bytes);
     if (type == leaf::message_type::error)
     {
@@ -50,6 +67,15 @@ void upload_session::on_message(const std::vector<uint8_t>& bytes)
     if (type == leaf::message_type::login)
     {
         on_login_token(leaf::deserialize_login_token(bytes));
+        return;
+    }
+}
+
+void upload_session::on_write(boost::beast::error_code ec, std::size_t /*transferred*/)
+{
+    if (ec)
+    {
+        shutdown();
         return;
     }
 }
@@ -188,7 +214,7 @@ void upload_session::on_keepalive_response(const std::optional<leaf::keepalive>&
               msg.client_timestamp,
               msg.server_timestamp,
               diff,
-              token_.token);
+              token_);
 }
 
 void upload_session::on_upload_file_response(const std::optional<leaf::upload_file_response>& res)

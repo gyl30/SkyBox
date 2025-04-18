@@ -8,17 +8,11 @@
 
 namespace leaf
 {
-static const char *upload_uri = "/leaf/ws/upload";
-static const char *download_uri = "/leaf/ws/download";
-static const char *cotrol_uri = "/leaf/ws/cotrol";
 
 file_transfer_client::file_transfer_client(const std::string &ip, uint16_t port, leaf::progress_handler handler)
-    : id_(leaf::random_string(8)), ed_(boost::asio::ip::address::from_string(ip), port), handler_(std::move(handler))
-{
-    login_url_ = "http://" + ip + ":" + std::to_string(ed_.port()) + "/leaf/login";
-    download_url_ = "ws://" + ip + ":" + std::to_string(ed_.port()) + "/leaf/ws/download";
-    upload_url_ = "ws://" + ip + ":" + std::to_string(ed_.port()) + "/leaf/ws/upload";
-};
+    : id_(leaf::random_string(8)),
+      ed_(boost::asio::ip::address::from_string(ip), port),
+      handler_(std::move(handler)) {};
 
 file_transfer_client::~file_transfer_client()
 {
@@ -27,16 +21,13 @@ file_transfer_client::~file_transfer_client()
 }
 void file_transfer_client::do_login()
 {
-    if (!cotrol_connect_ || !upload_connect_ || !download_connect_)
-    {
-        return;
-    }
     auto c = std::make_shared<leaf::http_client>(executors.get_executor());
     leaf::login_request l;
     l.username = user_;
     l.password = pass_;
+    std::string login_url = "http://" + ed_.address().to_string() + ":" + std::to_string(ed_.port()) + "/leaf/login";
     auto data = leaf::serialize_login_request(l);
-    c->post(login_url_,
+    c->post(login_url,
             std::string(data.begin(), data.end()),
             [this, c](boost::beast::error_code ec, const std::string &res)
             {
@@ -63,11 +54,18 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
         LOG_ERROR("{} login deserialize failed {}", id_, res);
         return;
     }
+
     login_ = true;
     token_ = l->token;
     LOG_INFO("login {} {} token {}", user_, pass_, token_, l->token);
-    upload_->login(l->token);
-    download_->login(l->token);
+    // clang-format off
+    cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", l->token, handler_.cotrol, handler_.notify, ed_, executors.get_executor());
+    upload_ = std::make_shared<leaf::upload_session>("upload", l->token, handler_.upload, ed_, executors.get_executor());
+    download_ = std::make_shared<leaf::download_session>("download", l->token, handler_.download, handler_.notify, ed_, executors.get_executor());
+    // clang-format on
+    cotrol_->startup();
+    upload_->startup();
+    download_->startup();
     start_timer();
 }
 
@@ -75,31 +73,6 @@ void file_transfer_client::startup()
 {
     executors.startup();
     timer_ = std::make_shared<boost::asio::steady_timer>(executors.get_executor());
-    cotrol_ = std::make_shared<leaf::cotrol_session>(
-        "cotrol", handler_.cotrol, handler_.notify, ed_, executors.get_executor());
-    upload_ = std::make_shared<leaf::upload_session>("upload", handler_.upload, ed_, executors.get_executor());
-    download_ = std::make_shared<leaf::download_session>(
-        "download", handler_.download, handler_.notify, ed_, executors.get_executor());
-    cotrol_->set_message_cb(std::bind(&file_transfer_client::on_write_cotrol_message, this, std::placeholders::_1));
-    upload_->set_message_cb(std::bind(&file_transfer_client::on_write_upload_message, this, std::placeholders::_1));
-    download_->set_message_cb(std::bind(&file_transfer_client::on_write_download_message, this, std::placeholders::_1));
-    // clang-format off
-    cotrol_client_ = std::make_shared<leaf::plain_websocket_client>("cotrol_ws_cli", cotrol_uri, ed_, executors.get_executor());
-    upload_client_ = std::make_shared<leaf::plain_websocket_client>("upload_ws_cli", upload_uri, ed_, executors.get_executor());
-    download_client_ = std::make_shared<leaf::plain_websocket_client>("download_ws_cli", download_uri, ed_, executors.get_executor());
-    cotrol_client_->set_message_handler(std::bind(&file_transfer_client::on_read_cotrol_message, this, std::placeholders::_1, std::placeholders::_2));
-    upload_client_->set_message_handler(std::bind(&file_transfer_client::on_read_upload_message, this, std::placeholders::_1, std::placeholders::_2));
-    download_client_->set_message_handler(std::bind(&file_transfer_client::on_read_download_message, this, std::placeholders::_1, std::placeholders::_2));
-    cotrol_client_->set_handshake_handler(std::bind(&file_transfer_client::on_cotrol_connect, this, std::placeholders::_1));
-    upload_client_->set_handshake_handler(std::bind(&file_transfer_client::on_upload_connect, this, std::placeholders::_1));
-    download_client_->set_handshake_handler(std::bind(&file_transfer_client::on_download_connect, this, std::placeholders::_1));
-    // clang-format on
-    cotrol_->startup();
-    upload_->startup();
-    download_->startup();
-    cotrol_client_->startup();
-    upload_client_->startup();
-    download_client_->startup();
 }
 
 void file_transfer_client::shutdown()
@@ -108,112 +81,12 @@ void file_transfer_client::shutdown()
     timer_->cancel(ec);
     upload_->shutdown();
     download_->shutdown();
-    upload_client_->shutdown();
-    download_client_->shutdown();
-    cotrol_client_->shutdown();
+    cotrol_->shutdown();
     upload_.reset();
     download_.reset();
-    upload_client_.reset();
-    download_client_.reset();
-    cotrol_client_.reset();
+    cotrol_.reset();
     executors.shutdown();
 }
-void file_transfer_client::on_write_cotrol_message(std::vector<uint8_t> msg)
-{
-    if (cotrol_client_)
-    {
-        cotrol_client_->write(std::move(msg));
-    }
-}
-void file_transfer_client::on_write_upload_message(std::vector<uint8_t> msg)
-{
-    if (upload_client_)
-    {
-        upload_client_->write(std::move(msg));
-    }
-}
-void file_transfer_client::on_write_download_message(std::vector<uint8_t> msg)
-{
-    if (download_client_)
-    {
-        download_client_->write(std::move(msg));
-    }
-}
-
-void file_transfer_client::on_read_cotrol_message(const std::shared_ptr<std::vector<uint8_t>> &msg,
-                                                  const boost::system::error_code &ec)
-{
-    if (ec)
-    {
-        LOG_ERROR("{} cotrol read error {}", id_, ec.message());
-        on_error(ec);
-        return;
-    }
-    if (cotrol_)
-    {
-        cotrol_->on_message(*msg);
-    }
-}
-void file_transfer_client::on_read_upload_message(const std::shared_ptr<std::vector<uint8_t>> &msg,
-                                                  const boost::system::error_code &ec)
-{
-    if (ec)
-    {
-        LOG_ERROR("{} upload read error {}", id_, ec.message());
-        on_error(ec);
-        return;
-    }
-    if (upload_)
-    {
-        upload_->on_message(*msg);
-    }
-}
-void file_transfer_client::on_read_download_message(const std::shared_ptr<std::vector<uint8_t>> &msg,
-                                                    const boost::system::error_code &ec)
-{
-    if (ec)
-    {
-        LOG_ERROR("{} download read error {}", id_, ec.message());
-        on_error(ec);
-        return;
-    }
-    if (download_)
-    {
-        download_->on_message(*msg);
-    }
-}
-
-void file_transfer_client::on_cotrol_connect(const boost::system::error_code &ec)
-{
-    if (ec)
-    {
-        return;
-    }
-    cotrol_connect_ = true;
-    LOG_INFO("{} cotrol connect success", id_);
-    do_login();
-}
-void file_transfer_client::on_upload_connect(const boost::system::error_code &ec)
-{
-    if (ec)
-    {
-        return;
-    }
-    LOG_INFO("{} upload connect success", id_);
-    upload_connect_ = true;
-    do_login();
-}
-void file_transfer_client::on_download_connect(const boost::system::error_code &ec)
-{
-    if (ec)
-    {
-        return;
-    }
-    LOG_INFO("{} download connect success", id_);
-    download_connect_ = true;
-    do_login();
-}
-
 void file_transfer_client::login(const std::string &user, const std::string &pass)
 {
     user_ = user;

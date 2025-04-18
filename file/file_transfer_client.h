@@ -52,13 +52,7 @@ class file_transfer_client
     std::string token_;
     std::string user_;
     std::string pass_;
-    std::string login_url_;
-    std::string upload_url_;
-    std::string download_url_;
     bool login_ = false;
-    bool cotrol_connect_ = false;
-    bool upload_connect_ = false;
-    bool download_connect_ = false;
     leaf::executors executors{4};
     boost::asio::ip::tcp::endpoint ed_;
     leaf::progress_handler handler_;
@@ -66,9 +60,6 @@ class file_transfer_client
     std::shared_ptr<leaf::upload_session> upload_;
     std::shared_ptr<leaf::download_session> download_;
     std::shared_ptr<boost::asio::steady_timer> timer_;
-    std::shared_ptr<leaf::plain_websocket_client> cotrol_client_;
-    std::shared_ptr<leaf::plain_websocket_client> upload_client_;
-    std::shared_ptr<leaf::plain_websocket_client> download_client_;
 };
 
 }    // namespace leaf

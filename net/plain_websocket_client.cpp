@@ -24,8 +24,7 @@ plain_websocket_client::~plain_websocket_client()
 
 void plain_websocket_client::startup()
 {
-    auto self = shared_from_this();
-    boost::asio::dispatch(io_, boost::beast::bind_front_handler(&plain_websocket_client::safe_startup, self));
+    boost::asio::dispatch(io_, boost::beast::bind_front_handler(&plain_websocket_client::safe_startup, this));
 }
 
 void plain_websocket_client::safe_startup()
@@ -36,18 +35,17 @@ void plain_websocket_client::safe_startup()
 
 void plain_websocket_client::connect()
 {
-    ws_ = std::make_shared<ws_stream>(io_);
+    ws_ = std::make_shared<boost::beast::websocket::stream<boost::beast::tcp_stream>>(io_);
     auto& l = boost::beast::get_lowest_layer(*ws_);
-    l.async_connect(ed_, boost::beast::bind_front_handler(&plain_websocket_client::on_connect, shared_from_this()));
+    l.async_connect(ed_, boost::beast::bind_front_handler(&plain_websocket_client::on_connect, this));
 }
 void plain_websocket_client::reconnect()
 {
     LOG_INFO("reconnect {}", id_);
-    auto self = shared_from_this();
     auto timer = std::make_shared<boost::asio::steady_timer>(io_);
     timer->expires_after(std::chrono::seconds(3));
     timer->async_wait(
-        [self, this, timer](boost::system::error_code ec)
+        [this, self = shared_from_this(), timer](boost::system::error_code ec)
         {
             on_reconnect(ec);
             timer->cancel(ec);
@@ -82,7 +80,6 @@ void plain_websocket_client::on_connect(boost::beast::error_code ec)
         return;
     }
     LOG_INFO("{} connect to {}", id_, leaf::get_endpoint_address(ed_));
-    auto self = shared_from_this();
     std::string host = leaf::get_endpoint_address(ed_);
     boost::beast::get_lowest_layer(*ws_).expires_after(std::chrono::seconds(3));
     boost::beast::get_lowest_layer(*ws_).expires_never();
@@ -92,7 +89,7 @@ void plain_websocket_client::on_connect(boost::beast::error_code ec)
     ws_->binary(true);
     ws_->set_option(boost::beast::websocket::stream_base::timeout::suggested(boost::beast::role_type::client));
     ws_->set_option(boost::beast::websocket::stream_base::decorator(user_agent));
-    ws_->async_handshake(host, target_, boost::beast::bind_front_handler(&plain_websocket_client::on_handshake, self));
+    ws_->async_handshake(host, target_, boost::beast::bind_front_handler(&plain_websocket_client::on_handshake, this));
 }
 
 void plain_websocket_client::on_handshake(boost::beast::error_code ec)
@@ -104,10 +101,6 @@ void plain_websocket_client::on_handshake(boost::beast::error_code ec)
         return;
     }
     connected_ = true;
-    if (handshake_handler_)
-    {
-        handshake_handler_(ec);
-    }
     do_read();
     do_write();
 }
@@ -136,18 +129,18 @@ void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t by
 
     buffer_.consume(buffer_.size());
 
-    auto msg_shared = std::make_shared<std::vector<uint8_t>>(msg);
-    on_message(msg_shared);
+    if (read_cb_)
+    {
+        read_cb_(ec, msg);
+    }
+    else
+    {
+        LOG_ERROR("{} read callback is null", id_);
+    }
 
     do_read();
 }
-void plain_websocket_client::on_message(const std::shared_ptr<std::vector<uint8_t>>& msg)
-{
-    if (message_handler_)
-    {
-        message_handler_(msg, {});
-    }
-}
+
 void plain_websocket_client::on_error(boost::beast::error_code ec)
 {
     if (shutdown_)
@@ -156,17 +149,19 @@ void plain_websocket_client::on_error(boost::beast::error_code ec)
     }
     if (ec != boost::asio::error::operation_aborted)
     {
-        message_handler_(nullptr, ec);
+        if (read_cb_)
+        {
+            read_cb_(ec, {});
+        }
     }
     reconnect();
 }
 
 void plain_websocket_client::shutdown()
 {
-    shutdown_ = true;
-    boost::asio::dispatch(io_,
-                          boost::beast::bind_front_handler(&plain_websocket_client::safe_shutdown, shared_from_this()));
-    latch_.wait();
+    // clang-format off
+    std::call_once(shutdown_flag_, [this]() { boost::asio::dispatch(io_, [this, self = shared_from_this()]() { safe_shutdown(); }); });
+    // clang-format on
 }
 
 void plain_websocket_client::safe_shutdown()
@@ -176,12 +171,11 @@ void plain_websocket_client::safe_shutdown()
     boost::beast::error_code ec;
     ec = ws_->next_layer().socket().close(ec);
     ws_->next_layer().close();
-    latch_.count_down();
 }
 
-void plain_websocket_client::write(std::vector<uint8_t> msg)
+void plain_websocket_client::write(const std::vector<uint8_t>& msg)
 {
-    boost::asio::dispatch(io_, boost::beast::bind_front_handler(&plain_websocket_client::safe_write, this, msg));
+    boost::asio::dispatch(io_, [this, self = shared_from_this(), msg = msg]() { safe_write(msg); });
 }
 
 void plain_websocket_client::safe_write(const std::vector<uint8_t>& msg)
@@ -218,6 +212,10 @@ void plain_websocket_client::on_write(boost::beast::error_code ec, std::size_t b
         LOG_ERROR("{} write failed {}", id_, ec.message());
         on_error(ec);
         return;
+    }
+    if (write_cb_)
+    {
+        write_cb_(ec, bytes_transferred);
     }
     LOG_TRACE("{} write success {} bytes", id_, bytes_transferred);
     writing_ = false;
