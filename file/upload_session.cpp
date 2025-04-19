@@ -2,14 +2,11 @@
 #include <filesystem>
 #include "log/log.h"
 #include "file/file.h"
+#include "config/config.h"
 #include "file/upload_session.h"
-
-constexpr auto kBlockSize = 128 * 1024;
-constexpr auto kHashBlockCount = 10;
 
 namespace leaf
 {
-
 upload_session::upload_session(std::string id,
                                std::string token,
                                leaf::upload_progress_callback cb,

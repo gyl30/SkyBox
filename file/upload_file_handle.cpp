@@ -3,11 +3,10 @@
 #include "log/log.h"
 #include "crypt/easy.h"
 #include "crypt/passwd.h"
+#include "config/config.h"
 #include "protocol/codec.h"
 #include "protocol/message.h"
 #include "file/upload_file_handle.h"
-
-constexpr auto kBlockSize = 128 * 1024;
 
 namespace leaf
 {
@@ -215,6 +214,7 @@ void upload_file_handle::on_login(const std::optional<leaf::login_token>& l)
         return;
     }
     LOG_INFO("{} on_login token {}", id_, l->token);
+    token_ = l->token;
     state_ = wait_upload_request;
     session_->write(leaf::serialize_login_token(l.value()));
 }

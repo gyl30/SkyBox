@@ -3,15 +3,12 @@
 #include <filesystem>
 #include "log/log.h"
 #include "file/file.h"
+#include "config/config.h"
 #include "protocol/codec.h"
 #include "file/download_session.h"
 
-constexpr auto kBlockSize = 128L * 1024;
-constexpr auto kDefatuleDownloadDir = "";
-
 namespace leaf
 {
-
 download_session::download_session(std::string id,
                                    std::string token,
                                    leaf::download_progress_callback cb,
@@ -158,35 +155,38 @@ void download_session::on_download_file_response(const std::optional<leaf::downl
 
     const auto& msg = res.value();
     boost::system::error_code exists_ec;
-    bool exists = std::filesystem::exists(msg.filename, exists_ec);
+    auto file_path = std::filesystem::path(kDefatuleDownloadDir).append(msg.filename).string();
+    bool exists = std::filesystem::exists(file_path, exists_ec);
     if (exists_ec)
     {
-        LOG_ERROR("{} download_file file {} exists error {}", id_, msg.filename, exists_ec.message());
+        LOG_ERROR("{} download_file file {} exists error {}", id_, file_path, exists_ec.message());
+        reset_state();
         return;
     }
     if (exists)
     {
-        uint32_t exists_size = std::filesystem::file_size(msg.filename, exists_ec);
+        uint32_t exists_size = std::filesystem::file_size(file_path, exists_ec);
         if (exists_ec)
         {
-            LOG_ERROR("{} download_file {} file size failed {}", id_, msg.filename, exists_ec.message());
+            LOG_ERROR("{} download_file {} file size failed {}", id_, file_path, exists_ec.message());
+            reset_state();
             return;
         }
         if (exists_size != res->filesize)
         {
-            LOG_INFO("{} download_file {} file size not match {}:{}", id_, msg.filename, exists_size, res->filesize);
+            LOG_INFO("{} download_file {} file size not match {}:{}", id_, file_path, exists_size, res->filesize);
+            reset_state();
             return;
         }
     }
 
     assert(!file_ && !writer_ && !hash_);
 
-    auto file_path = std::filesystem::path(kDefatuleDownloadDir).append(msg.filename).string();
     writer_ = std::make_shared<leaf::file_writer>(file_path);
     auto ec = writer_->open();
     if (ec)
     {
-        LOG_ERROR("{} download_file open file {} error {}", id_, msg.filename, ec.message());
+        LOG_ERROR("{} download_file open file {} error {}", id_, file_path, ec.message());
         return;
     }
 

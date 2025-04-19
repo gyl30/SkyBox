@@ -4,11 +4,9 @@
 #include "log/log.h"
 #include "file/file.h"
 #include "crypt/easy.h"
+#include "config/config.h"
 #include "protocol/codec.h"
 #include "file/download_file_handle.h"
-
-constexpr auto kBlockSize = 128 * 1024;
-constexpr auto kHashBlockCount = 10;
 
 namespace leaf
 {
