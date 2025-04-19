@@ -33,6 +33,7 @@ class download_file_handle : public websocket_handle
     void on_login(const std::optional<leaf::login_token>& l);
     void on_error_message(const std::optional<leaf::error_message>& e);
     void reset_status();
+    void error_message(uint32_t id, int32_t error_code);
 
    private:
     enum status : uint8_t

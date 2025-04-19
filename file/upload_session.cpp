@@ -116,7 +116,7 @@ void upload_session::update_process_file()
     auto file_size = std::filesystem::file_size(filename, size_ec);
     if (size_ec)
     {
-        LOG_ERROR("{} upload_file request file {} size error {}", id_, file_->file_path, size_ec.message());
+        LOG_ERROR("{} upload_file request file {} size error {}", id_, filename, size_ec.message());
         reset_state();
         return;
     }
@@ -124,7 +124,6 @@ void upload_session::update_process_file()
     file->file_path = filename;
     file->filename = std::filesystem::path(filename).filename();
     file->file_size = file_size;
-
     LOG_INFO("{} start_file {} padding size {}", id_, file_->file_path, padding_files_.size());
     upload_file_request();
 }
@@ -154,7 +153,8 @@ void upload_session::on_error_message(const std::optional<leaf::error_message>& 
         return;
     }
 
-    LOG_ERROR("{} error {}", id_, e->error);
+    LOG_ERROR("{} message id {} error {}", id_, e->id, e->error);
+    reset_state();
 }
 
 void upload_session::on_login_token(const std::optional<leaf::login_token>& l)

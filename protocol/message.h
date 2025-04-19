@@ -71,7 +71,7 @@ struct file_data
 struct error_message
 {
     uint32_t id = 0;
-    uint32_t error = 0;
+    int32_t error = 0;
 };
 
 struct keepalive

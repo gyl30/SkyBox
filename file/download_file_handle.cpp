@@ -1,5 +1,6 @@
 #include <utility>
 #include <filesystem>
+#include <boost/system/error_code.hpp>
 
 #include "log/log.h"
 #include "file/file.h"
@@ -93,13 +94,29 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
         session_->write(bytes);
     }
 }
+void download_file_handle::error_message(uint32_t id, int32_t error_code)
+{
+    leaf::error_message e;
+    e.id = id;
+    e.error = error_code;
+    session_->write(leaf::serialize_error_message(e));
+}
 void download_file_handle::reset_status()
 {
-    auto ec = reader_->close();
-    boost::ignore_unused(ec);
-    file_.reset();
-    reader_.reset();
-    hash_.reset();
+    if (reader_)
+    {
+        auto ec = reader_->close();
+        boost::ignore_unused(ec);
+        reader_.reset();
+    }
+    if (file_)
+    {
+        file_.reset();
+    }
+    if (hash_)
+    {
+        hash_.reset();
+    }
     status_ = leaf::download_file_handle::status::wait_download_file_request;
 }
 void download_file_handle::on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes)
@@ -168,11 +185,16 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
     if (exists_ec)
     {
         LOG_ERROR("{} download_file file {} exist error {}", id_, msg.filename, exists_ec.message());
+        reset_status();
+        error_message(download->id, exists_ec.value());
         return;
     }
     if (!exist)
     {
         LOG_ERROR("{} download_file file {} not exist", id_, download_file_path);
+        reset_status();
+        exists_ec = boost::system::errc::make_error_code(boost::system::errc::no_such_file_or_directory);
+        error_message(download->id, exists_ec.value());
         return;
     }
 
@@ -181,6 +203,8 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
     if (size_ec)
     {
         LOG_ERROR("{} download_file file {} size error {}", id_, msg.filename, size_ec.message());
+        reset_status();
+        error_message(download->id, size_ec.value());
         return;
     }
 
@@ -190,10 +214,8 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
     if (ec)
     {
         LOG_ERROR("{} download_file open file {} error {}", id_, download_file_path, ec.message());
-        return;
-    }
-    if (reader_ == nullptr)
-    {
+        reset_status();
+        error_message(download->id, ec.value());
         return;
     }
     hash_ = std::make_shared<leaf::blake2b>();

@@ -298,25 +298,16 @@ void download_session::update()
     download_file_request();
 }
 
-void download_session::on_error_message(const std::optional<leaf::error_message>& message)
+void download_session::on_error_message(const std::optional<leaf::error_message>& e)
 {
-    if (!message.has_value())
+    if (!e.has_value())
     {
         return;
     }
-
-    const auto& msg = message.value();
-
-    if (msg.error == boost::system::errc::no_such_file_or_directory)
-    {
-        leaf::notify_event e;
-        e.method = "file_not_exist";
-        e.data = file_->filename;
-        file_.reset();
-        notify_cb_(e);
-    }
-    LOG_ERROR("{} download_file error {} {}", id_, msg.id, msg.error);
-    this->reset_state();
+    boost::system::error_code ec;
+    ec.assign(e->error, boost::system::system_category());
+    LOG_ERROR("{} download_file error {} {}", id_, e->id, ec.message());
+    reset_state();
 }
 
 void download_session::on_keepalive_response(const std::optional<leaf::keepalive>& message)
