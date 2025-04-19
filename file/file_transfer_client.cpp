@@ -104,12 +104,9 @@ void file_transfer_client::login(const std::string &user, const std::string &pas
 }
 void file_transfer_client::add_upload_file(const std::string &filename)
 {
-    auto file = std::make_shared<leaf::file_context>();
-    file->file_path = filename;
-    file->filename = std::filesystem::path(filename).filename();
     if (upload_)
     {
-        upload_->add_file(file);
+        upload_->add_file(filename);
     }
 }
 void file_transfer_client::add_download_file(const std::string &filename)

@@ -10,8 +10,8 @@ namespace leaf
 
 struct upload_event
 {
-    uint64_t file_size;
-    uint64_t upload_size;
+    uint64_t file_size = 0;
+    uint64_t upload_size = 0;
     std::string filename;
 };
 struct notify_event
@@ -21,8 +21,8 @@ struct notify_event
 };
 struct download_event
 {
-    uint64_t file_size;
-    uint64_t download_size;
+    uint64_t file_size = 0;
+    uint64_t download_size = 0;
     std::string filename;
 };
 

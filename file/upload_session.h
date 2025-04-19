@@ -26,7 +26,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void startup();
     void shutdown();
     void update();
-    void add_file(const leaf::file_context::ptr &file);
+    void add_file(const std::string &filename);
 
    private:
     void on_read(boost::beast::error_code ec, const std::vector<uint8_t> &bytes);
@@ -62,8 +62,8 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     boost::asio::ip::tcp::endpoint ed_;
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> hash_;
+    std::deque<std::string> padding_files_;
     leaf::upload_progress_callback progress_cb_;
-    std::deque<leaf::file_context::ptr> padding_files_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
 };
 }    // namespace leaf

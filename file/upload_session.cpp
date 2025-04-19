@@ -91,17 +91,10 @@ void upload_session::on_write(boost::beast::error_code ec, std::size_t /*transfe
     }
 }
 
-void upload_session::add_file(const leaf::file_context::ptr& file)
+void upload_session::add_file(const std::string& filename)
 {
-    if (file_ != nullptr)
-    {
-        LOG_INFO("{} change file from {} to {}", id_, file_->file_path, file->file_path);
-    }
-    else
-    {
-        LOG_INFO("{} add file {}", id_, file->file_path);
-    }
-    padding_files_.push_back(file);
+    LOG_INFO("{} add file {}", id_, filename);
+    padding_files_.push_back(filename);
 }
 
 void upload_session::update_process_file()
@@ -117,8 +110,21 @@ void upload_session::update_process_file()
         return;
     }
     state_ = upload_request;
-    file_ = padding_files_.front();
+    std::string filename = padding_files_.front();
     padding_files_.pop_front();
+    std::error_code size_ec;
+    auto file_size = std::filesystem::file_size(filename, size_ec);
+    if (size_ec)
+    {
+        LOG_ERROR("{} upload_file request file {} size error {}", id_, file_->file_path, size_ec.message());
+        reset_state();
+        return;
+    }
+    auto file = std::make_shared<leaf::file_context>();
+    file->file_path = filename;
+    file->filename = std::filesystem::path(filename).filename();
+    file->file_size = file_size;
+
     LOG_INFO("{} start_file {} padding size {}", id_, file_->file_path, padding_files_.size());
     upload_file_request();
 }
@@ -186,21 +192,8 @@ void upload_session::on_keepalive_response(const std::optional<leaf::keepalive>&
 
 void upload_session::upload_file_request()
 {
-    assert(state_ == upload_request);
-    if (file_ == nullptr)
-    {
-        return;
-    }
-    std::error_code size_ec;
-    auto file_size = std::filesystem::file_size(file_->file_path, size_ec);
-    if (size_ec)
-    {
-        LOG_ERROR("{} upload_file request file {} size error {}", id_, file_->file_path, size_ec.message());
-        reset_state();
-        return;
-    }
-
-    assert(file_ && !reader_ && !hash_);
+    assert(state_ == upload_request && file_ != nullptr);
+    assert(!reader_ && !hash_);
 
     reader_ = std::make_shared<leaf::file_reader>(file_->file_path);
     if (reader_ == nullptr)
@@ -221,9 +214,8 @@ void upload_session::upload_file_request()
     leaf::upload_file_request u;
     u.id = seq_++;
     u.filename = std::filesystem::path(file_->file_path).filename().string();
-    u.filesize = file_size;
-    file_->file_size = file_size;
-    LOG_DEBUG("{} upload_file request {} filename {} filesize {}", id_, u.id, file_->file_path, file_size);
+    u.filesize = file_->file_size;
+    LOG_DEBUG("{} upload_file request {} filename {} filesize {}", id_, u.id, file_->file_path, file_->file_size);
     ws_client_->write(leaf::serialize_upload_file_request(u));
 }
 void upload_session::on_upload_file_response(const std::optional<leaf::upload_file_response>& res)
@@ -302,12 +294,10 @@ void upload_session::reset_state()
 }
 void upload_session::padding_file_event()
 {
-    for (const auto& p : padding_files_)
+    for (const auto& filename : padding_files_)
     {
         upload_event e;
-        e.file_size = p->file_size;
-        e.upload_size = 0;
-        e.filename = p->filename;
+        e.filename = filename;
         emit_event(e);
     }
 }
