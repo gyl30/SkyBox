@@ -20,7 +20,6 @@ upload_session::~upload_session() = default;
 
 void upload_session::startup()
 {
-    state_ = connecting;
     std::string url = "ws://" + ed_.address().to_string() + ":" + std::to_string(ed_.port()) + "/leaf/ws/upload";
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, url, ed_, io_);
     ws_client_->set_read_cb([this, self = shared_from_this()](auto ec, const auto& msg) { on_read(ec, msg); });
@@ -43,18 +42,15 @@ void upload_session::shutdown()
 
 void upload_session::on_connect(boost::beast::error_code ec)
 {
-    assert(state_ == connecting);
     if (ec)
     {
         shutdown();
         return;
     }
-    state_ = connected;
     LOG_INFO("{} connect ws client will login use token {}", id_, token_);
     leaf::login_token lt;
     lt.id = seq_++;
     lt.token = token_;
-    state_ = login;
     ws_client_->write(leaf::serialize_login_token(lt));
 }
 void upload_session::on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes)
@@ -110,7 +106,7 @@ void upload_session::add_file(const leaf::file_context::ptr& file)
 
 void upload_session::update_process_file()
 {
-    if (state_ == upload_file)
+    if (state_ != logined)
     {
         return;
     }
@@ -120,7 +116,7 @@ void upload_session::update_process_file()
         LOG_TRACE("{} padding files empty", id_);
         return;
     }
-    state_ = upload_file;
+    state_ = upload_request;
     file_ = padding_files_.front();
     padding_files_.pop_front();
     LOG_INFO("{} start_file {} padding size {}", id_, file_->file_path, padding_files_.size());
@@ -190,7 +186,7 @@ void upload_session::on_keepalive_response(const std::optional<leaf::keepalive>&
 
 void upload_session::upload_file_request()
 {
-    assert(state_ == upload_file);
+    assert(state_ == upload_request);
     if (file_ == nullptr)
     {
         return;
@@ -236,8 +232,7 @@ void upload_session::on_upload_file_response(const std::optional<leaf::upload_fi
     {
         return;
     }
-    assert(state_ == upload_file && file_ != nullptr);
-    ;
+    assert(state_ == upload_request && file_ != nullptr);
     const auto& msg = res.value();
     LOG_DEBUG("{} upload_file response {} filename {}", id_, msg.id, msg.filename);
     state_ = file_data;

@@ -48,13 +48,9 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     enum state : uint8_t
     {
         init,
-        connecting,
-        connected,
-        login,
         logined,
-        upload_file,
+        upload_request,
         file_data,
-        padding_file,
     };
     state state_ = init;
     bool login_ = false;
