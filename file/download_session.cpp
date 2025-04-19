@@ -141,13 +141,11 @@ void download_session::download_file_request()
     }
     std::string filename = padding_files_.front();
     padding_files_.pop();
-
     leaf::download_file_request req;
     req.filename = filename;
     req.id = ++seq_;
     LOG_INFO("{} download_file {}", id_, req.filename);
     ws_client_->write(serialize_download_file_request(req));
-    status_ = wait_file_data;
 }
 
 void download_session::on_download_file_response(const std::optional<leaf::download_file_response>& res)
@@ -181,7 +179,9 @@ void download_session::on_download_file_response(const std::optional<leaf::downl
         }
     }
 
-    auto file_path = std::filesystem::path(kDefatuleDownloadDir).append(file_->filename).string();
+    assert(!file_ && !writer_ && !hash_);
+
+    auto file_path = std::filesystem::path(kDefatuleDownloadDir).append(msg.filename).string();
     writer_ = std::make_shared<leaf::file_writer>(file_path);
     auto ec = writer_->open();
     if (ec)
@@ -189,36 +189,51 @@ void download_session::on_download_file_response(const std::optional<leaf::downl
         LOG_ERROR("{} download_file open file {} error {}", id_, msg.filename, ec.message());
         return;
     }
-    assert(!file_ && !writer_ && !hash_);
 
     hash_ = std::make_shared<leaf::blake2b>();
     file_ = std::make_shared<leaf::file_context>();
     file_->filename = msg.filename;
     file_->file_size = res->filesize;
     file_->file_path = file_path;
+    writer_ = std::make_shared<leaf::file_writer>(file_->file_path);
+    ec = writer_->open();
+    if (ec)
+    {
+        LOG_ERROR("{} upload_file open file {} error {}", id_, file_path, ec.message());
+        reset_state();
+        return;
+    }
 
-    LOG_INFO("{} download_file {} file size {}", id_, file_->filename, file_->file_size);
+    LOG_INFO("{} download_file {} file size {}", id_, file_path, file_->file_size);
     status_ = wait_file_data;
 }
 
 void download_session::on_file_data(const std::optional<leaf::file_data>& data)
 {
-    status_ = wait_download_file;
+    assert(status_ == wait_file_data);
     if (!data.has_value())
     {
         return;
     }
-    assert(data->data.size() == kBlockSize);
-    assert(file_->file_size <= writer_->size());
+    assert(data->data.size() <= kBlockSize);
+    assert(writer_->size() <= file_->file_size);
     boost::system::error_code ec;
     writer_->write(data->data.data(), data->data.size(), ec);
     if (ec)
     {
         LOG_ERROR("{} download_file {} write error {}", id_, file_->filename, ec.message());
+        reset_state();
         return;
     }
     file_->hash_count++;
     hash_->update(data->data.data(), data->data.size());
+    LOG_DEBUG("{} download_file {} hash count {} hash {} data size {} write size {}",
+              id_,
+              file_->file_path,
+              file_->hash_count,
+              data->hash.empty() ? "empty" : data->hash,
+              data->data.size(),
+              writer_->size());
 
     if (!data->hash.empty())
     {
@@ -226,9 +241,11 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
         auto hash = hash_->hex();
         if (hash != data->hash)
         {
-            LOG_ERROR("{} download_file {} hash not match {} {}", id_, file_->filename, hash, data->hash);
+            LOG_ERROR("{} download_file {} hash not match {} {}", id_, file_->file_path, hash, data->hash);
+            reset_state();
             return;
         }
+        file_->hash_count = 0;
         hash_ = std::make_shared<leaf::blake2b>();
     }
     download_event d;
@@ -238,11 +255,10 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
     emit_event(d);
     if (file_->file_size == writer_->size())
     {
-        LOG_INFO("{} download_file {} finish", id_, file_->filename);
+        LOG_INFO("{} download_file {} size {} done", id_, file_->file_path, d.file_size);
         reset_state();
         return;
     }
-    status_ = wait_file_data;
 }
 void download_session::emit_event(const leaf::download_event& e)
 {
@@ -268,6 +284,7 @@ void download_session::reset_state()
     {
         hash_.reset();
     }
+    status_ = wait_download_file;
 }
 void download_session::add_file(const std::string& file) { padding_files_.push(file); }
 

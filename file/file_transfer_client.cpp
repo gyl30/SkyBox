@@ -60,12 +60,12 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     LOG_INFO("login {} {} token {}", user_, pass_, token_, l->token);
     // clang-format off
     // cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", l->token, handler_.cotrol, handler_.notify, ed_, executors.get_executor());
-    upload_ = std::make_shared<leaf::upload_session>("upload", l->token, handler_.upload, ed_, executors.get_executor());
-    // download_ = std::make_shared<leaf::download_session>("download", l->token, handler_.download, handler_.notify, ed_, executors.get_executor());
+    // upload_ = std::make_shared<leaf::upload_session>("upload", l->token, handler_.upload, ed_, executors.get_executor());
+    download_ = std::make_shared<leaf::download_session>("download", l->token, handler_.download, handler_.notify, ed_, executors.get_executor());
     // clang-format on
     // cotrol_->startup();
-    upload_->startup();
-    // download_->startup();
+    // upload_->startup();
+    download_->startup();
     start_timer();
 }
 

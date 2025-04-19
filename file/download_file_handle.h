@@ -32,7 +32,6 @@ class download_file_handle : public websocket_handle
     void on_download_file_request(const std::optional<leaf::download_file_request>& download);
     void on_login(const std::optional<leaf::login_token>& l);
     void on_error_message(const std::optional<leaf::error_message>& e);
-    void on_file_data(const std::optional<leaf::file_data>& fd);
     void reset_status();
 
    private:

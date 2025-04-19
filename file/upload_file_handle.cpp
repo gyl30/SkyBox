@@ -101,7 +101,7 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     assert(!file_ && !writer_);
     std::string filename = leaf::encode(req->filename);
     std::string upload_file_path = leaf::make_file_path(token_, filename);
-    upload_file_path = leaf::make_tmp_filename(upload_file_path);
+    upload_file_path = leaf::make_normal_filename(upload_file_path);
     std::error_code ec;
     bool exist = std::filesystem::exists(upload_file_path, ec);
     if (ec)

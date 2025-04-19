@@ -60,12 +60,18 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
     auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
     if (ec && ec != boost::asio::error::eof)
     {
+        LOG_ERROR("{} download_file read file {} error {}", id_, file_->file_path, ec.message());
         reset_status();
         return;
     }
+    buffer.resize(read_size);
     leaf::file_data fd;
     fd.data.swap(buffer);
-    hash_->update(buffer.data(), read_size);
+    if (read_size != 0)
+    {
+        hash_->update(fd.data.data(), read_size);
+        file_->hash_count++;
+    }
     // block count hash or eof hash
     if (file_->hash_count == kHashBlockCount || file_->file_size == reader_->size() || ec == boost::asio::error::eof)
     {
@@ -74,16 +80,19 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
         file_->hash_count = 0;
         hash_ = std::make_shared<leaf::blake2b>();
     }
+    LOG_DEBUG(
+        "{} download_file {} size {} hash {}", id_, file_->file_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
+
+    // eof reset
+    if (ec == boost::asio::error::eof || reader_->size() == file_->file_size)
+    {
+        LOG_INFO("{} upload_file {} complete", id_, file_->file_path);
+        reset_status();
+    }
     if (!fd.data.empty())
     {
         auto bytes = leaf::serialize_file_data(fd);
         session_->write(bytes);
-    }
-    // eof reset
-    if (ec == boost::asio::error::eof || reader_->size() == file_->file_size)
-    {
-        reset_status();
-        return;
     }
 }
 void download_file_handle::reset_status()
@@ -119,27 +128,8 @@ void download_file_handle::on_read(boost::beast::error_code ec, const std::vecto
     {
         on_download_file_request(leaf::deserialize_download_file_request(bytes));
     }
-    if (type == leaf::message_type::file_data)
-    {
-        on_file_data(leaf::deserialize_file_data(bytes));
-    }
 }
 
-void download_file_handle::on_file_data(const std::optional<leaf::file_data>& fd)
-{
-    if (status_ != wait_file_data)
-    {
-        LOG_ERROR("{} on_file_data status error", id_);
-        shutdown();
-        return;
-    }
-    if (!fd.has_value())
-    {
-        LOG_ERROR("{} on_file_data status error", id_);
-        shutdown();
-        return;
-    }
-}
 void download_file_handle::on_login(const std::optional<leaf::login_token>& l)
 {
     if (status_ != wait_login)
@@ -201,7 +191,7 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
     auto ec = reader_->open();
     if (ec)
     {
-        LOG_ERROR("{} download_file file open error {}", id_, ec.message());
+        LOG_ERROR("{} download_file open file {} error {}", id_, download_file_path, ec.message());
         return;
     }
     if (reader_ == nullptr)

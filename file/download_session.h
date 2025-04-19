@@ -4,6 +4,7 @@
 #include "file/file.h"
 #include "file/event.h"
 #include "crypt/blake2b.h"
+#include "protocol/message.h"
 #include "file/file_context.h"
 #include "net/plain_websocket_client.h"
 
