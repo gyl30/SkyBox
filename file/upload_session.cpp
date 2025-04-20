@@ -230,7 +230,8 @@ void upload_session::on_upload_file_response(const std::optional<leaf::upload_fi
     const auto& msg = res.value();
     LOG_DEBUG("{} upload_file response {} filename {}", id_, msg.id, msg.filename);
     state_ = file_data;
-    upload_file_data();
+    leaf::ack a;
+    ws_client_->write(leaf::serialize_ack(a));
 }
 
 void upload_session::upload_file_data()

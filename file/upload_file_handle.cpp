@@ -59,6 +59,10 @@ void upload_file_handle::on_read(boost::beast::error_code ec, const std::vector<
     {
         on_keepalive(leaf::deserialize_keepalive_response(bytes));
     }
+    if (type == leaf::message_type::ack)
+    {
+        on_ack(leaf::deserialize_ack(bytes));
+    }
     if (type == leaf::message_type::file_data)
     {
         on_file_data(leaf::deserialize_file_data(bytes));
@@ -137,13 +141,19 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
         error_message(req->id, ec.value());
         return;
     }
-    state_ = wait_file_data;
+    state_ = wait_ack;
     leaf::upload_file_response ufr;
     ufr.id = req->id;
     ufr.filename = req->filename;
     session_->write(leaf::serialize_upload_file_response(ufr));
 }
 
+void upload_file_handle::on_ack(const std::optional<leaf::ack>& /*a*/)
+{
+    LOG_INFO("{} upload_file recv ack", id_);
+    assert(state_ == wait_ack);
+    state_ = wait_file_data;
+}
 void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
 {
     if (state_ != wait_file_data)
