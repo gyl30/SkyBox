@@ -20,6 +20,7 @@ enum class message_type : uint8_t
     files_request = 9,
     files_response = 10,
     file_data = 11,
+    ack = 12,
 };
 
 struct login_request
@@ -50,6 +51,9 @@ struct files_response
     };
     std::string token;
     std::vector<file_node> files;
+};
+struct ack
+{
 };
 // ------------------------------------------------------------------------------
 struct upload_file_request

@@ -20,6 +20,7 @@ std::vector<uint8_t> serialize_download_file_request(const download_file_request
 std::vector<uint8_t> serialize_download_file_response(const download_file_response &msg);
 std::vector<uint8_t> serialize_delete_file_request(const delete_file_request &msg);
 std::vector<uint8_t> serialize_file_data(const file_data &data);
+std::vector<uint8_t> serialize_ack(const ack &a);
 
 std::optional<leaf::error_message> deserialize_error_message(const std::vector<uint8_t> &data);
 std::optional<leaf::upload_file_request> deserialize_upload_file_request(const std::vector<uint8_t> &data);
@@ -33,6 +34,7 @@ std::optional<leaf::login_token> deserialize_login_token(const std::vector<uint8
 std::optional<leaf::files_request> deserialize_files_request(const std::vector<uint8_t> &data);
 std::optional<leaf::files_response> deserialize_files_response(const std::vector<uint8_t> &data);
 std::optional<leaf::file_data> deserialize_file_data(const std::vector<uint8_t> &data);
+std::optional<leaf::ack> deserialize_ack(const std::vector<uint8_t> &data);
 
 }    // namespace leaf
 

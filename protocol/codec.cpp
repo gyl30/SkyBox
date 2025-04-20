@@ -529,4 +529,27 @@ std::optional<file_data> deserialize_file_data(const std::vector<uint8_t> &data)
     r.read_bytes(fd.data.data(), data_size);
     return fd;
 }
+
+std::vector<uint8_t> serialize_ack(const ack &a)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(leaf::to_underlying(message_type::ack));
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
+}
+
+std::optional<leaf::ack> deserialize_ack(const std::vector<uint8_t> &data)
+{
+    leaf::read_buffer r(data.data(), data.size());
+    read_padding(r);
+    uint16_t type = 0;
+    r.read_uint16(&type);
+    if (type != leaf::to_underlying(message_type::ack))
+    {
+        return {};
+    }
+    return leaf::ack{};
+}
 }    // namespace leaf
