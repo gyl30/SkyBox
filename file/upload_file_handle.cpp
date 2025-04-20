@@ -106,11 +106,16 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     if (ec)
     {
         LOG_ERROR("{} upload_file request file {} exist failed {}", id_, upload_file_path, ec.message());
+        reset_state();
+        error_message(req->id, ec.value());
         return;
     }
     if (exist)
     {
         LOG_ERROR("{} upload_file request file {} exist", id_, upload_file_path);
+        reset_state();
+        ec = boost::system::errc::make_error_code(boost::system::errc::file_exists);
+        error_message(req->id, ec.value());
         return;
     }
     LOG_INFO(
@@ -129,6 +134,7 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     {
         LOG_ERROR("{} upload_file open file {} error {}", id_, file_->file_path, ec.message());
         reset_state();
+        error_message(req->id, ec.value());
         return;
     }
     state_ = wait_file_data;
@@ -144,11 +150,13 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
     {
         LOG_ERROR("{} upload_file state failed", id_);
         reset_state();
+        shutdown();
         return;
     }
     if (!d.has_value())
     {
         reset_state();
+        shutdown();
         return;
     }
     assert(d->data.size() <= kBlockSize);
@@ -190,6 +198,15 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
         reset_state();
     }
 }
+
+void upload_file_handle::error_message(uint32_t id, int32_t error_code)
+{
+    leaf::error_message e;
+    e.id = id;
+    e.error = error_code;
+    session_->write(leaf::serialize_error_message(e));
+}
+
 void upload_file_handle::reset_state()
 {
     if (file_)

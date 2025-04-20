@@ -120,10 +120,10 @@ void upload_session::update_process_file()
         reset_state();
         return;
     }
-    auto file = std::make_shared<leaf::file_context>();
-    file->file_path = filename;
-    file->filename = std::filesystem::path(filename).filename();
-    file->file_size = file_size;
+    file_ = std::make_shared<leaf::file_context>();
+    file_->file_path = filename;
+    file_->filename = std::filesystem::path(filename).filename();
+    file_->file_size = file_size;
     LOG_INFO("{} start_file {} padding size {}", id_, file_->file_path, padding_files_.size());
     upload_file_request();
 }
@@ -153,7 +153,9 @@ void upload_session::on_error_message(const std::optional<leaf::error_message>& 
         return;
     }
 
-    LOG_ERROR("{} message id {} error {}", id_, e->id, e->error);
+    boost::system::error_code ec;
+    ec.assign(e->error, boost::system::system_category());
+    LOG_ERROR("{} upload_file error {} {}", id_, e->id, ec.message());
     reset_state();
 }
 
