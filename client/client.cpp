@@ -1,6 +1,7 @@
 #include <iostream>
 #include "log/log.h"
 #include "file/event.h"
+#include "net/scoped_exit.hpp"
 #include "file/file_transfer_client.h"
 
 static void download_progress(const leaf::download_event &e)
@@ -32,6 +33,7 @@ int main(int argc, char *argv[])
     }
 
     leaf::init_log("cli.log");
+    DEFER(leaf::shutdown_log());
 
     leaf::set_log_level("trace");
     leaf::progress_handler handler;
@@ -51,6 +53,5 @@ int main(int argc, char *argv[])
     std::this_thread::sleep_for(std::chrono::seconds(60));
 
     fm.shutdown();
-    leaf::shutdown_log();
     return 0;
 }
