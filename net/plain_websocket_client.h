@@ -8,6 +8,7 @@
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/thread/latch.hpp>
+#include "net/types.h"
 #include "net/websocket_session.h"
 
 namespace leaf
@@ -64,7 +65,7 @@ class plain_websocket_client : public leaf::websocket_session
     leaf::websocket_session::write_cb write_cb_;
     leaf::websocket_session::handshake_cb handshake_cb_;
     std::queue<std::vector<uint8_t>> msg_queue_;
-    std::shared_ptr<boost::beast::websocket::stream<boost::beast::tcp_stream>> ws_;
+    std::shared_ptr<boost::beast::websocket::stream<tcp_stream_limited>> ws_;
 };
 }    // namespace leaf
 

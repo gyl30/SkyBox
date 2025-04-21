@@ -35,7 +35,7 @@ void plain_websocket_client::safe_startup()
 
 void plain_websocket_client::connect()
 {
-    ws_ = std::make_shared<boost::beast::websocket::stream<boost::beast::tcp_stream>>(io_);
+    ws_ = std::make_shared<boost::beast::websocket::stream<tcp_stream_limited>>(io_);
     auto& l = boost::beast::get_lowest_layer(*ws_);
     l.async_connect(ed_, boost::beast::bind_front_handler(&plain_websocket_client::on_connect, this));
 }

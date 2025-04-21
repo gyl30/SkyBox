@@ -8,7 +8,7 @@
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/ssl/ssl_stream.hpp>
-#include "net/websocket_handle.h"
+#include "net/types.h"
 #include "net/websocket_session.h"
 
 namespace leaf
@@ -17,7 +17,7 @@ class ssl_websocket_session : public leaf::websocket_session
 {
    public:
     explicit ssl_websocket_session(std::string id,
-                                   boost::beast::ssl_stream<boost::beast::tcp_stream>&& stream,
+                                   boost::beast::ssl_stream<tcp_stream_limited>&& stream,
                                    boost::beast::http::request<boost::beast::http::string_body> req);
     ~ssl_websocket_session() override;
 
@@ -49,7 +49,7 @@ class ssl_websocket_session : public leaf::websocket_session
     leaf::websocket_session::handshake_cb handshake_cb_;
     std::queue<std::vector<uint8_t>> msg_queue_;
     boost::beast::http::request<boost::beast::http::string_body> req_;
-    boost::beast::websocket::stream<boost::beast::ssl_stream<boost::beast::tcp_stream>> ws_;
+    boost::beast::websocket::stream<boost::beast::ssl_stream<tcp_stream_limited>> ws_;
 };
 
 }    // namespace leaf

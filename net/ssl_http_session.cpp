@@ -6,7 +6,7 @@ namespace leaf
 {
 
 ssl_http_session::ssl_http_session(std::string id,
-                                   boost::beast::tcp_stream&& stream,
+                                   tcp_stream_limited&& stream,
                                    boost::asio::ssl::context& ctx,
                                    boost::beast::flat_buffer&& buffer,
                                    leaf::session_handle handle)

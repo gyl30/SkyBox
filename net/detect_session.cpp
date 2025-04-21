@@ -1,6 +1,7 @@
 #include <utility>
 #include "log/log.h"
 #include "net/socket.h"
+#include "config/config.h"
 #include "net/detect_session.h"
 #include "net/ssl_http_session.h"
 #include "net/plain_http_session.h"
@@ -34,6 +35,8 @@ void detect_session::shutdown()
 void detect_session::detect()
 {
     LOG_INFO("detect {}", id_);
+    stream_.rate_policy().read_limit(kReadWsLimited);
+    stream_.rate_policy().write_limit(kWriteWsLimited);
     stream_.expires_after(std::chrono::seconds(30));
 
     boost::beast::async_detect_ssl(

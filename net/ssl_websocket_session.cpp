@@ -7,7 +7,7 @@ namespace leaf
 {
 
 ssl_websocket_session::ssl_websocket_session(std::string id,
-                                             boost::beast::ssl_stream<boost::beast::tcp_stream>&& stream,
+                                             boost::beast::ssl_stream<tcp_stream_limited>&& stream,
                                              boost::beast::http::request<boost::beast::http::string_body> req)
     : id_(std::move(id)), req_(std::move(req)), ws_(std::move(stream))
 {

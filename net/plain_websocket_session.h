@@ -7,7 +7,7 @@
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/websocket.hpp>
-#include "net/websocket_handle.h"
+#include "net/types.h"
 #include "net/websocket_session.h"
 
 namespace leaf
@@ -17,7 +17,7 @@ class plain_websocket_session : public leaf::websocket_session
 {
    public:
     explicit plain_websocket_session(std::string id,
-                                     boost::beast::tcp_stream&& stream,
+                                     tcp_stream_limited&& stream,
                                      boost::beast::http::request<boost::beast::http::string_body> req);
     ~plain_websocket_session() override;
 
@@ -49,7 +49,7 @@ class plain_websocket_session : public leaf::websocket_session
     leaf::websocket_session::write_cb write_cb_;
     leaf::websocket_session::handshake_cb handshake_cb_;
     std::queue<std::vector<uint8_t>> msg_queue_;
-    boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;
+    boost::beast::websocket::stream<tcp_stream_limited> ws_;
     boost::beast::http::request<boost::beast::http::string_body> req_;
 };
 

@@ -7,7 +7,7 @@ namespace leaf
 {
 
 plain_http_session::plain_http_session(std::string id,
-                                       boost::beast::tcp_stream&& stream,
+                                       tcp_stream_limited&& stream,
                                        boost::beast::flat_buffer&& buffer,
                                        leaf::session_handle handle)
     : id_(std::move(id)), handle_(std::move(handle)), buffer_(std::move(buffer)), stream_(std::move(stream))

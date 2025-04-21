@@ -5,6 +5,7 @@
 #include <boost/optional.hpp>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include "net/types.h"
 
 namespace leaf
 {
@@ -33,7 +34,7 @@ class http_client : public std::enable_shared_from_this<http_client>
     http_cb cb_;
     std::string id_;
     bool shutdown_ = false;
-    boost::beast::tcp_stream stream_;
+    tcp_stream_limited stream_;
     boost::beast::flat_buffer buffer_;
     boost::asio::io_context &io_context_;
     boost::asio::ip::tcp::resolver resolver_;

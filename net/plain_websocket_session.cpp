@@ -9,7 +9,7 @@ namespace leaf
 {
 
 plain_websocket_session::plain_websocket_session(std::string id,
-                                                 boost::beast::tcp_stream&& stream,
+                                                 tcp_stream_limited&& stream,
                                                  boost::beast::http::request<boost::beast::http::string_body> req)
     : id_(std::move(id)), ws_(std::move(stream)), req_(std::move(req))
 {

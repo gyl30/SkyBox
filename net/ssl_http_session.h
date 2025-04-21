@@ -6,6 +6,7 @@
 #include <boost/asio/ssl.hpp>
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
+#include "net/types.h"
 #include "net/session_handle.h"
 
 namespace leaf
@@ -14,7 +15,7 @@ class ssl_http_session : public http_session
 {
    public:
     ssl_http_session(std::string id,
-                     boost::beast::tcp_stream&& stream,
+                     tcp_stream_limited&& stream,
                      boost::asio::ssl::context& ctx,
                      boost::beast::flat_buffer&& buffer,
                      leaf::session_handle handle);
@@ -43,7 +44,7 @@ class ssl_http_session : public http_session
     std::shared_ptr<void> self_;
     leaf::session_handle handle_;
     boost::beast::flat_buffer buffer_;
-    boost::beast::ssl_stream<boost::beast::tcp_stream> stream_;
+    boost::beast::ssl_stream<tcp_stream_limited> stream_;
     boost::optional<boost::beast::http::request_parser<boost::beast::http::string_body>> parser_;
 };
 

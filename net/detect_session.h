@@ -5,6 +5,7 @@
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/asio/ssl.hpp>
+#include "net/types.h"
 #include "net/session_handle.h"
 
 namespace leaf
@@ -27,7 +28,7 @@ class detect_session : public std::enable_shared_from_this<detect_session>
     std::string id_;
     leaf::session_handle h_;
     boost::beast::flat_buffer buffer_;
-    boost::beast::tcp_stream stream_;
+    tcp_stream_limited stream_;
     boost::asio::ssl::context& ssl_ctx_;
 };
 

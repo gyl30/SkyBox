@@ -4,6 +4,7 @@
 #include <boost/optional.hpp>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include "net/types.h"
 #include "net/http_session.h"
 #include "net/session_handle.h"
 
@@ -14,7 +15,7 @@ class plain_http_session : public http_session
 {
    public:
     plain_http_session(std::string id,
-                       boost::beast::tcp_stream&& stream,
+                       tcp_stream_limited&& stream,
                        boost::beast::flat_buffer&& buffer,
                        leaf::session_handle handle);
     ~plain_http_session() override;
@@ -38,7 +39,7 @@ class plain_http_session : public http_session
     std::string id_;
     leaf::session_handle handle_;
     boost::beast::flat_buffer buffer_;
-    boost::beast::tcp_stream stream_;
+    tcp_stream_limited stream_;
     std::shared_ptr<void> self_;
     boost::optional<boost::beast::http::request_parser<boost::beast::http::string_body>> parser_;
 };
