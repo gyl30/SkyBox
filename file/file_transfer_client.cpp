@@ -86,8 +86,8 @@ void file_transfer_client::shutdown()
     }
     if (download_)
     {
-        download_.reset();
         download_->shutdown();
+        download_.reset();
     }
     if (cotrol_)
     {
