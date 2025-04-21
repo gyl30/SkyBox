@@ -227,6 +227,7 @@ void upload_file_handle::reset_state()
     {
         auto ec = writer_->close();
         boost::ignore_unused(ec);
+        writer_.reset();
     }
     if (hash_)
     {
