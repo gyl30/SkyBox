@@ -85,7 +85,7 @@ void plain_websocket_client::do_read()
 }
 void plain_websocket_client::safe_read()
 {
-    boost::beast::get_lowest_layer(*ws_).expires_after(std::chrono::seconds(30));
+    // boost::beast::get_lowest_layer(*ws_).expires_after(std::chrono::seconds(30));
     ws_->async_read(buffer_, boost::beast::bind_front_handler(&plain_websocket_client::on_read, this));
 }
 void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t bytes_transferred)
@@ -117,10 +117,6 @@ void plain_websocket_client::on_read(boost::beast::error_code ec, std::size_t by
 
 void plain_websocket_client::on_error(boost::beast::error_code ec)
 {
-    if (shutdown_)
-    {
-        return;
-    }
     if (ec != boost::asio::error::operation_aborted)
     {
         if (read_cb_)

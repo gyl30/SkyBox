@@ -90,7 +90,7 @@ void plain_websocket_session::do_read()
 
 void plain_websocket_session::safe_read()
 {
-    boost::beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(30));
+    // boost::beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(30));
     ws_.async_read(buffer_, boost::beast::bind_front_handler(&plain_websocket_session::on_read, this));
 }
 

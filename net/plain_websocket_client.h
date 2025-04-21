@@ -53,7 +53,6 @@ class plain_websocket_client : public leaf::websocket_session
 
    private:
     bool writing_ = false;
-    std::atomic<bool> shutdown_{false};
     std::string id_;
     boost::asio::io_context& io_;
     std::string target_;
