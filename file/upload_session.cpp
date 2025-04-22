@@ -265,6 +265,12 @@ void upload_session::upload_file_data()
     }
     LOG_DEBUG(
         "{} upload_file {} size {} hash {}", id_, file_->file_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
+    upload_event u;
+    u.upload_size = reader_->size();
+    u.file_size = file_->file_size;
+    u.filename = file_->filename;
+    emit_event(u);
+
     // eof reset
     if (ec == boost::asio::error::eof || reader_->size() == file_->file_size)
     {

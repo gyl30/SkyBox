@@ -249,7 +249,7 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
         hash_ = std::make_shared<leaf::blake2b>();
     }
     download_event d;
-    d.filename = file_->file_path;
+    d.filename = file_->filename;
     d.download_size = writer_->size();
     d.file_size = file_->file_size;
     emit_event(d);
