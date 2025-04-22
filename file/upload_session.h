@@ -43,6 +43,8 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void upload_file_data();
     void emit_event(const leaf::upload_event &e);
     void reset_state();
+    void safe_add_file(const std::string &filename);
+    void safe_shutdown();
 
    private:
     enum state : uint8_t

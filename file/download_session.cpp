@@ -39,6 +39,11 @@ void download_session::startup()
 
 void download_session::shutdown()
 {
+    io_.post([this, self = shared_from_this()]() { safe_shutdown(); });
+}
+
+void download_session::safe_shutdown()
+{
     if (ws_client_)
     {
         ws_client_->shutdown();
@@ -286,7 +291,13 @@ void download_session::reset_state()
     }
     status_ = wait_download_file;
 }
-void download_session::add_file(const std::string& file) { padding_files_.push(file); }
+
+void download_session::safe_add_file(const std::string& filename) { padding_files_.push(filename); }
+
+void download_session::add_file(const std::string& file)
+{
+    io_.post([this, file, self = shared_from_this()]() { safe_add_file(file); });
+}
 
 void download_session::update()
 {

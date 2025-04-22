@@ -31,6 +31,11 @@ void upload_session::startup()
 
 void upload_session::shutdown()
 {
+    io_.post([this, self = shared_from_this()]() { safe_shutdown(); });
+}
+
+void upload_session::safe_shutdown()
+{
     if (ws_client_)
     {
         ws_client_->shutdown();
@@ -39,7 +44,6 @@ void upload_session::shutdown()
 
     LOG_INFO("{} shutdown", id_);
 }
-
 void upload_session::on_connect(boost::beast::error_code ec)
 {
     if (ec)
@@ -91,10 +95,15 @@ void upload_session::on_write(boost::beast::error_code ec, std::size_t /*transfe
     }
 }
 
-void upload_session::add_file(const std::string& filename)
+void upload_session::safe_add_file(const std::string& filename)
 {
     LOG_INFO("{} add file {}", id_, filename);
     padding_files_.push_back(filename);
+}
+
+void upload_session::add_file(const std::string& filename)
+{
+    io_.post([this, filename, self = shared_from_this()]() { safe_add_file(filename); });
 }
 
 void upload_session::update_process_file()
@@ -129,7 +138,7 @@ void upload_session::update_process_file()
 }
 void upload_session::update()
 {
-    if (state_ != logined)
+    if (state_ == init)
     {
         return;
     }
@@ -307,6 +316,7 @@ void upload_session::padding_file_event()
     {
         upload_event e;
         e.filename = filename;
+        LOG_DEBUG("padding files {}", e.filename);
         emit_event(e);
     }
 }

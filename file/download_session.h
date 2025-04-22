@@ -45,6 +45,8 @@ class download_session : public std::enable_shared_from_this<download_session>
     void keepalive();
 
    private:
+    void safe_add_file(const std::string &filename);
+    void safe_shutdown();
     void emit_event(const leaf::download_event &);
     void reset_state();
 
