@@ -11,16 +11,10 @@ namespace leaf
 {
 download_session::download_session(std::string id,
                                    std::string token,
-                                   leaf::download_progress_callback cb,
-                                   leaf::notify_progress_callback notify_cb,
+                                   leaf::download_handle cb,
                                    boost::asio::ip::tcp::endpoint ed_,
                                    boost::asio::io_context& io)
-    : id_(std::move(id)),
-      token_(std::move(token)),
-      io_(io),
-      ed_(std::move(ed_)),
-      notify_cb_(std::move(notify_cb)),
-      progress_cb_(std::move(cb))
+    : id_(std::move(id)), token_(std::move(token)), io_(io), ed_(std::move(ed_)), progress_cb_(std::move(cb))
 {
 }
 
@@ -119,10 +113,6 @@ void download_session::on_login_token(const std::optional<leaf::login_token>& me
     assert(token_ == l.token);
     login_ = true;
     LOG_INFO("{} login_token {}", id_, l.token);
-    leaf::notify_event e;
-    e.method = "login";
-    e.data = true;
-    notify_cb_(e);
 }
 
 void download_session::download_file_request()
@@ -265,11 +255,11 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
         return;
     }
 }
-void download_session::emit_event(const leaf::download_event& e)
+void download_session::emit_event(const leaf::download_event& e)const
 {
-    if (progress_cb_)
+    if (progress_cb_.download)
     {
-        progress_cb_(e);
+        progress_cb_.download(e);
     }
 }
 

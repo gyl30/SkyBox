@@ -6,7 +6,6 @@
 #include "file/cotrol_session.h"
 #include "file/upload_session.h"
 #include "file/download_session.h"
-#include "net/plain_websocket_client.h"
 
 namespace leaf
 {
@@ -30,9 +29,8 @@ class file_transfer_client
    private:
     void do_login();
     void on_login(boost::beast::error_code ec, const std::string &res);
-    void on_login_failed() const;
-    void on_login_success() const;
 
+    void safe_shutdown();
     void start_timer();
     void timer_callback(const boost::system::error_code &ec);
     void on_write_cotrol_message(std::vector<uint8_t> msg);
@@ -42,10 +40,6 @@ class file_transfer_client
     void on_read_upload_message(const std::shared_ptr<std::vector<uint8_t>> &msg, const boost::system::error_code &ec);
     void on_read_download_message(const std::shared_ptr<std::vector<uint8_t>> &msg,
                                   const boost::system::error_code &ec);
-    void on_error(const boost::system::error_code &ec) const;
-    void on_cotrol_connect(const boost::system::error_code &ec);
-    void on_upload_connect(const boost::system::error_code &ec);
-    void on_download_connect(const boost::system::error_code &ec);
 
    private:
     std::string id_;
@@ -54,10 +48,12 @@ class file_transfer_client
     std::string pass_;
     bool login_ = false;
     leaf::executors executors{4};
-    boost::asio::ip::tcp::endpoint ed_;
+    std::once_flag shutdown_flag_;
     leaf::progress_handler handler_;
+    boost::asio::ip::tcp::endpoint ed_;
     std::shared_ptr<leaf::cotrol_session> cotrol_;
     std::shared_ptr<leaf::upload_session> upload_;
+    leaf::executors::executor *ex_;
     std::shared_ptr<leaf::download_session> download_;
     std::shared_ptr<boost::asio::steady_timer> timer_;
 };

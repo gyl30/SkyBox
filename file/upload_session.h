@@ -16,7 +16,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
    public:
     upload_session(std::string id,
                    std::string token,
-                   leaf::upload_progress_callback cb,
+                   leaf::upload_handle cb,
                    boost::asio::ip::tcp::endpoint ed,
                    boost::asio::io_context &io);
 
@@ -41,7 +41,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void on_error_message(const std::optional<leaf::error_message> &);
     void on_login_token(const std::optional<leaf::login_token> &l);
     void upload_file_data();
-    void emit_event(const leaf::upload_event &e);
+    void emit_event(const leaf::upload_event &e) const;
     void reset_state();
     void safe_add_file(const std::string &filename);
     void safe_shutdown();
@@ -65,7 +65,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::deque<std::string> padding_files_;
-    leaf::upload_progress_callback progress_cb_;
+    leaf::upload_handle progress_cb_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
 };
 }    // namespace leaf

@@ -4,6 +4,7 @@
 #include <any>
 #include <string>
 #include <functional>
+#include <boost/asio.hpp>
 
 namespace leaf
 {
@@ -35,13 +36,33 @@ using download_progress_callback = std::function<void(const download_event&)>;
 using upload_progress_callback = std::function<void(const upload_event&)>;
 using notify_progress_callback = std::function<void(const notify_event&)>;
 using cotrol_progress_callback = std::function<void(const cotrol_event&)>;
+using error_progress_callback = std::function<void(const boost::system::error_code&)>;
+
+struct download_handle
+{
+    download_progress_callback download;
+    error_progress_callback error;
+    notify_progress_callback notify;
+};
+struct upload_handle
+{
+    upload_progress_callback upload;
+    error_progress_callback error;
+    notify_progress_callback notify;
+};
+
+struct cotrol_handle
+{
+    cotrol_progress_callback cotrol;
+    error_progress_callback error;
+    notify_progress_callback notify;
+};
 
 struct progress_handler
 {
-    download_progress_callback download;
-    upload_progress_callback upload;
-    notify_progress_callback notify;
-    cotrol_progress_callback cotrol;
+    cotrol_handle c;
+    upload_handle u;
+    download_handle d;
 };
 
 }    // namespace leaf

@@ -1,5 +1,3 @@
-#include <filesystem>
-#include <utility>
 #include "log/log.h"
 #include "crypt/random.h"
 #include "net/http_client.h"
@@ -10,9 +8,9 @@ namespace leaf
 {
 
 file_transfer_client::file_transfer_client(const std::string &ip, uint16_t port, leaf::progress_handler handler)
-    : id_(leaf::random_string(8)),
-      ed_(boost::asio::ip::address::from_string(ip), port),
-      handler_(std::move(handler)) {};
+    : id_(leaf::random_string(8)), handler_(std::move(handler)), ed_(boost::asio::ip::address::from_string(ip), port)
+{
+}
 
 file_transfer_client::~file_transfer_client()
 {
@@ -60,8 +58,8 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     LOG_INFO("login {} {} token {}", user_, pass_, token_, l->token);
     // clang-format off
     // cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", l->token, handler_.cotrol, handler_.notify, ed_, executors.get_executor());
-    upload_ = std::make_shared<leaf::upload_session>("upload", l->token, handler_.upload, ed_, executors.get_executor());
-    download_ = std::make_shared<leaf::download_session>("download", l->token, handler_.download, handler_.notify, ed_, executors.get_executor());
+    upload_ = std::make_shared<leaf::upload_session>("upload", l->token, handler_.u, ed_, executors.get_executor());
+    download_ = std::make_shared<leaf::download_session>("download", l->token, handler_.d, ed_, executors.get_executor());
     // clang-format on
     // cotrol_->startup();
     upload_->startup();
@@ -72,10 +70,15 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
 void file_transfer_client::startup()
 {
     executors.startup();
-    timer_ = std::make_shared<boost::asio::steady_timer>(executors.get_executor());
+    ex_ = &executors.get_executor();
+    timer_ = std::make_shared<boost::asio::steady_timer>(*ex_);
 }
 
 void file_transfer_client::shutdown()
+{
+    std::call_once(shutdown_flag_, [this]() { safe_shutdown(); });
+}
+void file_transfer_client::safe_shutdown()
 {
     boost::system::error_code ec;
     timer_->cancel(ec);
@@ -96,50 +99,40 @@ void file_transfer_client::shutdown()
     }
     executors.shutdown();
 }
+
 void file_transfer_client::login(const std::string &user, const std::string &pass)
 {
-    user_ = user;
-    pass_ = pass;
-    do_login();
+    ex_->post(
+        [user, pass, this]()
+        {
+            user_ = user;
+            pass_ = pass;
+            do_login();
+        });
 }
 void file_transfer_client::add_upload_file(const std::string &filename)
 {
-    if (upload_)
-    {
-        upload_->add_file(filename);
-    }
+    ex_->post(
+        [this, filename]()
+        {
+            if (upload_)
+            {
+                upload_->add_file(filename);
+            }
+        });
 }
 void file_transfer_client::add_download_file(const std::string &filename)
 {
-    if (download_)
-    {
-        download_->add_file(filename);
-    }
+    ex_->post(
+        [this, filename]()
+        {
+            if (download_)
+            {
+                download_->add_file(filename);
+            }
+        });
 }
 
-void file_transfer_client::on_login_failed() const
-{
-    leaf::notify_event e;
-    e.method = "login";
-    e.data = false;
-    handler_.notify(e);
-}
-
-void file_transfer_client::on_login_success() const
-{
-    leaf::notify_event e;
-    e.method = "login";
-    e.data = true;
-    handler_.notify(e);
-}
-
-void file_transfer_client::on_error(const boost::system::error_code &ec) const
-{
-    (void)ec;
-    leaf::notify_event e;
-    e.method = "logout";
-    handler_.notify(e);
-}
 void file_transfer_client::start_timer()
 {
     timer_->expires_after(std::chrono::seconds(1));

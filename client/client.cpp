@@ -23,6 +23,7 @@ static void notify_progress(const leaf::notify_event &e)
     }
     LOG_INFO("||| notify {}", e.method);
 }
+static void error_progress(const boost::system::error_code &ec) { LOG_ERROR("^^^ error {}", ec.message()); }
 
 int main(int argc, char *argv[])
 {
@@ -37,10 +38,20 @@ int main(int argc, char *argv[])
 
     leaf::set_log_level("trace");
     leaf::progress_handler handler;
-    handler.download = download_progress;
-    handler.upload = upload_progress;
-    handler.notify = notify_progress;
+    handler.d.download = download_progress;
+    handler.d.notify = notify_progress;
+    handler.u.upload = upload_progress;
+    handler.u.notify = notify_progress;
+
     leaf::file_transfer_client fm("127.0.0.1", 8080, handler);
+    auto error = [&fm](const boost::system::error_code &ec)
+    {
+        error_progress(ec);
+        fm.shutdown();
+    };
+    handler.d.error = error;
+    handler.u.error = error;
+
     fm.startup();
 
     fm.login("admin", "123456");

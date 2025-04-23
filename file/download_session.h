@@ -15,8 +15,7 @@ class download_session : public std::enable_shared_from_this<download_session>
    public:
     download_session(std::string id,
                      std::string token,
-                     leaf::download_progress_callback cb,
-                     leaf::notify_progress_callback notify_cb,
+                     leaf::download_handle cb,
                      boost::asio::ip::tcp::endpoint ed_,
                      boost::asio::io_context &io);
 
@@ -47,7 +46,7 @@ class download_session : public std::enable_shared_from_this<download_session>
    private:
     void safe_add_file(const std::string &filename);
     void safe_shutdown();
-    void emit_event(const leaf::download_event &);
+    void emit_event(const leaf::download_event &) const;
     void reset_state();
 
    private:
@@ -67,8 +66,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;
     std::queue<std::string> padding_files_;
-    leaf::notify_progress_callback notify_cb_;
-    leaf::download_progress_callback progress_cb_;
+    leaf::download_handle progress_cb_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
 };
 }    // namespace leaf

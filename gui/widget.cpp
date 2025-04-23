@@ -587,9 +587,10 @@ void Widget::login_btn_clicked()
     key_edit_->setEnabled(false);
 
     leaf::progress_handler handler;
-    handler.upload = [this](const leaf::upload_event &e) { upload_progress(e); };
-    handler.download = [this](const leaf::download_event &e) { download_progress(e); };
-    handler.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
+    handler.u.upload = [this](const leaf::upload_event &e) { upload_progress(e); };
+    handler.d.download = [this](const leaf::download_event &e) { download_progress(e); };
+    handler.u.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
+    handler.d.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
 
     file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, handler);
     file_client_->startup();
