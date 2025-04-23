@@ -138,7 +138,7 @@ void upload_session::update_process_file()
 }
 void upload_session::update()
 {
-    if (state_ == init)
+    if (!login_)
     {
         return;
     }
