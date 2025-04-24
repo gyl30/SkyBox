@@ -2,6 +2,7 @@
 #define LEAF_PROTOCOL_CODEC_H
 
 #include <optional>
+#include <cstdint>
 #include "protocol/message.h"
 
 namespace leaf

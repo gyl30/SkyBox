@@ -35,14 +35,17 @@ jobs:
           version: ${{ matrix.qt_ver }}
           arch: ${{ matrix.qt_arch }}
 
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install CMake
         uses: lukka/get-cmake@latest
         with:
           useLocalCache: true
 
-      - name: Setup MSVC Development Environment
+      - name: Setup MSVC
         uses: TheMrMilchmann/setup-msvc-dev@v3
         with:
           arch: ${{ matrix.msvc_arch }}
@@ -56,22 +59,30 @@ jobs:
           toolset: msvc
           link: static
 
-      - name: Install libuv
+      - name: Install Dep
         run: |
-          choco install libuv
+          env
+          vcpkg install libuv:x64-windows
+          vcpkg install libsodium:x64-windows
+          vcpkg install openssl:x64-windows
+          vcpkg integrate install
 
-      - name: Configure with CMake
+      - name: Configure CMake
         run: |
           mkdir build
           cd build
-          cmake ../ -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER=cl -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_GUI=ON -DBoost_INCLUDE_DIR=${{steps.install-boost.outputs.BOOST_ROOT}}/include -DBoost_LIBRARY_DIRS=${{steps.install-boost.outputs.BOOST_ROOT}}/lib
+          env
+          dir ${CMAKE_TOOLCHAIN_FILE}
+          cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} 
+
         env:
           BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+          CMAKE_TOOLCHAIN_FILE: ${{env.VCPKG_INSTALLATION_ROOT}}/scripts/buildsystems/vcpkg.cmake
 
-      - name: Build application
+      - name: Build
         run: |
           cd build
-          cmake --build . --config ${{ matrix.build_type }} -j 16
+          cmake --build . --config ${{ matrix.build_type }} --parallel
 
       - name: Deploy GUI client
         if: matrix.build_type == 'Release'
@@ -102,12 +113,15 @@ jobs:
         build_type: [Release, Debug]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake libuv1-dev qt6-base-dev
+          sudo apt-get install -y cmake libuv1-dev qt6-base-dev libsodium-dev libssl-dev pkg-config
 
       - name: Install Boost
         uses: MarkusJx/install-boost@v2
@@ -118,15 +132,19 @@ jobs:
           toolset: gcc
           arch: x86
 
-      - name: Configure with CMake
+      - name: Configure CMake
         run: |
           mkdir build
           cd build
-          cmake ../ -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_GUI=ON -DBoost_INCLUDE_DIR=${{steps.install-boost.outputs.BOOST_ROOT}}/include -DBoost_LIBRARY_DIRS=${{steps.install-boost.outputs.BOOST_ROOT}}/lib
+          cmake ../ \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DBoost_INCLUDE_DIR=${{ steps.install-boost.outputs.BOOST_ROOT }}/include \
+            -DBoost_LIBRARY_DIRS=${{ steps.install-boost.outputs.BOOST_ROOT }}/lib \
+            -DOPENSSL_ROOT_DIR=/usr
         env:
           BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
 
-      - name: Build application
+      - name: Build
         run: |
           cd build
-          cmake --build . --config ${{ matrix.build_type }} -j 16 
+          cmake --build . --config ${{ matrix.build_type }} -j16
