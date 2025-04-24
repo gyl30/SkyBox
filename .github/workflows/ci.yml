@@ -12,15 +12,12 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    env:
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+      VCPKG_DEFAULT_HOST_TRIPLET: x64-windows
     strategy:
       matrix:
         include:
-          - qt_ver: 6.8.1
-            qt_arch: win64_msvc2022_64
-            msvc_arch: x64
-            version: 2022
-            qt_arch_install: msvc2022_64
-            build_type: Release
           - qt_ver: 6.8.1
             qt_arch: win64_msvc2022_64
             msvc_arch: x64
@@ -59,92 +56,48 @@ jobs:
           toolset: msvc
           link: static
 
-      - name: Install Dep
+      - name: Install vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: "C:/vcpkg"
+          runVcpkgInstall: true
+          vcpkgJsonGlob: "cmake/vcpkg.json"
+          vcpkgConfigurationJsonGlob: "cmake/vcpkg-configuration.json"
+
+      - name: Run vcpkg integrate install
         run: |
-          env
-          vcpkg install libuv:x64-windows
-          vcpkg install libsodium:x64-windows
-          vcpkg install openssl:x64-windows
-          vcpkg integrate install
+          C:/vcpkg/vcpkg integrate install
+        shell: cmd
 
       - name: Configure CMake
         run: |
           mkdir build
-          cd build
+          echo "-------------------DIR--------------------------"
+          dir
+          echo "-------------------Env--------------------------"
           env
-          dir ${CMAKE_TOOLCHAIN_FILE}
-          cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} 
-
-        env:
-          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
-          CMAKE_TOOLCHAIN_FILE: ${{env.VCPKG_INSTALLATION_ROOT}}/scripts/buildsystems/vcpkg.cmake
-
-      - name: Build
-        run: |
-          cd build
-          cmake --build . --config ${{ matrix.build_type }} --parallel
-
-      - name: Deploy GUI client
-        if: matrix.build_type == 'Release'
-        shell: pwsh
-        run: |
-          windeployqt .\build\${{ matrix.build_type }}\gclient.exe --release --no-translations --no-system-d3d-compiler --no-compiler-runtime --dir .\build\${{ matrix.build_type }}\deploy
-          Copy-Item .\build\${{ matrix.build_type }}\server.exe .\build\${{ matrix.build_type }}\deploy
-          Copy-Item .\build\${{ matrix.build_type }}\client.exe .\build\${{ matrix.build_type }}\deploy
-          Compress-Archive -Path .\build\${{ matrix.build_type }}\deploy\* SkyBox-${{ matrix.qt_arch }}-${{ matrix.qt_ver }}.zip
-
-      - uses: actions/upload-artifact@v4
-        if: matrix.build_type == 'Release'
-        with:
-          name: SkyBox-${{ matrix.qt_arch }}-${{ matrix.qt_ver }}.zip
-          path: SkyBox-${{ matrix.qt_arch }}-${{ matrix.qt_ver }}.zip
-
-      - name: Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') && matrix.build_type == 'Release'
-        with:
-          files: SkyBox-${{ matrix.qt_arch }}-${{ matrix.qt_ver }}.zip
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  linux:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        build_type: [Release, Debug]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake libuv1-dev qt6-base-dev libsodium-dev libssl-dev pkg-config
-
-      - name: Install Boost
-        uses: MarkusJx/install-boost@v2
-        id: install-boost
-        with:
-          boost_version: 1.83.0
-          platform_version: 20.04
-          toolset: gcc
-          arch: x86
-
-      - name: Configure CMake
-        run: |
-          mkdir build
-          cd build
-          cmake ../ \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -DBoost_INCLUDE_DIR=${{ steps.install-boost.outputs.BOOST_ROOT }}/include \
-            -DBoost_LIBRARY_DIRS=${{ steps.install-boost.outputs.BOOST_ROOT }}/lib \
-            -DOPENSSL_ROOT_DIR=/usr
+          echo "-------------------VCPKG_INSTALLATION_ROOT--------------------------"
+          echo "${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
+          echo "-------------------Cat--------------------------"
+          type "${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
+          echo "-------------------Qt6_DIR--------------------------"
+          echo "${{ env.Qt6_DIR }}"
         env:
           BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
 
-      - name: Build
-        run: |
-          cd build
-          cmake --build . --config ${{ matrix.build_type }} -j16
+      - name: Run CMake using CMakePresets.json and vcpkg toolchain
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'windows-debug'
+          buildPreset: 'windows-build-debug'
+          configurePresetAdditionalArgs: >
+            [
+              "-DBoost_NO_SYSTEM_PATHS=ON",
+              "-DBoost_INCLUDE_DIR=${{ steps.install-boost.outputs.BOOST_ROOT }}/include",
+              "-DBoost_LIBRARY_DIRS=${{ steps.install-boost.outputs.BOOST_ROOT }}/lib",
+              "-DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake",
+            ]
+        env:
+          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
+          VCPKG_ROOT: C:/vcpkg
+
