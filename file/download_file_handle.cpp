@@ -56,10 +56,11 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
     assert(reader_->size() < file_->file_size);
     // read block data
     std::vector<uint8_t> buffer(kBlockSize, '0');
-    auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
-    if (ec && ec != boost::asio::error::eof)
+    boost::system::error_code read_ec;
+    auto read_size = reader_->read_at(reader_->size(), buffer.data(), buffer.size(), read_ec);
+    if (read_ec && read_ec != boost::asio::error::eof)
     {
-        LOG_ERROR("{} download_file read file {} error {}", id_, file_->file_path, ec.message());
+        LOG_ERROR("{} download_file read file {} error {}", id_, file_->file_path, read_ec.message());
         reset_status();
         return;
     }
@@ -72,7 +73,7 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
         file_->hash_count++;
     }
     // block count hash or eof hash
-    if (file_->hash_count == kHashBlockCount || file_->file_size == reader_->size() || ec == boost::asio::error::eof)
+    if (file_->hash_count == kHashBlockCount || file_->file_size == reader_->size() || read_ec == boost::asio::error::eof)
     {
         hash_->final();
         fd.hash = hash_->hex();
@@ -83,7 +84,7 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
         "{} download_file {} size {} hash {}", id_, file_->file_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
 
     // eof reset
-    if (ec == boost::asio::error::eof || reader_->size() == file_->file_size)
+    if (read_ec == boost::asio::error::eof || reader_->size() == file_->file_size)
     {
         LOG_INFO("{} upload_file {} complete", id_, file_->file_path);
         reset_status();

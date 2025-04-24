@@ -249,7 +249,7 @@ void upload_session::upload_file_data()
     // read block data
     std::vector<uint8_t> buffer(kBlockSize, '0');
     boost::system::error_code ec;
-    auto read_size = reader_->read(buffer.data(), buffer.size(), ec);
+    auto read_size = reader_->read_at(reader_->size(), buffer.data(), buffer.size(), ec);
     if (ec && ec != boost::asio::error::eof)
     {
         LOG_ERROR("{} upload_file read file {} error {}", id_, file_->file_path, ec.message());

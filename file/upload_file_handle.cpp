@@ -171,7 +171,7 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
     }
     assert(d->data.size() <= kBlockSize);
     boost::system::error_code ec;
-    writer_->write(d->data.data(), d->data.size(), ec);
+    writer_->write_at(writer_->size(), d->data.data(), d->data.size(), ec);
     if (ec)
     {
         LOG_ERROR("{} upload_file write error {}", id_, ec.message());

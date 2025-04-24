@@ -213,7 +213,7 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
     assert(data->data.size() <= kBlockSize);
     assert(writer_->size() <= file_->file_size);
     boost::system::error_code ec;
-    writer_->write(data->data.data(), data->data.size(), ec);
+    writer_->write_at(writer_->size(), data->data.data(), data->data.size(), ec);
     if (ec)
     {
         LOG_ERROR("{} download_file {} write error {}", id_, file_->filename, ec.message());
