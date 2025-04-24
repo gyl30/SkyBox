@@ -25,6 +25,7 @@ class writer
     virtual boost::system::error_code open() = 0;
     virtual boost::system::error_code close() = 0;
     virtual std::size_t write(void const* buffer, std::size_t size, boost::system::error_code& ec) = 0;
+    virtual std::size_t write_at(std::int64_t offset, void const* buffer, std::size_t size, boost::system::error_code& ec) = 0;
     virtual std::size_t size() = 0;
 };
 class reader
@@ -37,6 +38,7 @@ class reader
     virtual boost::system::error_code open() = 0;
     virtual boost::system::error_code close() = 0;
     virtual std::size_t read(void* buffer, std::size_t size, boost::system::error_code& ec) = 0;
+    virtual std::size_t read_at(std::int64_t offset, void* buffer, std::size_t size, boost::system::error_code& ec) = 0;
     virtual std::size_t size() = 0;
 };
 
@@ -50,6 +52,11 @@ class null_writer : public writer
     boost::system::error_code open() override { return {}; }
     boost::system::error_code close() override { return {}; }
     std::size_t write(void const* /*buffer*/, std::size_t size, boost::system::error_code& /*ec*/) override
+    {
+        size_ += size;
+        return size;
+    }
+    std::size_t write_at(std::int64_t /*offset*/, void const* /*buffer*/, std::size_t size, boost::system::error_code& /*ec*/) override
     {
         size_ += size;
         return size;
@@ -73,6 +80,11 @@ class null_reader : public reader
         size_ += size;
         return size;
     }
+    std::size_t read_at(std::int64_t /*offset*/, void* /*buffer*/, std::size_t size, boost::system::error_code& /*ec*/) override
+    {
+        size_ += size;
+        return size;
+    }
     std::size_t size() override { return size_; }
 
    private:
@@ -90,6 +102,7 @@ class file_writer : public writer
     boost::system::error_code open() override;
     boost::system::error_code close() override;
     std::size_t write(void const* buffer, std::size_t size, boost::system::error_code& ec) override;
+    std::size_t write_at(std::int64_t offset, void const* buffer, std::size_t size, boost::system::error_code& ec) override;
     std::size_t size() override;
 
    private:
@@ -107,6 +120,7 @@ class file_reader : public reader
     boost::system::error_code open() override;
     boost::system::error_code close() override;
     std::size_t read(void* buffer, std::size_t size, boost::system::error_code& ec) override;
+    std::size_t read_at(std::int64_t offset, void* buffer, std::size_t size, boost::system::error_code& ec) override;
     std::size_t size() override;
 
    private:
