@@ -29,19 +29,23 @@ class Widget : public QWidget
    Q_SIGNALS:
     void progress_slot(const leaf::task& e);
     void notify_event_slot(const leaf::notify_event& e);
+    void error_occurred(const QString& error_msg);
 
    private Q_SLOTS:
     void on_progress_slot(const leaf::task& e);
     void on_style_btn_clicked();
     void on_notify_event_slot(const leaf::notify_event& e);
+    void on_error_occurred(const QString& error_msg);
+    void reset_ui_state();
 
    private:
     void notify_progress(const leaf::notify_event& e);
     void upload_progress(const leaf::upload_event& e);
     void download_progress(const leaf::download_event& e);
-    void login_btn_clicked();
+    void on_login_btn_clicked();
     void on_files(const leaf::files_response& files);
     void update_progress_btn_icon();
+    void error_progress(const boost::system::error_code& ec);
 
    public:
     void mousePressEvent(QMouseEvent* e) override;

@@ -16,6 +16,7 @@
 #include <QPainter>
 #include <QButtonGroup>
 #include <QMap>
+#include <QMessageBox>
 
 #include "log/log.h"
 #include "gui/task.h"
@@ -162,7 +163,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
             background-color: #2d6da3;
         }
     )");
-    connect(login_btn_, &QToolButton::clicked, this, &Widget::login_btn_clicked);
+    connect(login_btn_, &QToolButton::clicked, this, &Widget::on_login_btn_clicked);
 
     auto *user_layout = new QHBoxLayout();
     user_layout->setSpacing(10);
@@ -536,6 +537,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     connect(progress_timer_, &QTimer::timeout, this, &Widget::update_progress_btn_icon);
     connect(this, &Widget::progress_slot, this, &Widget::on_progress_slot);
     connect(this, &Widget::notify_event_slot, this, &Widget::on_notify_event_slot);
+    connect(this, &Widget::error_occurred, this, &Widget::on_error_occurred);
 
     resize(800, 600);
 }
@@ -569,12 +571,13 @@ void Widget::update_progress_btn_icon()
     progress_btn_->setIcon(icon);
     progress_frame_index_ = (progress_frame_index_ + 1) % hourglass_frames_.size();
 }
-void Widget::login_btn_clicked()
+void Widget::on_login_btn_clicked()
 {
-    QString user = user_edit_->text();
-    QString key = key_edit_->text();
+    auto user = user_edit_->text();
+    auto key = key_edit_->text();
     if (user.isEmpty() || key.isEmpty())
     {
+        QMessageBox::warning(this, "警告", "用户名和密码不能为空");
         return;
     }
     if (file_client_ != nullptr)
@@ -591,6 +594,8 @@ void Widget::login_btn_clicked()
     handler.d.download = [this](const leaf::download_event &e) { download_progress(e); };
     handler.u.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
     handler.d.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
+    handler.u.error = [this](const boost::system::error_code &ec) { error_progress(ec); };
+    handler.d.error = [this](const boost::system::error_code &ec) { error_progress(ec); };
 
     file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, handler);
     file_client_->startup();
@@ -630,6 +635,40 @@ void Widget::download_progress(const leaf::download_event &e)
 }
 
 void Widget::notify_progress(const leaf::notify_event &e) { emit notify_event_slot(e); }
+
+void Widget::error_progress(const boost::system::error_code &ec)
+{
+    QString error_msg = QString::fromStdString(ec.message());
+    emit error_occurred(error_msg);
+}
+
+void Widget::on_error_occurred(const QString &error_msg)
+{
+    LOG_ERROR("error {}", error_msg.toStdString());
+
+    // 显示错误消息给用户
+    QMessageBox::critical(this, "错误", error_msg);
+
+    // 执行清理操作
+    if (file_client_)
+    {
+        file_client_->shutdown();
+        file_client_.reset();
+    }
+
+    // 重置 UI 状态
+    reset_ui_state();
+}
+
+void Widget::reset_ui_state()
+{
+    login_btn_->setText("登录");
+    login_btn_->setEnabled(true);
+    user_edit_->setEnabled(true);
+    key_edit_->setEnabled(true);
+    user_edit_->clear();
+    key_edit_->clear();
+}
 
 static void files_to_gfiles(const std::vector<leaf::files_response::file_node> &files,
                             int dep,
