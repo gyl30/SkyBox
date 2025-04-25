@@ -13,6 +13,14 @@ if(NOT CMAKE_BUILD_TYPE)
   add_compile_options(-Wall -fno-strict-aliasing -fno-omit-frame-pointer -g -O0 -ggdb)
 endif()
 
+if(WIN32)
+  set(BOOST_TOOLSET "msvc")
+  set(CMAKE_POLICY_WARNING_CMP0069 OFF)
+  cmake_policy(SET CMP0167 NEW)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GL")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
+endif()
+
 # 设置 vcpkg 工具链
 if(DEFINED ENV{VCPKG_INSTALLATION_ROOT})
     set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake")
@@ -25,12 +33,13 @@ else()
 endif()
 
 # 找线程库
-set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-find_package(Threads REQUIRED)
+if(NOT WIN32)
+  set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+  set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+  find_package(Threads REQUIRED)
+endif()
 
 # ================= Boost =================
-set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_DEBUG_LIBS ON)
 set(Boost_USE_RELEASE_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
@@ -44,17 +53,6 @@ else()
   message(FATAL_ERROR "Boost not found!")
 endif()
 
-# ================= OpenSSL =================
-set(OPENSSL_USE_STATIC_LIBS ON)
-find_package(OpenSSL REQUIRED)
-
-if(OpenSSL_FOUND)
-  message(STATUS "Found OpenSSL ${OPENSSL_VERSION} at ${OPENSSL_INCLUDE_DIR}")
-  include_directories(SYSTEM ${OPENSSL_INCLUDE_DIR})
-else()
-  message(FATAL_ERROR "OpenSSL not found!")
-endif()
-
 # ================= Sodium + libuv =================
 if(WIN32)
   find_package(unofficial-sodium CONFIG REQUIRED)
@@ -62,7 +60,6 @@ if(WIN32)
   list(APPEND LINK_LIBS 
     ${Boost_LIBRARIES}
     unofficial-sodium::sodium
-    libsodium
     $<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv>
     ws2_32
   )
@@ -72,6 +69,18 @@ else()
   pkg_check_modules(libuv REQUIRED IMPORTED_TARGET libuv)
   list(APPEND LINK_LIBS PkgConfig::libsodium PkgConfig::libuv)
 endif()
+
+# ================= OpenSSL =================
+find_package(OpenSSL REQUIRED)
+
+if(OpenSSL_FOUND)
+  message(STATUS "Found OpenSSL ${OPENSSL_VERSION} at ${OPENSSL_INCLUDE_DIR}")
+  include_directories(SYSTEM ${OPENSSL_INCLUDE_DIR})
+  list(APPEND LINK_LIBS OpenSSL::SSL OpenSSL::Crypto)
+else()
+  message(FATAL_ERROR "OpenSSL not found!")
+endif()
+
 
 # ================= 头文件目录 =================
 include_directories(

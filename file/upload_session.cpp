@@ -131,7 +131,7 @@ void upload_session::update_process_file()
     }
     file_ = std::make_shared<leaf::file_context>();
     file_->file_path = filename;
-    file_->filename = std::filesystem::path(filename).filename();
+    file_->filename = std::filesystem::path(filename).filename().string();
     file_->file_size = file_size;
     LOG_INFO("{} start_file {} padding size {}", id_, file_->file_path, padding_files_.size());
     upload_file_request();

@@ -15,6 +15,7 @@ jobs:
     env:
       VCPKG_DEFAULT_TRIPLET: x64-windows
       VCPKG_DEFAULT_HOST_TRIPLET: x64-windows
+      CXXFLAGS: "/D_WIN32_WINNT=0x0A00"
     strategy:
       matrix:
         include:
@@ -66,24 +67,11 @@ jobs:
 
       - name: Run vcpkg integrate install
         run: |
+          vcpkg install libsodium
+          vcpkg install libuv
+          vcpkg install openssl
           C:/vcpkg/vcpkg integrate install
         shell: cmd
-
-      - name: Configure CMake
-        run: |
-          mkdir build
-          echo "-------------------DIR--------------------------"
-          dir
-          echo "-------------------Env--------------------------"
-          env
-          echo "-------------------VCPKG_INSTALLATION_ROOT--------------------------"
-          echo "${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
-          echo "-------------------Cat--------------------------"
-          type "${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake"
-          echo "-------------------Qt6_DIR--------------------------"
-          echo "${{ env.Qt6_DIR }}"
-        env:
-          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
 
       - name: Run CMake using CMakePresets.json and vcpkg toolchain
         uses: lukka/run-cmake@v10
@@ -100,4 +88,3 @@ jobs:
         env:
           BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
           VCPKG_ROOT: C:/vcpkg
-

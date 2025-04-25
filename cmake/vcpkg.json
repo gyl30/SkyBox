@@ -1,8 +1,6 @@
 {
   "name": "skybox",
   "dependencies": [
-    "libuv",
-    "libsodium",
     "openssl"
   ]
 }
