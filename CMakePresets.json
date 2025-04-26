@@ -1,8 +1,8 @@
 {
-    "version": 4,
+    "version": 3,
     "cmakeMinimumRequired": {
         "major": 3,
-        "minor": 15,
+        "minor": 12,
         "patch": 0
     },
     "configurePresets": [
@@ -11,7 +11,7 @@
             "displayName": "Linux Debug",
             "generator": "Ninja",
             "description": "Use Ninja generator with Debug build on Linux",
-            "binaryDir": "${sourceDir}/build/linux-debug",
+            "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
@@ -27,7 +27,7 @@
             "displayName": "Linux Release",
             "generator": "Ninja",
             "description": "Use Ninja generator with Release build on Linux",
-            "binaryDir": "${sourceDir}/build/linux-release",
+            "binaryDir": "${sourceDir}/build/release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
@@ -43,7 +43,7 @@
             "displayName": "Windows Debug (MSVC)",
             "generator": "Ninja",
             "description": "Use Ninja with MSVC in Debug mode",
-            "binaryDir": "${sourceDir}/build/windows-debug",
+            "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": {
                     "type": "FILEPATH",
@@ -62,7 +62,7 @@
             "displayName": "Windows Release (MSVC)",
             "generator": "Ninja",
             "description": "Use Ninja with MSVC in Release mode",
-            "binaryDir": "${sourceDir}/build/windows-release",
+            "binaryDir": "${sourceDir}/build/release",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": {
                     "type": "FILEPATH",
@@ -79,32 +79,28 @@
     ],
     "buildPresets": [
         {
-            "name": "linux-build-debug",
+            "name": "linux-debug",
             "displayName": "Build Debug",
             "configurePreset": "linux-debug",
-            "description": "Build using Debug preset",
-            "jobs": 16
+            "description": "Build using Debug preset"
         },
         {
-            "name": "linux-build-release",
+            "name": "linux-release",
             "displayName": "Build Release",
             "configurePreset": "linux-release",
-            "description": "Build using Release preset",
-            "jobs": 16
+            "description": "Build using Release preset"
         },
         {
-            "name": "windows-build-debug",
+            "name": "windows-debug",
             "displayName": "Build Debug",
             "configurePreset": "windows-debug",
-            "description": "Build using Debug preset",
-            "jobs": 16
+            "description": "Build using Debug preset"
         },
         {
-            "name": "windows-build-release",
+            "name": "windows-release",
             "displayName": "Build Release",
             "configurePreset": "windows-release",
-            "description": "Build using Release preset",
-            "jobs": 16
+            "description": "Build using Release preset"
         }
     ]
 }
