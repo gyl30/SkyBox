@@ -49,6 +49,7 @@
                     "type": "FILEPATH",
                     "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
                 },
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
                 "CMAKE_BUILD_TYPE": "Debug"
             },
             "condition": {
@@ -68,6 +69,7 @@
                     "type": "FILEPATH",
                     "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
                 },
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
                 "CMAKE_BUILD_TYPE": "Release"
             },
             "condition": {
@@ -82,24 +84,28 @@
             "name": "linux-debug",
             "displayName": "Build Debug",
             "configurePreset": "linux-debug",
+            "jobs": 3,
             "description": "Build using Debug preset"
         },
         {
             "name": "linux-release",
             "displayName": "Build Release",
             "configurePreset": "linux-release",
+            "jobs": 3,
             "description": "Build using Release preset"
         },
         {
             "name": "windows-debug",
             "displayName": "Build Debug",
             "configurePreset": "windows-debug",
+            "jobs": 16,
             "description": "Build using Debug preset"
         },
         {
             "name": "windows-release",
             "displayName": "Build Release",
             "configurePreset": "windows-release",
+            "jobs": 16,
             "description": "Build using Release preset"
         }
     ]
