@@ -13,7 +13,12 @@ aux_source_directory(${PROJECT_SOURCE_DIR}/net CLI_GUI_SOURCE_FILE)
 aux_source_directory(${PROJECT_SOURCE_DIR}/config CLI_GUI_SOURCE_FILE)
 aux_source_directory(${PROJECT_SOURCE_DIR}/protocol CLI_GUI_SOURCE_FILE)
 
-add_executable(gclient 
+set(WIN32_FLAG "")
+if(MSVC)
+    set(WIN32_FLAG WIN32)
+endif()
+
+add_executable(gclient ${WIN32_FLAG}
     main.cpp 
     widget.cpp
     titlebar.cpp

@@ -84,14 +84,14 @@
             "name": "linux-debug",
             "displayName": "Build Debug",
             "configurePreset": "linux-debug",
-            "jobs": 3,
+            "jobs": 13,
             "description": "Build using Debug preset"
         },
         {
             "name": "linux-release",
             "displayName": "Build Release",
             "configurePreset": "linux-release",
-            "jobs": 3,
+            "jobs": 13,
             "description": "Build using Release preset"
         },
         {

@@ -5,6 +5,7 @@ project(SkyBox VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/install)
 
 
 # 构建类型和调试信息
@@ -47,13 +48,13 @@ find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem context url thre
 include_directories(${Boost_INCLUDE_DIRS})
 list(APPEND LINK_LIBS ${Boost_LIBRARIES})
 
+find_package(PkgConfig REQUIRED)
 # Sodium + libuv
 if(WIN32)
-  find_package(unofficial-sodium CONFIG REQUIRED)
   find_package(libuv CONFIG REQUIRED)
-  list(APPEND LINK_LIBS unofficial-sodium::sodium $<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv> ws2_32)
+  pkg_check_modules(libsodium REQUIRED IMPORTED_TARGET libsodium)
+  list(APPEND LINK_LIBS PkgConfig::libsodium $<IF:$<TARGET_EXISTS:libuv::uv_a>,libuv::uv_a,libuv::uv> ws2_32)
 else()
-  find_package(PkgConfig REQUIRED)
   pkg_check_modules(libsodium REQUIRED IMPORTED_TARGET libsodium)
   pkg_check_modules(libuv REQUIRED IMPORTED_TARGET libuv)
   list(APPEND LINK_LIBS PkgConfig::libsodium PkgConfig::libuv)
@@ -71,3 +72,7 @@ include_directories(third/spdlog/include)
 add_subdirectory(client)
 add_subdirectory(server)
 add_subdirectory(gui)
+
+install(TARGETS client RUNTIME DESTINATION client)
+install(TARGETS gclient RUNTIME DESTINATION gclient)
+install(TARGETS server RUNTIME DESTINATION server)

@@ -13,8 +13,9 @@ jobs:
   windows:
     runs-on: windows-latest
     env:
-      VCPKG_DEFAULT_TRIPLET: x64-windows
-      VCPKG_DEFAULT_HOST_TRIPLET: x64-windows
+      VCPKG_DEFAULT_TRIPLET: x64-windows-static
+      VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
+      CXXFLAGS: "/D_WIN32_WINNT=0x0A00"
     strategy:
       matrix:
         include:
@@ -62,6 +63,7 @@ jobs:
           vcpkg install libsodium
           vcpkg install libuv
           vcpkg install openssl
+          vcpkg install pkgconf
           C:/vcpkg/vcpkg integrate install
         shell: cmd
 
@@ -80,3 +82,39 @@ jobs:
         env:
           BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
           VCPKG_ROOT: C:/vcpkg
+          PKG_CONFIG_PATH: C:/vcpkg/installed/x64-windows-static/lib/pkgconfig
+
+      - name: Dep
+        run: |
+          dir
+          dir .\build\debug
+          dir .\build\debug\server
+          dir .\build\debug\client
+          dir .\build\debug\gui
+          echo "---------------- ldd .\build\debug\server\server.exe"
+          ldd .\build\debug\server\server.exe
+          echo "---------------- ldd .\build\debug\client\client.exe"
+          ldd .\build\debug\client\client.exe
+          echo "---------------- ldd .\build\debug\gui\gclient.exe"
+          ldd .\build\debug\gui\gclient.exe
+          where.exe windeployqt
+          echo "---------------- windeployqt .\build\debug\gui\gclient.exe"
+          windeployqt .\build\debug\gui\gclient.exe --release --no-translations --no-system-d3d-compiler --no-compiler-runtime --dir .\build\debug\gui\
+          dir .\build\debug\gui
+          echo "---------------- cmake install"
+          cmake --install build/debug
+          echo "---------------- dir"
+          dir
+          echo "---------------- dir .\install\server"
+          dir .\install\server
+          echo "---------------- dir .\install\client"
+          dir .\install\client
+          echo "---------------- dir .\install\gclient"
+          dir .\install\gclient
+          echo "---------------- windeployqt .\build\debug\gui\gclient.exe"
+          windeployqt .\build\debug\gui\gclient.exe --release --no-translations --no-system-d3d-compiler --no-compiler-runtime --dir .\install\gclient\
+          echo "---------------- dir .\install\gclient"
+          dir .\install\gclient
+          echo "---------------- ldd .\install\gclient\gclient.exe"
+          ldd .\install\gclient\gclient.exe
+        shell: pwsh
