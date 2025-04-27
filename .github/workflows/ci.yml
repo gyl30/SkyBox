@@ -13,9 +13,8 @@ jobs:
   windows:
     runs-on: windows-latest
     env:
-      VCPKG_DEFAULT_TRIPLET: x64-windows-static
-      VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
-      CXXFLAGS: "/D_WIN32_WINNT=0x0A00"
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+      VCPKG_DEFAULT_HOST_TRIPLET: x64-windows
     strategy:
       matrix:
         include:
