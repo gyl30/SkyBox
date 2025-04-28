@@ -1,4 +1,5 @@
 #include <iostream>
+#include <boost/program_options.hpp>
 #include "log/log.h"
 #include "file/event.h"
 #include "net/scoped_exit.hpp"
@@ -25,25 +26,75 @@ static void notify_progress(const leaf::notify_event &e)
 }
 static void error_progress(const boost::system::error_code &ec) { LOG_ERROR("^^^ error {}", ec.message()); }
 
+struct command_args
+{
+    uint16_t port = 8080;
+    std::string ip{"127.0.0.1"};
+    std::string level{"info"};
+    std::string username{"admin"};
+    std::string password{"123456"};
+    std::vector<std::string> upload_paths;
+    std::vector<std::string> download_paths;
+};
+
+std::optional<command_args> parse_command_line(int argc, char *argv[])
+{
+    command_args args;
+    boost::program_options::options_description desc("Allowed options");
+    // clang-format off
+    desc.add_options()("help,h", "Show help message")(
+        "ip", boost::program_options::value<std::string>(&args.ip), "IP address (required)")(
+        "port", boost::program_options::value<uint16_t>(&args.port), "Port number (required)")(
+        "username", boost::program_options::value<std::string>(&args.username), "Username (required)")(
+        "password", boost::program_options::value<std::string>(&args.password), "Password (required)")(
+        "upload,u", boost::program_options::value<std::vector<std::string>>(&args.upload_paths)->multitoken(), "Upload files or folders (optional)")(
+        "download,d", boost::program_options::value<std::vector<std::string>>(&args.download_paths)->multitoken(), "Download files or folders (optional)")(
+        "log-level,l", boost::program_options::value<std::string>(&args.level)->default_value("info"), "Log level: info, debug, or error");
+    // clang-format on
+
+    auto parsed = boost::program_options::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
+    boost::program_options::variables_map vm;
+    boost::program_options::store(parsed, vm);
+    boost::program_options::notify(vm);
+    if (vm.count("help") != 0U)
+    {
+        std::cerr << desc << "\n";
+        return {};
+    }
+
+    if (vm.count("ip") != 0U || vm.count("port") != 0U)
+    {
+        std::cerr << desc << "\n";
+        return {};
+    }
+    if (vm.count("username") != 0U || vm.count("password") != 0U)
+    {
+        std::cerr << desc << "\n";
+        return {};
+    }
+
+    return args;
+}
+
 int main(int argc, char *argv[])
 {
-    if (argc < 3)
+    auto args = parse_command_line(argc, argv);
+    if (!args)
     {
-        std::cout << "usage: " << argv[0] << " upload_file download_file" << std::endl;
-        return 0;
+        return -1;
     }
 
     leaf::init_log("cli.log");
     DEFER(leaf::shutdown_log());
 
-    leaf::set_log_level("trace");
+    leaf::set_log_level(args->level);
     leaf::progress_handler handler;
     handler.d.download = download_progress;
     handler.d.notify = notify_progress;
     handler.u.upload = upload_progress;
     handler.u.notify = notify_progress;
 
-    leaf::file_transfer_client fm("127.0.0.1", 8080, handler);
+    leaf::file_transfer_client fm(args->ip, args->port, handler);
     auto error = [&fm](const boost::system::error_code &ec)
     {
         error_progress(ec);
@@ -54,7 +105,7 @@ int main(int argc, char *argv[])
 
     fm.startup();
 
-    fm.login("admin", "123456");
+    fm.login(args->username, args->password);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 

@@ -44,7 +44,7 @@ set(Boost_USE_DEBUG_LIBS ON)
 set(Boost_USE_RELEASE_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem context url thread)
+find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem context url thread program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 list(APPEND LINK_LIBS ${Boost_LIBRARIES})
 
