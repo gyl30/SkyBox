@@ -1,8 +1,9 @@
+#include <stack>
 #include <climits>
-#include <boost/asio.hpp>
-#include <boost/system/error_code.hpp>
 #include <filesystem>
 #include <uv.h>
+#include <boost/asio.hpp>
+#include <boost/system/error_code.hpp>
 #include "file/file.h"
 
 namespace leaf
@@ -52,6 +53,31 @@ std::string make_file_path(const std::string& id, const std::string& filename)
     }
     return dir.append(filename).string();
 }
+
+std::vector<std::string> dir_files(const std::string& dir)
+{
+    std::stack<std::string> dirs;
+    dirs.push(dir);
+    std::vector<std::string> files;
+    while (!dirs.empty())
+    {
+        std::string path = dirs.top();
+        dirs.pop();
+        for (const auto& entry : std::filesystem::directory_iterator(path))
+        {
+            if (entry.is_directory())
+            {
+                dirs.push(entry.path().string());
+            }
+            if (entry.is_regular_file())
+            {
+                files.push_back(entry.path().string());
+            }
+        }
+    }
+    return files;
+}
+
 class file_impl
 {
    public:
@@ -198,7 +224,10 @@ std::size_t file_writer::write(void const* buffer, std::size_t size, boost::syst
 std::size_t file_writer::size() { return impl_->write_size(); };
 std::string file_writer::name() const { return impl_->name(); };
 
-std::size_t file_writer::write_at(std::int64_t offset, void const* buffer, std::size_t size, boost::system::error_code& ec)
+std::size_t file_writer::write_at(std::int64_t offset,
+                                  void const* buffer,
+                                  std::size_t size,
+                                  boost::system::error_code& ec)
 {
     return impl_->write_at(offset, buffer, size, ec);
 }
