@@ -2,9 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 permissions:
   contents: write
@@ -16,6 +13,7 @@ jobs:
       VCPKG_DEFAULT_TRIPLET: x64-windows-static
       VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
       CXXFLAGS: "/D_WIN32_WINNT=0x0A00"
+      executable: skybox
     strategy:
       matrix:
         include:
@@ -24,7 +22,13 @@ jobs:
             msvc_arch: x64
             version: 2022
             qt_arch_install: msvc2022_64
-            build_type: Debug
+            build_type: debug
+          - qt_ver: 6.8.1
+            qt_arch: win64_msvc2022_64
+            msvc_arch: x64
+            version: 2022
+            qt_arch_install: msvc2022_64
+            build_type: release
 
     steps:
       - name: Install Qt
@@ -70,8 +74,8 @@ jobs:
       - name: Run CMake using CMakePresets.json and vcpkg toolchain
         uses: lukka/run-cmake@v10
         with:
-          configurePreset: 'windows-debug'
-          buildPreset: 'windows-debug'
+          configurePreset: 'windows-${{ matrix.build_type }}'
+          buildPreset: 'windows-${{ matrix.build_type }}'
           configurePresetAdditionalArgs: >
             [
               "-DBoost_NO_SYSTEM_PATHS=ON",
@@ -87,22 +91,22 @@ jobs:
       - name: Dep
         run: |
           dir
-          dir .\build\debug
-          dir .\build\debug\server
-          dir .\build\debug\client
-          dir .\build\debug\gui
-          echo "---------------- ldd .\build\debug\server\server.exe"
-          ldd .\build\debug\server\server.exe
-          echo "---------------- ldd .\build\debug\client\client.exe"
-          ldd .\build\debug\client\client.exe
-          echo "---------------- ldd .\build\debug\gui\gclient.exe"
-          ldd .\build\debug\gui\gclient.exe
+          dir .\build\${{ matrix.build_type }}
+          dir .\build\${{ matrix.build_type }}\server
+          dir .\build\${{ matrix.build_type }}\client
+          dir .\build\${{ matrix.build_type }}\gui
+          echo "---------------- ldd .\build\${{ matrix.build_type }}\server\server.exe"
+          ldd .\build\${{ matrix.build_type }}\server\server.exe
+          echo "---------------- ldd .\build\${{ matrix.build_type }}\client\client.exe"
+          ldd .\build\${{ matrix.build_type }}\client\client.exe
+          echo "---------------- ldd .\build\${{ matrix.build_type }}\gui\gclient.exe"
+          ldd .\build\${{ matrix.build_type }}\gui\gclient.exe
           where.exe windeployqt
-          echo "---------------- windeployqt .\build\debug\gui\gclient.exe"
-          windeployqt .\build\debug\gui\gclient.exe --release --no-translations --no-system-d3d-compiler --no-compiler-runtime --dir .\build\debug\gui\
-          dir .\build\debug\gui
+          echo "---------------- windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe"
+          windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe --${{ matrix.build_type }} --no-translations --no-system-d3d-compiler --dir .\build\${{ matrix.build_type }}\gui\
+          dir .\build\${{ matrix.build_type }}\gui
           echo "---------------- cmake install"
-          cmake --install build/debug
+          cmake --install build/${{ matrix.build_type }}
           echo "---------------- dir"
           dir
           echo "---------------- dir .\install\server"
@@ -111,10 +115,29 @@ jobs:
           dir .\install\client
           echo "---------------- dir .\install\gclient"
           dir .\install\gclient
-          echo "---------------- windeployqt .\build\debug\gui\gclient.exe"
-          windeployqt .\build\debug\gui\gclient.exe --release --no-translations --no-system-d3d-compiler --no-compiler-runtime --dir .\install\gclient\
+          echo "---------------- windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe"
+          windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe --${{ matrix.build_type }} --no-translations --no-system-d3d-compiler --dir .\install\gclient\
           echo "---------------- dir .\install\gclient"
           dir .\install\gclient
           echo "---------------- ldd .\install\gclient\gclient.exe"
           ldd .\install\gclient\gclient.exe
         shell: pwsh
+      - name: packet
+        id: packet
+        shell: pwsh
+        run: |
+          dir .\install
+          Compress-Archive -Path .\install\* ${{ env.executable }}-${{ matrix.msvc_arch }}-${{ matrix.build_type }}'.zip'
+          dir
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.executable }}-${{ matrix.msvc_arch }}-${{ matrix.build_type }}.zip
+          path: ${{ env.executable }}-${{ matrix.msvc_arch }}-${{ matrix.build_type }}.zip
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ env.executable }}-${{ matrix.msvc_arch }}-${{ matrix.build_type }}.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
