@@ -15,7 +15,14 @@ application::~application() = default;
 
 void application::startup()
 {
-    endpoint_ = boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 8080);
+    uint16_t listen_port = 8080;
+    if (argc_ > 1)
+    {
+        listen_port = std::atoi(argv_[1]);
+    }
+
+    LOG_INFO("listen port {}", listen_port);
+    endpoint_ = boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), listen_port);
 
     leaf::session_handle h2;
     h2.http_handle = leaf::http_handle;
