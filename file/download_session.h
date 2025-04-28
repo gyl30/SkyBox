@@ -28,6 +28,7 @@ class download_session : public std::enable_shared_from_this<download_session>
 
    public:
     void add_file(const std::string &file);
+    void add_files(const std::vector<std::string> &files);
     void on_read(boost::beast::error_code ec, const std::vector<uint8_t> &bytes);
     void on_write(boost::beast::error_code ec, std::size_t transferred);
     void on_connect(boost::beast::error_code ec);
@@ -45,6 +46,7 @@ class download_session : public std::enable_shared_from_this<download_session>
 
    private:
     void safe_add_file(const std::string &filename);
+    void safe_add_files(const std::vector<std::string> &files);
     void safe_shutdown();
     void emit_event(const leaf::download_event &) const;
     void reset_state();

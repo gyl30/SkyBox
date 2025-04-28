@@ -132,6 +132,28 @@ void file_transfer_client::add_download_file(const std::string &filename)
             }
         });
 }
+void file_transfer_client::add_upload_files(const std::vector<std::string> &files)
+{
+    ex_->post(
+        [this, files]()
+        {
+            if (upload_)
+            {
+                upload_->add_files(files);
+            }
+        });
+}
+void file_transfer_client::add_download_files(const std::vector<std::string> &files)
+{
+    ex_->post(
+        [this, files]()
+        {
+            if (download_)
+            {
+                download_->add_files(files);
+            }
+        });
+}
 
 void file_transfer_client::start_timer()
 {

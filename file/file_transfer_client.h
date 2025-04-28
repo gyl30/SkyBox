@@ -26,6 +26,9 @@ class file_transfer_client
     void add_upload_file(const std::string &filename);
     void add_download_file(const std::string &filename);
 
+    void add_upload_files(const std::vector<std::string> &files);
+    void add_download_files(const std::vector<std::string> &files);
+
    private:
     void do_login();
     void on_login(boost::beast::error_code ec, const std::string &res);

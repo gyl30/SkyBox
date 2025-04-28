@@ -27,6 +27,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void shutdown();
     void update();
     void add_file(const std::string &filename);
+    void add_files(const std::vector<std::string> &files);
 
    private:
     void on_read(boost::beast::error_code ec, const std::vector<uint8_t> &bytes);
@@ -44,6 +45,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void emit_event(const leaf::upload_event &e) const;
     void reset_state();
     void safe_add_file(const std::string &filename);
+    void safe_add_files(const std::vector<std::string> &files);
     void safe_shutdown();
 
    private:

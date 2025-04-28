@@ -100,10 +100,22 @@ void upload_session::safe_add_file(const std::string& filename)
     LOG_INFO("{} add file {}", id_, filename);
     padding_files_.push_back(filename);
 }
+void upload_session::safe_add_files(const std::vector<std::string>& files)
+{
+    for (const auto& filename : files)
+    {
+        padding_files_.push_back(filename);
+    }
+}
 
 void upload_session::add_file(const std::string& filename)
 {
     io_.post([this, filename, self = shared_from_this()]() { safe_add_file(filename); });
+}
+
+void upload_session::add_files(const std::vector<std::string>& files)
+{
+    io_.post([this, files, self = shared_from_this()]() { safe_add_files(files); });
 }
 
 void upload_session::update_process_file()

@@ -255,7 +255,7 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
         return;
     }
 }
-void download_session::emit_event(const leaf::download_event& e)const
+void download_session::emit_event(const leaf::download_event& e) const
 {
     if (progress_cb_.download)
     {
@@ -284,9 +284,21 @@ void download_session::reset_state()
 
 void download_session::safe_add_file(const std::string& filename) { padding_files_.push(filename); }
 
+void download_session::safe_add_files(const std::vector<std::string>& files)
+{
+    for (const auto& filename : files)
+    {
+        padding_files_.push(filename);
+    }
+}
 void download_session::add_file(const std::string& file)
 {
     io_.post([this, file, self = shared_from_this()]() { safe_add_file(file); });
+}
+
+void download_session::add_files(const std::vector<std::string>& files)
+{
+    io_.post([this, files, self = shared_from_this()]() { safe_add_files(files); });
 }
 
 void download_session::update()
