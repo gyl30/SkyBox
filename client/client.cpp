@@ -109,8 +109,36 @@ int main(int argc, char *argv[])
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    fm.add_upload_file(argv[1]);
-    fm.add_download_file(argv[2]);
+    std::vector<std::string> download_files;
+    for (const auto &dir : args->download_paths)
+    {
+        if (leaf::is_file(dir))
+        {
+            download_files.push_back(dir);
+        }
+        if (leaf::is_dir(dir))
+        {
+            auto files = leaf::dir_files(dir);
+            download_files.insert(download_files.end(), files.begin(), files.end());
+        }
+    }
+
+    std::vector<std::string> upload_files;
+    for (const auto &dir : args->upload_paths)
+    {
+        if (leaf::is_file(dir))
+        {
+            upload_files.push_back(dir);
+        }
+        if (leaf::is_dir(dir))
+        {
+            auto files = leaf::dir_files(dir);
+            upload_files.insert(upload_files.end(), files.begin(), files.end());
+        }
+    }
+
+    fm.add_upload_files(download_files);
+    fm.add_download_files(upload_files);
 
     std::this_thread::sleep_for(std::chrono::seconds(60));
 
