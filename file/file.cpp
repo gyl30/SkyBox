@@ -78,6 +78,9 @@ std::vector<std::string> dir_files(const std::string& dir)
     return files;
 }
 
+bool is_dir(const std::string& path) { return std::filesystem::is_directory(path); }
+bool is_file(const std::string& file) { return std::filesystem::is_regular_file(file); }
+
 class file_impl
 {
    public:
