@@ -37,6 +37,17 @@ struct command_args
     std::vector<std::string> download_paths;
 };
 
+static std::string to_string(const command_args &args)
+{
+    return fmt::format("ip: {}, port: {}, username: {}, password: {}, upload_paths: {} -- download_paths: {}",
+                       args.ip,
+                       args.port,
+                       args.username,
+                       args.password,
+                       fmt::join(args.upload_paths, ","),
+                       fmt::join(args.download_paths, ","));
+}
+
 std::optional<command_args> parse_command_line(int argc, char *argv[])
 {
     command_args args;
@@ -62,17 +73,6 @@ std::optional<command_args> parse_command_line(int argc, char *argv[])
         return {};
     }
 
-    if (vm.count("ip") != 0U || vm.count("port") != 0U)
-    {
-        std::cerr << desc << "\n";
-        return {};
-    }
-    if (vm.count("username") != 0U || vm.count("password") != 0U)
-    {
-        std::cerr << desc << "\n";
-        return {};
-    }
-
     return args;
 }
 
@@ -86,6 +86,8 @@ int main(int argc, char *argv[])
 
     leaf::init_log("cli.log");
     DEFER(leaf::shutdown_log());
+
+    LOG_INFO("command args {}", to_string(args.value()));
 
     leaf::set_log_level(args->level);
     leaf::progress_handler handler;
@@ -137,8 +139,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    fm.add_upload_files(download_files);
-    fm.add_download_files(upload_files);
+    fm.add_upload_files(upload_files);
+    fm.add_download_files(download_files);
 
     std::this_thread::sleep_for(std::chrono::seconds(60));
 
