@@ -39,6 +39,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     void download_file_request();
     void on_download_file_response(const std::optional<leaf::download_file_response> &);
     void on_file_data(const std::optional<leaf::file_data> &);
+    void on_file_done(const std::optional<leaf::done> &);
     void on_error_message(const std::optional<leaf::error_message> &);
     void on_login_token(const std::optional<leaf::login_token> &message);
     void on_keepalive_response(const std::optional<leaf::keepalive> &);

@@ -93,6 +93,10 @@ void download_session::on_read(boost::beast::error_code ec, const std::vector<ui
         on_keepalive_response(leaf::deserialize_keepalive_response(bytes));
         return;
     }
+    if (type == leaf::message_type::done)
+    {
+        on_file_done(leaf::deserialize_done(bytes));
+    }
 }
 void download_session::on_write(boost::beast::error_code ec, std::size_t /*transferred*/)
 {
@@ -213,13 +217,14 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
     assert(data->data.size() <= kBlockSize);
     assert(writer_->size() <= file_->file_size);
     boost::system::error_code ec;
-    writer_->write_at(writer_->size(), data->data.data(), data->data.size(), ec);
+    writer_->write_at(file_->offset, data->data.data(), data->data.size(), ec);
     if (ec)
     {
         LOG_ERROR("{} download_file {} write error {}", id_, file_->filename, ec.message());
         reset_state();
         return;
     }
+    file_->offset += static_cast<int64_t>(data->data.size());
     file_->hash_count++;
     hash_->update(data->data.data(), data->data.size());
     LOG_DEBUG("{} download_file {} hash count {} hash {} data size {} write size {}",
@@ -255,6 +260,7 @@ void download_session::on_file_data(const std::optional<leaf::file_data>& data)
         return;
     }
 }
+
 void download_session::emit_event(const leaf::download_event& e) const
 {
     if (progress_cb_.download)
@@ -280,6 +286,12 @@ void download_session::reset_state()
         hash_.reset();
     }
     status_ = wait_download_file;
+}
+
+void download_session::on_file_done(const std::optional<leaf::done>& /*d*/)
+{
+    assert(status_ == wait_download_file);
+    LOG_INFO("{} download_file done", id_);
 }
 
 void download_session::safe_add_file(const std::string& filename) { padding_files_.push(filename); }

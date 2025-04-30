@@ -73,7 +73,8 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
         file_->hash_count++;
     }
     // block count hash or eof hash
-    if (file_->hash_count == kHashBlockCount || file_->file_size == reader_->size() || read_ec == boost::asio::error::eof)
+    if (file_->hash_count == kHashBlockCount || file_->file_size == reader_->size() ||
+        read_ec == boost::asio::error::eof)
     {
         hash_->final();
         fd.hash = hash_->hex();
@@ -82,17 +83,18 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
     }
     LOG_DEBUG(
         "{} download_file {} size {} hash {}", id_, file_->file_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
+    if (!fd.data.empty())
+    {
+        auto bytes = leaf::serialize_file_data(fd);
+        session_->write(bytes);
+    }
 
     // eof reset
     if (read_ec == boost::asio::error::eof || reader_->size() == file_->file_size)
     {
         LOG_INFO("{} upload_file {} complete", id_, file_->file_path);
         reset_status();
-    }
-    if (!fd.data.empty())
-    {
-        auto bytes = leaf::serialize_file_data(fd);
-        session_->write(bytes);
+        file_done();
     }
 }
 void download_file_handle::error_message(uint32_t id, int32_t error_code)
@@ -101,6 +103,12 @@ void download_file_handle::error_message(uint32_t id, int32_t error_code)
     e.id = id;
     e.error = error_code;
     session_->write(leaf::serialize_error_message(e));
+}
+
+void download_file_handle::file_done()
+{
+    leaf::done d;
+    session_->write(leaf::serialize_done(d));
 }
 void download_file_handle::reset_status()
 {
