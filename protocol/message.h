@@ -22,6 +22,7 @@ enum class message_type : uint8_t
     files_response = 10,
     file_data = 11,
     ack = 12,
+    done = 13,
 };
 
 struct login_request
@@ -54,6 +55,9 @@ struct files_response
     std::vector<file_node> files;
 };
 struct ack
+{
+};
+struct done
 {
 };
 // ------------------------------------------------------------------------------
