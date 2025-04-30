@@ -63,6 +63,10 @@ void upload_file_handle::on_read(boost::beast::error_code ec, const std::vector<
     {
         on_ack(leaf::deserialize_ack(bytes));
     }
+    if (type == leaf::message_type::done)
+    {
+        on_file_done(leaf::deserialize_done(bytes));
+    }
     if (type == leaf::message_type::file_data)
     {
         on_file_data(leaf::deserialize_file_data(bytes));
@@ -207,6 +211,12 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
         LOG_INFO("{} upload_file {} done", id_, file_->file_path);
         reset_state();
     }
+}
+
+void upload_file_handle::on_file_done(const std::optional<leaf::done>& /*d*/)
+{
+    LOG_INFO("{} upload_file done", id_);
+    assert(state_ == wait_upload_request);
 }
 
 void upload_file_handle::error_message(uint32_t id, int32_t error_code)

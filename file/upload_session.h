@@ -42,6 +42,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void on_error_message(const std::optional<leaf::error_message> &);
     void on_login_token(const std::optional<leaf::login_token> &l);
     void upload_file_data();
+    void file_done();
     void emit_event(const leaf::upload_event &e) const;
     void reset_state();
     void safe_add_file(const std::string &filename);

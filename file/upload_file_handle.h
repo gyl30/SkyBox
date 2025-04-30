@@ -30,6 +30,7 @@ class upload_file_handle : public websocket_handle
     void on_keepalive(const std::optional<leaf::keepalive>& k);
     void on_upload_file_request(const std::optional<leaf::upload_file_request>& req);
     void on_file_data(const std::optional<leaf::file_data>& d);
+    void on_file_done(const std::optional<leaf::done>& d);
     void on_ack(const std::optional<leaf::ack>& a);
     void error_message(uint32_t id, int32_t error_code);
     void reset_state();

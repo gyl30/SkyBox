@@ -255,13 +255,19 @@ void upload_session::on_upload_file_response(const std::optional<leaf::upload_fi
     ws_client_->write(leaf::serialize_ack(a));
 }
 
+void upload_session::file_done()
+{
+    leaf::done d;
+    ws_client_->write(leaf::serialize_done(d));
+}
+
 void upload_session::upload_file_data()
 {
     assert(reader_->size() < file_->file_size);
     // read block data
     std::vector<uint8_t> buffer(kBlockSize, '0');
     boost::system::error_code ec;
-    auto read_size = reader_->read_at(reader_->size(), buffer.data(), buffer.size(), ec);
+    auto read_size = reader_->read_at(file_->offset, buffer.data(), buffer.size(), ec);
     if (ec && ec != boost::asio::error::eof)
     {
         LOG_ERROR("{} upload_file read file {} error {}", id_, file_->file_path, ec.message());
@@ -274,6 +280,7 @@ void upload_session::upload_file_data()
     if (read_size != 0)
     {
         file_->hash_count++;
+        file_->offset += static_cast<int64_t>(read_size);
         hash_->update(fd.data.data(), read_size);
     }
     // block count hash or eof hash
@@ -292,15 +299,17 @@ void upload_session::upload_file_data()
     u.filename = file_->filename;
     emit_event(u);
 
-    // eof reset
-    if (ec == boost::asio::error::eof || reader_->size() == file_->file_size)
-    {
-        LOG_INFO("{} upload_file {} complete", id_, file_->file_path);
-        reset_state();
-    }
     if (!fd.data.empty())
     {
         ws_client_->write(leaf::serialize_file_data(fd));
+    }
+
+    // eof reset
+    if (ec == boost::asio::error::eof || reader_->size() == file_->file_size)
+    {
+        file_done();
+        LOG_INFO("{} upload_file {} complete", id_, file_->file_path);
+        reset_state();
     }
 }
 

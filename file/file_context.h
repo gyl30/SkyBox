@@ -13,6 +13,7 @@ struct file_context
 
     uint64_t file_size = 0;
     uint64_t hash_count = 0;
+    int64_t offset = 0;
     std::string filename;
     std::string file_path;
 };
