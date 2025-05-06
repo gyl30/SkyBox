@@ -9,16 +9,10 @@ namespace leaf
 
 cotrol_session::cotrol_session(std::string id,
                                std::string token,
-                               leaf::cotrol_progress_callback cb,
-                               leaf::notify_progress_callback notify_cb,
+                               leaf::cotrol_handle handler,
                                boost::asio::ip::tcp::endpoint ed,
                                boost::asio::io_context& io)
-    : id_(std::move(id)),
-      token_(std::move(token)),
-      io_(io),
-      ed_(std::move(ed)),
-      notify_cb_(std::move(notify_cb)),
-      progress_cb_(std::move(cb))
+    : id_(std::move(id)), token_(std::move(token)), io_(io), ed_(std::move(ed)), handler_(std::move(handler))
 {
 }
 
@@ -46,6 +40,14 @@ void cotrol_session::shutdown()
     LOG_INFO("{} shutdown", id_);
 }
 
+void cotrol_session::update()
+{
+    //
+    if (ws_client_)
+    {
+        files_request();
+    }
+}
 void cotrol_session::on_connect(boost::beast::error_code ec)
 {
     if (ec)
@@ -81,19 +83,25 @@ void cotrol_session::on_write(boost::beast::error_code ec, std::size_t /*transfe
     }
 }
 
-void cotrol_session::on_files_response(const std::optional<leaf::files_response>& message)
+void cotrol_session::files_request()
 {
-    if (!message.has_value())
+    leaf::files_request req;
+    req.token = token_;
+    ws_client_->write(leaf::serialize_files_request(req));
+}
+
+void cotrol_session::on_files_response(const std::optional<leaf::files_response>& files)
+{
+    if (!files.has_value())
     {
         return;
     }
-    const auto& msg = message.value();
 
-    LOG_INFO("{} on_files_response {} file size {}", id_, msg.token, msg.files.size());
+    LOG_INFO("{} on_files_response {} file size {}", id_, files->token, files->files.size());
     leaf::notify_event e;
     e.method = "files";
-    e.data = msg;
-    notify_cb_(e);
+    e.data = files->files;
+    handler_.notify(e);
 }
 
 }    // namespace leaf

@@ -57,11 +57,11 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     token_ = l->token;
     LOG_INFO("login {} {} token {}", user_, pass_, token_, l->token);
     // clang-format off
-    // cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", l->token, handler_.cotrol, handler_.notify, ed_, executors.get_executor());
+    cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", l->token, handler_.c,  ed_, executors.get_executor());
     upload_ = std::make_shared<leaf::upload_session>("upload", l->token, handler_.u, ed_, executors.get_executor());
     download_ = std::make_shared<leaf::download_session>("download", l->token, handler_.d, ed_, executors.get_executor());
     // clang-format on
-    // cotrol_->startup();
+    cotrol_->startup();
     upload_->startup();
     download_->startup();
     start_timer();
@@ -181,6 +181,10 @@ void file_transfer_client::timer_callback(const boost::system::error_code &ec)
     if (download_)
     {
         download_->update();
+    }
+    if (cotrol_)
+    {
+        cotrol_->update();
     }
 
     start_timer();

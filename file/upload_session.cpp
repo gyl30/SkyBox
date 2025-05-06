@@ -9,10 +9,10 @@ namespace leaf
 {
 upload_session::upload_session(std::string id,
                                std::string token,
-                               leaf::upload_handle cb,
+                               leaf::upload_handle handler,
                                boost::asio::ip::tcp::endpoint ed,
                                boost::asio::io_context& io)
-    : id_(std::move(id)), token_(std::move(token)), io_(io), ed_(std::move(ed)), progress_cb_(std::move(cb))
+    : id_(std::move(id)), token_(std::move(token)), io_(io), ed_(std::move(ed)), handler_(std::move(handler))
 {
 }
 
@@ -161,9 +161,9 @@ void upload_session::update()
 
 void upload_session::emit_event(const leaf::upload_event& e) const
 {
-    if (progress_cb_.upload)
+    if (handler_.upload)
     {
-        progress_cb_.upload(e);
+        handler_.upload(e);
     }
 }
 

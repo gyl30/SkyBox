@@ -670,9 +670,7 @@ void Widget::reset_ui_state()
     key_edit_->clear();
 }
 
-static void files_to_gfiles(const std::vector<leaf::files_response::file_node> &files,
-                            int dep,
-                            std::vector<leaf::gfile> &gfiles)
+static void files_to_gfiles(const std::vector<leaf::file_node> &files, int dep, std::vector<leaf::gfile> &gfiles)
 {
     if (dep > 3)
     {

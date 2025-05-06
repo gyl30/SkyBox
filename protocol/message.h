@@ -41,16 +41,16 @@ struct files_request
 {
     std::string token;
 };
+struct file_node
+{
+    std::string parent;
+    std::string name;
+    std::string type;
+};
 
 struct files_response
 {
     uint32_t id = 0;
-    struct file_node
-    {
-        std::string parent;
-        std::string name;
-        std::string type;
-    };
     std::string token;
     std::vector<file_node> files;
 };

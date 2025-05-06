@@ -14,6 +14,12 @@ static void upload_progress(const leaf::upload_event &e)
 {
     LOG_INFO("<-- upload progress {} {} {}", e.filename, e.upload_size, e.file_size);
 }
+static void cotrol_progress(const leaf::cotrol_event &e)
+{
+    //
+    LOG_INFO("^^^ cotrol progress {}", e.token);
+}
+
 static void notify_progress(const leaf::notify_event &e)
 {
     if (e.method == "file_not_exist")
@@ -22,6 +28,16 @@ static void notify_progress(const leaf::notify_event &e)
         LOG_INFO("download_file_not_exist {}", filename);
         return;
     }
+    if (e.method == "files")
+    {
+        auto files = std::any_cast<std::vector<leaf::file_node>>(e.data);
+        for (const auto &file : files)
+        {
+            LOG_INFO("--- {} {}", file.type, file.name);
+        }
+        return;
+    }
+
     LOG_INFO("||| notify {}", e.method);
 }
 static void error_progress(const boost::system::error_code &ec) { LOG_ERROR("^^^ error {}", ec.message()); }
@@ -95,6 +111,8 @@ int main(int argc, char *argv[])
     handler.d.notify = notify_progress;
     handler.u.upload = upload_progress;
     handler.u.notify = notify_progress;
+    handler.c.cotrol = cotrol_progress;
+    handler.c.notify = notify_progress;
 
     leaf::file_transfer_client fm(args->ip, args->port, handler);
     auto error = [&fm](const boost::system::error_code &ec)
@@ -104,6 +122,7 @@ int main(int argc, char *argv[])
     };
     handler.d.error = error;
     handler.u.error = error;
+    handler.c.error = error;
 
     fm.startup();
 

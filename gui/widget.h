@@ -81,6 +81,6 @@ class Widget : public QWidget
     std::shared_ptr<leaf::file_transfer_client> file_client_ = nullptr;
     QMap<QString, QString> themes_;
     QStringList theme_names_;
-    uint32_t current_theme_index_{0};
+    int32_t current_theme_index_{0};
 };
 #endif    // WIDGET_H

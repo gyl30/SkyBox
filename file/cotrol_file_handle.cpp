@@ -65,7 +65,7 @@ void cotrol_file_handle::on_write(boost::beast::error_code ec, std::size_t /*tra
         return;
     }
 }
-static std::vector<leaf::files_response::file_node> lookup_dir(const std::string& dir)
+static std::vector<leaf::file_node> lookup_dir(const std::string& dir)
 {
     if (!std::filesystem::exists(dir))
     {
@@ -73,14 +73,14 @@ static std::vector<leaf::files_response::file_node> lookup_dir(const std::string
     }
     std::stack<std::string> dirs;
     dirs.push(dir);
-    std::vector<leaf::files_response::file_node> files;
+    std::vector<leaf::file_node> files;
     while (!dirs.empty())
     {
         std::string path = dirs.top();
         dirs.pop();
         for (const auto& entry : std::filesystem::directory_iterator(path))
         {
-            leaf::files_response::file_node f;
+            leaf::file_node f;
             f.name = entry.path().string();
             f.parent = path;
             f.type = "file";
