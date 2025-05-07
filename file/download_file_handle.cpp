@@ -57,7 +57,7 @@ void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*t
     // read block data
     std::vector<uint8_t> buffer(kBlockSize, '0');
     boost::system::error_code read_ec;
-    auto read_size = reader_->read_at(reader_->size(), buffer.data(), buffer.size(), read_ec);
+    auto read_size = reader_->read_at(static_cast<int64_t>(reader_->size()), buffer.data(), buffer.size(), read_ec);
     if (read_ec && read_ec != boost::asio::error::eof)
     {
         LOG_ERROR("{} download_file read file {} error {}", id_, file_->file_path, read_ec.message());
@@ -185,9 +185,7 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
         return;
     }
     const auto& msg = download.value();
-    std::string filename = leaf::encode(msg.filename);
-    std::string download_file_path = leaf::make_file_path(token_, filename);
-    download_file_path = leaf::make_normal_filename(download_file_path);
+    auto download_file_path = leaf::encode_normal_filename(leaf::make_file_path(token_, leaf::encode(msg.filename)));
     LOG_INFO("{} download_file file {} to {}", id_, msg.filename, download_file_path);
     boost::system::error_code exists_ec;
     bool exist = std::filesystem::exists(download_file_path, exists_ec);

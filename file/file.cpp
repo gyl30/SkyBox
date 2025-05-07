@@ -17,15 +17,18 @@ uint64_t file_id()
 std::string tmp_extension() { return "tmp"; }
 std::string normal_extension() { return "leaf"; }
 
-std::string make_tmp_filename(const std::string& p)
+std::string encode_tmp_filename(const std::string& p)
 {
     return std::filesystem::path(p).replace_extension(tmp_extension()).string();
 }
 
-std::string make_normal_filename(const std::string& p)
+std::string decode_tmp_filename(const std::string& p) { return std::filesystem::path(p).stem().string(); }
+
+std::string encode_normal_filename(const std::string& p)
 {
     return std::filesystem::path(p).replace_extension(normal_extension()).string();
 }
+std::string decode_normal_filename(const std::string& p) { return std::filesystem::path(p).stem().string(); }
 
 std::string tmp_to_normal_filename(const std::string& p)
 {

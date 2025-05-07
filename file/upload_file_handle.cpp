@@ -106,9 +106,7 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     }
 
     assert(!file_ && !writer_);
-    std::string filename = leaf::encode(req->filename);
-    std::string upload_file_path = leaf::make_file_path(token_, filename);
-    upload_file_path = leaf::make_normal_filename(upload_file_path);
+    auto upload_file_path = leaf::encode_normal_filename(leaf::make_file_path(token_, leaf::encode(req->filename)));
     std::error_code ec;
     bool exist = std::filesystem::exists(upload_file_path, ec);
     if (ec)
@@ -175,7 +173,7 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
     }
     assert(d->data.size() <= kBlockSize);
     boost::system::error_code ec;
-    writer_->write_at(writer_->size(), d->data.data(), d->data.size(), ec);
+    writer_->write_at(static_cast<int64_t>(writer_->size()), d->data.data(), d->data.size(), ec);
     if (ec)
     {
         LOG_ERROR("{} upload_file write error {}", id_, ec.message());

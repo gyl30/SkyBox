@@ -4,6 +4,7 @@
 
 #include "log/log.h"
 #include "file/file.h"
+#include "crypt/easy.h"
 #include "protocol/codec.h"
 #include "file/cotrol_file_handle.h"
 
@@ -107,6 +108,10 @@ void cotrol_file_handle::on_files_request(const std::optional<leaf::files_reques
     leaf::files_response response;
     // 递归遍历目录中的所有文件
     auto files = lookup_dir(dir);
+    for (auto&& file : files)
+    {
+        file.name = leaf::decode(leaf::decode_normal_filename(file.name));
+    }
     response.token = msg.token;
     response.files.swap(files);
     LOG_INFO("{} on_files_request dir {}", id_, dir);
