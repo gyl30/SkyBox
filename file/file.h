@@ -18,6 +18,8 @@ std::string make_file_path(const std::string& id);
 std::vector<std::string> dir_files(const std::string& dir);
 bool is_dir(const std::string& path);
 bool is_file(const std::string& file);
+bool rename(const std::string& src, const std::string& dst);
+bool remove(const std::string& file);
 
 class file_impl;
 class writer

@@ -82,7 +82,12 @@ std::vector<std::string> dir_files(const std::string& dir)
 }
 
 bool is_dir(const std::string& path) { return std::filesystem::is_directory(path); }
+
 bool is_file(const std::string& file) { return std::filesystem::is_regular_file(file); }
+
+bool rename(const std::string& src, const std::string& dst) { return ::rename(src.c_str(), dst.c_str()) == 0; }
+
+bool remove(const std::string& file) { return ::remove(file.c_str()) == 0; }
 
 class file_impl
 {

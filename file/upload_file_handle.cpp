@@ -106,7 +106,7 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
     }
 
     assert(!file_ && !writer_);
-    auto upload_file_path = leaf::encode_normal_filename(leaf::make_file_path(token_, leaf::encode(req->filename)));
+    auto upload_file_path = leaf::encode_tmp_filename(leaf::make_file_path(token_, leaf::encode(req->filename)));
     std::error_code ec;
     bool exist = std::filesystem::exists(upload_file_path, ec);
     if (ec)
@@ -206,7 +206,9 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
     }
     if (file_->file_size == writer_->size())
     {
-        LOG_INFO("{} upload_file {} done", id_, file_->file_path);
+        auto filename = leaf::encode_normal_filename(leaf::make_file_path(token_, leaf::encode(file_->filename)));
+        leaf::rename(file_->file_path, filename);
+        LOG_INFO("{} upload_file {} to {} done", id_, file_->file_path, filename);
         reset_state();
     }
 }
