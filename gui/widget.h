@@ -43,7 +43,7 @@ class Widget : public QWidget
     void upload_progress(const leaf::upload_event& e);
     void download_progress(const leaf::download_event& e);
     void on_login_btn_clicked();
-    void on_files(const leaf::files_response& files);
+    void on_files(const std::vector<leaf::file_node>& files);
     void update_progress_btn_icon();
     void error_progress(const boost::system::error_code& ec);
 

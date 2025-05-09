@@ -594,8 +594,10 @@ void Widget::on_login_btn_clicked()
     handler.d.download = [this](const leaf::download_event &e) { download_progress(e); };
     handler.u.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
     handler.d.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
+    handler.c.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
     handler.u.error = [this](const boost::system::error_code &ec) { error_progress(ec); };
     handler.d.error = [this](const boost::system::error_code &ec) { error_progress(ec); };
+    handler.c.error = [this](const boost::system::error_code &ec) { error_progress(ec); };
 
     file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, handler);
     file_client_->startup();
@@ -687,10 +689,10 @@ static void files_to_gfiles(const std::vector<leaf::file_node> &files, int dep, 
     }
 }
 
-void Widget::on_files(const leaf::files_response &files)
+void Widget::on_files(const std::vector<leaf::file_node> &files)
 {
     std::vector<leaf::gfile> gfiles;
-    files_to_gfiles(files.files, 0, gfiles);
+    files_to_gfiles(files, 0, gfiles);
     for (const auto &f : gfiles)
     {
         files_widget_->add_or_update_file(f);
@@ -701,7 +703,7 @@ void Widget::on_notify_event_slot(const leaf::notify_event &e)
 {
     if (e.method == "files")
     {
-        on_files(std::any_cast<leaf::files_response>(e.data));
+        on_files(std::any_cast<std::vector<leaf::file_node>>(e.data));
     }
     if (e.method == "login")
     {
