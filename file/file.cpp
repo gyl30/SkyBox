@@ -5,6 +5,7 @@
 #include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>
 #include "file/file.h"
+#include "config/config.h"
 
 namespace leaf
 {
@@ -14,8 +15,9 @@ uint64_t file_id()
     return ++id;
 }
 
-std::string tmp_extension() { return "tmp"; }
-std::string normal_extension() { return "leaf"; }
+std::string tmp_extension() { return kTmpFilenameSuffix; }
+
+std::string leaf_extension() { return kLeafFilenameSuffix; }
 
 std::string encode_tmp_filename(const std::string& p)
 {
@@ -24,15 +26,15 @@ std::string encode_tmp_filename(const std::string& p)
 
 std::string decode_tmp_filename(const std::string& p) { return std::filesystem::path(p).stem().string(); }
 
-std::string encode_normal_filename(const std::string& p)
+std::string encode_leaf_filename(const std::string& p)
 {
-    return std::filesystem::path(p).replace_extension(normal_extension()).string();
+    return std::filesystem::path(p).replace_extension(leaf_extension()).string();
 }
-std::string decode_normal_filename(const std::string& p) { return std::filesystem::path(p).stem().string(); }
+std::string decode_leaf_filename(const std::string& p) { return std::filesystem::path(p).stem().string(); }
 
-std::string tmp_to_normal_filename(const std::string& p)
+std::string tmp_to_leaf_filename(const std::string& p)
 {
-    return std::filesystem::path(p).replace_extension(normal_extension()).string();
+    return std::filesystem::path(p).replace_extension(leaf_extension()).string();
 }
 std::string make_file_path(const std::string& id) { return std::filesystem::temp_directory_path().append(id).string(); }
 

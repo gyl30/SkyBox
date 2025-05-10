@@ -206,7 +206,7 @@ void upload_file_handle::on_file_data(const std::optional<leaf::file_data>& d)
     }
     if (file_->file_size == writer_->size())
     {
-        auto filename = leaf::encode_normal_filename(leaf::make_file_path(token_, leaf::encode(file_->filename)));
+        auto filename = leaf::encode_leaf_filename(leaf::make_file_path(token_, leaf::encode(file_->filename)));
         leaf::rename(file_->file_path, filename);
         LOG_INFO("{} upload_file {} to {} done", id_, file_->file_path, filename);
         reset_state();

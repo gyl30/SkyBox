@@ -81,8 +81,11 @@ static std::vector<leaf::file_node> lookup_dir(const std::string& dir)
         dirs.pop();
         for (const auto& entry : std::filesystem::directory_iterator(path))
         {
+            std::string filename = entry.path().string();
+            std::string ext =  entry.path().extension();
+            // if(ext == leaf::no)
             leaf::file_node f;
-            f.name = entry.path().string();
+            f.name = filename;
             f.parent = path;
             f.type = "file";
             if (entry.is_directory())
@@ -110,7 +113,7 @@ void cotrol_file_handle::on_files_request(const std::optional<leaf::files_reques
     auto files = lookup_dir(dir);
     for (auto&& file : files)
     {
-        file.name = leaf::decode(leaf::decode_normal_filename(file.name));
+        file.name = leaf::decode(leaf::decode_leaf_filename(file.name));
     }
     response.token = msg.token;
     response.files.swap(files);

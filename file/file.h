@@ -9,10 +9,10 @@ namespace leaf
 uint64_t file_id();
 std::string tmp_extension();
 std::string encode_tmp_filename(const std::string& p);
-std::string encode_normal_filename(const std::string& p);
+std::string encode_leaf_filename(const std::string& p);
 std::string decode_tmp_filename(const std::string& p);
-std::string decode_normal_filename(const std::string& p);
-std::string tmp_to_normal_filename(const std::string& p);
+std::string decode_leaf_filename(const std::string& p);
+std::string tmp_to_leaf_filename(const std::string& p);
 std::string make_file_path(const std::string& id, const std::string& filename);
 std::string make_file_path(const std::string& id);
 std::vector<std::string> dir_files(const std::string& dir);
