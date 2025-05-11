@@ -8,6 +8,7 @@ namespace leaf
 {
 uint64_t file_id();
 std::string tmp_extension();
+std::string leaf_extension();
 std::string encode_tmp_filename(const std::string& p);
 std::string encode_leaf_filename(const std::string& p);
 std::string decode_tmp_filename(const std::string& p);

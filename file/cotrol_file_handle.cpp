@@ -5,6 +5,7 @@
 #include "log/log.h"
 #include "file/file.h"
 #include "crypt/easy.h"
+#include "config/config.h"
 #include "protocol/codec.h"
 #include "file/cotrol_file_handle.h"
 
@@ -82,8 +83,6 @@ static std::vector<leaf::file_node> lookup_dir(const std::string& dir)
         for (const auto& entry : std::filesystem::directory_iterator(path))
         {
             std::string filename = entry.path().string();
-            std::string ext =  entry.path().extension();
-            // if(ext == leaf::no)
             leaf::file_node f;
             f.name = filename;
             f.parent = path;
@@ -92,6 +91,14 @@ static std::vector<leaf::file_node> lookup_dir(const std::string& dir)
             {
                 f.type = "dir";
                 dirs.push(entry.path().string());
+            }
+            else if (entry.is_regular_file())
+            {
+                std::string ext = entry.path().extension();
+                if (ext != kLeafFilenameSuffix)
+                {
+                    continue;
+                }
             }
             files.push_back(f);
         }

@@ -6,8 +6,10 @@ namespace leaf
 constexpr auto kBlockSize = 128 * 1024;
 constexpr auto kHashBlockCount = 10;
 constexpr auto kDefatuleDownloadDir = "tmp";
-constexpr auto kReadWsLimited = 256 * 1024;
-constexpr auto kWriteWsLimited = 256 * 1024;
+constexpr auto kReadWsLimited = 2 * 1024 * 1024;
+constexpr auto kWriteWsLimited = 2 * 1024 * 1024;
+constexpr auto kTmpFilenameSuffix = ".tmp";
+constexpr auto kLeafFilenameSuffix = ".leaf";
 
 }    // namespace leaf
 
