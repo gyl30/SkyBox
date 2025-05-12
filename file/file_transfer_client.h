@@ -28,6 +28,7 @@ class file_transfer_client
 
     void add_upload_files(const std::vector<std::string> &files);
     void add_download_files(const std::vector<std::string> &files);
+    void change_current_dir(const std::string &dir);
 
    private:
     void do_login();

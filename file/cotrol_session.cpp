@@ -40,6 +40,8 @@ void cotrol_session::shutdown()
     LOG_INFO("{} shutdown", id_);
 }
 
+void cotrol_session::change_current_dir(const std::string& dir) { current_dir_ = dir; }
+
 void cotrol_session::update()
 {
     //
@@ -87,6 +89,7 @@ void cotrol_session::files_request()
 {
     leaf::files_request req;
     req.token = token_;
+    req.dir = current_dir_;
     ws_client_->write(leaf::serialize_files_request(req));
 }
 

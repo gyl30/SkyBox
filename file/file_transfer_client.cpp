@@ -155,6 +155,13 @@ void file_transfer_client::add_download_files(const std::vector<std::string> &fi
         });
 }
 
+void file_transfer_client::change_current_dir(const std::string &dir)
+{
+    if (cotrol_)
+    {
+        cotrol_->change_current_dir(dir);
+    }
+}
 void file_transfer_client::start_timer()
 {
     timer_->expires_after(std::chrono::seconds(1));

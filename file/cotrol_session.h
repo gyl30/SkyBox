@@ -23,18 +23,20 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     void startup();
     void shutdown();
     void update();
-    void on_read(boost::beast::error_code ec, const std::vector<uint8_t> &bytes);
-    void on_write(boost::beast::error_code ec, std::size_t transferred);
-    void on_connect(boost::beast::error_code ec);
+    void change_current_dir(const std::string &dir);
 
    private:
     void files_request();
+    void on_read(boost::beast::error_code ec, const std::vector<uint8_t> &bytes);
+    void on_write(boost::beast::error_code ec, std::size_t transferred);
+    void on_connect(boost::beast::error_code ec);
     void on_files_response(const std::optional<leaf::files_response> &files);
 
    private:
     std::string id_;
     uint32_t seq_ = 0;
     std::string token_;
+    std::string current_dir_;
     boost::asio::io_context &io_;
     boost::asio::ip::tcp::endpoint ed_;
     leaf::cotrol_handle handler_;

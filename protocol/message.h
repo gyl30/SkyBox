@@ -40,6 +40,7 @@ struct login_token
 struct files_request
 {
     std::string token;
+    std::string dir;
 };
 struct file_node
 {
@@ -52,6 +53,7 @@ struct files_response
 {
     uint32_t id = 0;
     std::string token;
+    std::string dir;
     std::vector<file_node> files;
 };
 struct ack

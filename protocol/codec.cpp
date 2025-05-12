@@ -16,7 +16,8 @@ REFLECT_STRUCT(leaf::download_file_response, (id)(filesize)(filename));
 REFLECT_STRUCT(leaf::download_file_request, (id)(filename));
 REFLECT_STRUCT(leaf::delete_file_request, (id)(filename));
 REFLECT_STRUCT(leaf::file_node, (parent)(name)(type));
-REFLECT_STRUCT(leaf::files_response, (files)(token));
+REFLECT_STRUCT(leaf::files_request, (token)(dir));
+REFLECT_STRUCT(leaf::files_response, (files)(token)(dir));
 }    // namespace reflect
 
 namespace leaf
@@ -415,7 +416,8 @@ std::vector<uint8_t> serialize_files_request(const leaf::files_request &f)
     leaf::write_buffer w;
     write_padding(w);
     w.write_uint16(leaf::to_underlying(message_type::files_request));
-    w.write_bytes(f.token.data(), f.token.size());
+    std::string str = reflect::serialize_struct(f);
+    w.write_bytes(str.data(), str.size());
     std::vector<uint8_t> bytes;
     w.copy_to(&bytes);
     return bytes;
@@ -442,7 +444,10 @@ std::optional<leaf::files_request> deserialize_files_request(const std::vector<u
         return {};
     }
     leaf::files_request f;
-    f.token = str;
+    if (!reflect::deserialize_struct(f, str))
+    {
+        return {};
+    }
     return f;
 }
 

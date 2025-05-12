@@ -67,7 +67,7 @@ void cotrol_file_handle::on_write(boost::beast::error_code ec, std::size_t /*tra
         return;
     }
 }
-static std::vector<leaf::file_node> lookup_dir(const std::string& dir)
+static std::vector<leaf::file_node> lookup_dir(const std::filesystem::path& dir)
 {
     if (!std::filesystem::exists(dir))
     {
@@ -106,6 +106,11 @@ static std::vector<leaf::file_node> lookup_dir(const std::string& dir)
     return files;
 }
 
+static std::vector<leaf::file_node> lookup_dir(const std::string& dir)
+{
+    return lookup_dir(std::filesystem::path(dir));
+}
+
 void cotrol_file_handle::on_files_request(const std::optional<leaf::files_request>& message)
 {
     if (!message.has_value())
@@ -114,17 +119,19 @@ void cotrol_file_handle::on_files_request(const std::optional<leaf::files_reques
     }
     const auto& msg = message.value();
 
-    std::string dir = leaf::make_file_path(msg.token);
+    std::filesystem::path root_path(leaf::make_file_path(msg.token));
+    auto dir_path = root_path.append(msg.dir);
+
     leaf::files_response response;
     // 递归遍历目录中的所有文件
-    auto files = lookup_dir(dir);
+    auto files = lookup_dir(dir_path);
     for (auto&& file : files)
     {
         file.name = leaf::decode(leaf::decode_leaf_filename(file.name));
     }
     response.token = msg.token;
     response.files.swap(files);
-    LOG_INFO("{} on_files_request dir {}", id_, dir);
+    LOG_INFO("{} on_files_request dir {}", id_, dir_path.filename().string());
     session_->write(leaf::serialize_files_response(response));
 }
 }    // namespace leaf
