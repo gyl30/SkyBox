@@ -36,11 +36,14 @@ std::string tmp_to_leaf_filename(const std::string& p)
 {
     return std::filesystem::path(p).replace_extension(leaf_extension()).string();
 }
-std::string make_file_path(const std::string& id) { return std::filesystem::temp_directory_path().append(id).string(); }
+std::string make_file_path(const std::string& id)
+{
+    return std::filesystem::path(leaf::kDefatuleDir).append(id).string();
+}
 
 std::string make_file_path(const std::string& id, const std::string& filename)
 {
-    auto dir = std::filesystem::temp_directory_path().append(id);
+    auto dir = std::filesystem::path(leaf::kDefatuleDir).append(id);
     boost::system::error_code ec;
     bool exist = std::filesystem::exists(dir, ec);
     if (ec)

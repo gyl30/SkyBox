@@ -154,7 +154,7 @@ void download_session::on_download_file_response(const std::optional<leaf::downl
 
     const auto& msg = res.value();
     boost::system::error_code exists_ec;
-    auto file_path = std::filesystem::path(kDefatuleDownloadDir).append(msg.filename).string();
+    auto file_path = std::filesystem::path(kDefatuleDir).append(msg.filename).string();
     bool exists = std::filesystem::exists(file_path, exists_ec);
     if (exists_ec)
     {
