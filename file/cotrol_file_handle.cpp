@@ -106,11 +106,6 @@ static std::vector<leaf::file_node> lookup_dir(const std::filesystem::path& dir)
     return files;
 }
 
-static std::vector<leaf::file_node> lookup_dir(const std::string& dir)
-{
-    return lookup_dir(std::filesystem::path(dir));
-}
-
 void cotrol_file_handle::on_files_request(const std::optional<leaf::files_request>& message)
 {
     if (!message.has_value())
@@ -119,19 +114,17 @@ void cotrol_file_handle::on_files_request(const std::optional<leaf::files_reques
     }
     const auto& msg = message.value();
 
-    std::filesystem::path root_path(leaf::make_file_path(msg.token));
-    auto dir_path = root_path.append(msg.dir);
-
+    auto dir_path = leaf::make_file_path(msg.token, msg.dir);
     leaf::files_response response;
     // 递归遍历目录中的所有文件
     auto files = lookup_dir(dir_path);
     for (auto&& file : files)
     {
-        file.name = leaf::decode(leaf::decode_leaf_filename(file.name));
+        file.name = leaf::decode_leaf_filename(file.name);
     }
     response.token = msg.token;
     response.files.swap(files);
-    LOG_INFO("{} on_files_request dir {}", id_, dir_path.filename().string());
+    LOG_INFO("{} on_files_request dir {}", id_, dir_path);
     session_->write(leaf::serialize_files_response(response));
 }
 }    // namespace leaf

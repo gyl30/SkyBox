@@ -1,6 +1,7 @@
 #include <stack>
 #include <climits>
 #include <filesystem>
+#include <optional>
 #include <uv.h>
 #include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>
@@ -41,6 +42,34 @@ std::string make_file_path(const std::string& id)
     return std::filesystem::path(leaf::kDefatuleDir).append(id).string();
 }
 
+static std::optional<std::filesystem::path> resolve_abs_path(const std::filesystem::path& root,
+                                                             const std::filesystem::path& user_input)
+{
+    if (user_input.empty())
+    {
+        return root;
+    }
+    if (user_input.is_absolute())
+    {
+        return root;
+    }
+    std::filesystem::path combined = root / user_input;
+    std::filesystem::path resolved = std::filesystem::weakly_canonical(combined);
+    std::filesystem::path resolved_root = std::filesystem::weakly_canonical(root);
+    if (resolved == resolved_root)
+    {
+        return resolved;
+    }
+    std::filesystem::path relative_path = std::filesystem::relative(resolved, resolved_root);
+    for (const auto& part : relative_path)
+    {
+        if (part == "..")
+        {
+            return {};
+        }
+    }
+    return resolved;
+}
 std::string make_file_path(const std::string& id, const std::string& filename)
 {
     auto dir = std::filesystem::path(leaf::kDefatuleDir).append(id);
@@ -48,18 +77,36 @@ std::string make_file_path(const std::string& id, const std::string& filename)
     bool exist = std::filesystem::exists(dir, ec);
     if (ec)
     {
-        return "";
+        return {};
     }
-    if (exist)
+    if (!exist)
     {
-        return dir.append(filename).string();
+        std::filesystem::create_directories(dir, ec);
+        if (ec)
+        {
+            return {};
+        }
     }
-    std::filesystem::create_directories(dir, ec);
+    auto file_path = resolve_abs_path(dir, filename);
+    if (!file_path.has_value())
+    {
+        return {};
+    }
+    auto file_parent_dir = file_path->parent_path();
+    exist = std::filesystem::exists(file_parent_dir, ec);
     if (ec)
     {
-        return "";
+        return {};
     }
-    return dir.append(filename).string();
+    if (!exist)
+    {
+        std::filesystem::create_directories(file_parent_dir, ec);
+        if (ec)
+        {
+            return {};
+        }
+    }
+    return file_path->string();
 }
 
 std::vector<std::string> dir_files(const std::string& dir)
