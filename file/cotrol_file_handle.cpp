@@ -113,14 +113,14 @@ void cotrol_file_handle::on_files_request(const std::optional<leaf::files_reques
         return;
     }
     const auto& msg = message.value();
-
+    std::string user_path = leaf::make_file_path(msg.token);
     auto dir_path = leaf::make_file_path(msg.token, msg.dir);
     leaf::files_response response;
     // 递归遍历目录中的所有文件
     auto files = lookup_dir(dir_path);
     for (auto&& file : files)
     {
-        file.name = leaf::decode_leaf_filename(file.name);
+        file.name = std::filesystem::relative(file.name, user_path).string();
     }
     response.token = msg.token;
     response.files.swap(files);
