@@ -87,82 +87,25 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 
     // 用户登录区域
     user_label_ = new QLabel("用户名:");
-    user_label_->setStyleSheet(R"(
-        QLabel {
-            color: #ffffff;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 5px;
-            min-width: 60px;
-        }
-    )");
 
     user_edit_ = new QLineEdit();
     user_edit_->setPlaceholderText("请输入用户名");
     user_edit_->setMinimumWidth(150);
     user_edit_->setFixedWidth(150);
     user_edit_->setMinimumHeight(30);
-    user_edit_->setStyleSheet(R"(
-        QLineEdit {
-            padding: 5px 10px;
-            border: 1px solid #404040;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-        QLineEdit:focus {
-            border: 1px solid #5294e2;
-        }
-    )");
 
     key_label_ = new QLabel("密码:");
-    key_label_->setStyleSheet(R"(
-        QLabel {
-            color: #ffffff;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 5px;
-            min-width: 60px;
-        }
-    )");
-
     key_edit_ = new QLineEdit();
     key_edit_->setEchoMode(QLineEdit::Password);
     key_edit_->setPlaceholderText("请输入密码");
     key_edit_->setMinimumWidth(150);
     key_edit_->setFixedWidth(150);
     key_edit_->setMinimumHeight(30);
-    key_edit_->setStyleSheet(R"(
-        QLineEdit {
-            padding: 5px 10px;
-            border: 1px solid #404040;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-        QLineEdit:focus {
-            border: 1px solid #5294e2;
-        }
-    )");
 
     login_btn_ = new QToolButton();
     login_btn_->setText("登录");
     login_btn_->setMinimumWidth(80);
     login_btn_->setMinimumHeight(30);
-    login_btn_->setStyleSheet(R"(
-        QToolButton {
-            background-color: #4a90e2;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 13px;
-        }
-        QToolButton:hover {
-            background-color: #357abd;
-        }
-        QToolButton:pressed {
-            background-color: #2d6da3;
-        }
-    )");
     connect(login_btn_, &QToolButton::clicked, this, &Widget::on_login_btn_clicked);
 
     auto *user_layout = new QHBoxLayout();
@@ -203,19 +146,6 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
         btn->setToolButtonStyle(Qt::ToolButtonTextOnly);
         btn->setIconSize(QSize(64, 64));
         // btn->setFixedSize(64, 64);
-        btn->setStyleSheet(R"(
-        QToolButton {
-            background-color: transparent;
-            border: none;
-            border-radius: 8px;
-        }
-        QToolButton:hover {
-            background-color: rgba(0, 0, 0, 20);
-        }
-        QToolButton:checked {
-            background-color: rgba(0, 120, 215, 50);
-        }
-    )");
     }
 
     btn_group_ = new QButtonGroup(this);
@@ -248,17 +178,6 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     connect(style_btn_, &QPushButton::clicked, [this]() { on_style_btn_clicked(); });
     // clang-format on
 
-    login_btn_->setStyleSheet(R"(
-    QToolButton {
-        background-color: #2196F3;
-        color: white;
-        border: none;
-    }
-    QToolButton:hover {
-        background-color: #1976D2;
-    }
-)");
-
     stacked_widget_->setCurrentIndex(files_list_index_);
     auto *side_layout = new QVBoxLayout();
     side_layout->addWidget(upload_btn_);
@@ -283,243 +202,12 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     main_layout->addLayout(content_layout);
     main_layout->setContentsMargins(8, 0, 0, 0);
 
-    // 设置窗口样式
-    QString default_style = QString(R"(
-        QWidget {
-            background: white;
-        }
-        QWidget#MainWindow {
-            border: 1px solid #E0E0E0;
-            border-radius: 4px;
-        }
-        QLineEdit {
-            padding: 5px 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: white;
-            font-size: 13px;
-        }
-        QLineEdit:focus {
-            border: 1px solid #4a90e2;
-        }
-        QLabel {
-            color: #333;
-            font-size: 13px;
-        }
-        QToolButton {
-            background-color: transparent;
-            border: none;
-            border-radius: 8px;
-            color: #333;
-            font-size: 13px;
-            padding: 5px 15px;
-        }
-        QToolButton:hover {
-            background-color: rgba(0, 0, 0, 0.1);
-        }
-        QToolButton:checked {
-            background-color: rgba(0, 120, 215, 0.2);
-        }
-        QToolButton#LoginButton {
-            background-color: #4a90e2;
-            color: white;
-            font-weight: bold;
-        }
-        QToolButton#LoginButton:hover {
-            background-color: #357abd;
-        }
-        QToolButton#LoginButton:pressed {
-            background-color: #2d6da3;
-        }
-        QTableWidget {
-            background: white;
-            border: 1px solid #E0E0E0;
-            border-radius: 4px;
-            gridline-color: #E0E0E0;
-        }
-        QTableWidget::item {
-            padding: 8px;
-        }
-        QHeaderView::section {
-            background: #F5F5F5;
-            padding: 8px;
-            border: none;
-            border-bottom: 1px solid #E0E0E0;
-        }
-    )");
-
-    QString dark_style = QString(R"(
-        QWidget {
-            background: #2c2c2c;
-            color: #ffffff;
-        }
-        QWidget#MainWindow {
-            border: 1px solid #404040;
-            border-radius: 4px;
-        }
-        QLineEdit {
-            padding: 5px 10px;
-            border: 1px solid #404040;
-            border-radius: 4px;
-            background-color: #363636;
-            color: #ffffff;
-            font-size: 13px;
-        }
-        QLineEdit:focus {
-            border: 1px solid #5294e2;
-        }
-        QLabel {
-            color: #ffffff;
-            font-size: 13px;
-        }
-        QToolButton {
-            background-color: transparent;
-            border: none;
-            border-radius: 8px;
-            color: #ffffff;
-            font-size: 13px;
-            padding: 5px 15px;
-        }
-        QToolButton:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        QToolButton:checked {
-            background-color: rgba(82, 148, 226, 0.2);
-        }
-        QToolButton#LoginButton {
-            background-color: #5294e2;
-            color: white;
-            font-weight: bold;
-        }
-        QToolButton#LoginButton:hover {
-            background-color: #4a84cc;
-        }
-        QToolButton#LoginButton:pressed {
-            background-color: #3d6ea8;
-        }
-        QTableWidget {
-            background: #363636;
-            border: 1px solid #404040;
-            border-radius: 4px;
-            gridline-color: #404040;
-            color: #ffffff;
-        }
-        QTableWidget::item {
-            padding: 8px;
-            color: #ffffff;
-        }
-        QHeaderView::section {
-            background: #2c2c2c;
-            padding: 8px;
-            border: none;
-            border-bottom: 1px solid #404040;
-            color: #ffffff;
-        }
-        QStackedWidget {
-            background: #363636;
-            border: 1px solid #404040;
-            border-radius: 4px;
-        }
-        QScrollBar:vertical {
-            border: none;
-            background: #363636;
-            width: 10px;
-            margin: 0px;
-        }
-        QScrollBar::handle:vertical {
-            background: #404040;
-            min-height: 20px;
-            border-radius: 5px;
-        }
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-            height: 0px;
-        }
-        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-            background: none;
-        }
-    )");
-
-    QString green_style = QString(R"(
-        QWidget {
-            background: #f0f6f0;
-        }
-        QWidget#MainWindow {
-            border: 1px solid #c8e6c9;
-            border-radius: 4px;
-        }
-        QLineEdit {
-            padding: 5px 10px;
-            border: 1px solid #a5d6a7;
-            border-radius: 4px;
-            background-color: white;
-            font-size: 13px;
-        }
-        QLineEdit:focus {
-            border: 1px solid #4caf50;
-        }
-        QLabel {
-            color: #2e7d32;
-            font-size: 13px;
-        }
-        QToolButton {
-            background-color: transparent;
-            border: none;
-            border-radius: 8px;
-            color: #2e7d32;
-            font-size: 13px;
-            padding: 5px 15px;
-        }
-        QToolButton:hover {
-            background-color: rgba(76, 175, 80, 0.1);
-        }
-        QToolButton:checked {
-            background-color: rgba(76, 175, 80, 0.2);
-        }
-        QToolButton#LoginButton {
-            background-color: #4caf50;
-            color: white;
-            font-weight: bold;
-        }
-        QToolButton#LoginButton:hover {
-            background-color: #43a047;
-        }
-        QToolButton#LoginButton:pressed {
-            background-color: #388e3c;
-        }
-        QTableWidget {
-            background: white;
-            border: 1px solid #c8e6c9;
-            border-radius: 4px;
-            gridline-color: #e8f5e9;
-        }
-        QTableWidget::item {
-            padding: 8px;
-        }
-        QHeaderView::section {
-            background: #e8f5e9;
-            padding: 8px;
-            border: none;
-            border-bottom: 1px solid #c8e6c9;
-        }
-    )");
-
-    // 初始化主题样式
-    themes_.insert("默认主题", default_style);
-    themes_.insert("暗色主题", dark_style);
-    themes_.insert("绿色主题", green_style);
-
+    theme_names_ = QStyleFactory::keys();
     // 设置主题名称列表
-    theme_names_ = themes_.keys();
     current_theme_index_ = 0;
 
     // 修改样式按钮的文本
     style_btn_->setText("切换主题");
-
-    // 修改登录按钮的对象名，以便应用特定样式
-    login_btn_->setObjectName("LoginButton");
-
-    // 设置初始主题
-    setStyleSheet(themes_.value("默认主题"));
 
     // 修改主题切换函数
     connect(style_btn_,
@@ -529,7 +217,7 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
             {
                 current_theme_index_ = (current_theme_index_ + 1) % theme_names_.size();
                 QString theme_name = theme_names_.at(current_theme_index_);
-                setStyleSheet(themes_.value(theme_name));
+                QApplication::setStyle(QStyleFactory::create(theme_name));
             });
 
     progress_timer_ = new QTimer(this);
