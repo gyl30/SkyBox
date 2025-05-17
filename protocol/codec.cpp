@@ -6,6 +6,7 @@
 
 namespace reflect
 {
+REFLECT_STRUCT(leaf::create_dir, (dir));
 REFLECT_STRUCT(leaf::keepalive, (id)(client_id)(client_timestamp)(server_timestamp));
 REFLECT_STRUCT(leaf::login_request, (username)(password));
 REFLECT_STRUCT(leaf::login_token, (id)(token));
@@ -577,6 +578,40 @@ std::optional<leaf::done> deserialize_done(const std::vector<uint8_t> &data)
         return {};
     }
     return leaf::done{};
+}
+std::vector<uint8_t> serialize_create_dir(const create_dir &c)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(leaf::to_underlying(message_type::dir));
+    std::string str = reflect::serialize_struct(c);
+    w.write_bytes(str.data(), str.size());
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
+}
+std::optional<leaf::create_dir> deserialize_create_dir(const std::vector<uint8_t> &data)
+{
+    leaf::read_buffer r(data.data(), data.size());
+    read_padding(r);
+    uint16_t type = 0;
+    r.read_uint16(&type);
+    if (type != leaf::to_underlying(message_type::dir))
+    {
+        return {};
+    }
+    std::string str;
+    r.read_string(&str, r.size());
+    if (str.empty())
+    {
+        return {};
+    }
+    leaf::create_dir c;
+    if (!reflect::deserialize_struct(c, str))
+    {
+        return {};
+    }
+    return c;
 }
 
 }    // namespace leaf

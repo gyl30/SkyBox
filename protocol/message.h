@@ -23,6 +23,12 @@ enum class message_type : uint8_t
     file_data = 11,
     ack = 12,
     done = 13,
+    dir = 14,
+};
+
+struct create_dir
+{
+    std::string dir;
 };
 
 struct login_request
