@@ -40,6 +40,10 @@ void cotrol_session::shutdown()
     LOG_INFO("{} shutdown", id_);
 }
 
+void create_directory(const std::string &dir)
+{
+
+}
 void cotrol_session::change_current_dir(const std::string& dir) { current_dir_ = dir; }
 
 void cotrol_session::update()

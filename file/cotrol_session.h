@@ -23,6 +23,7 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     void startup();
     void shutdown();
     void update();
+    void create_directory(const std::string &dir);
     void change_current_dir(const std::string &dir);
 
    private:

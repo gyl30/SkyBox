@@ -155,6 +155,13 @@ void file_transfer_client::add_download_files(const std::vector<std::string> &fi
         });
 }
 
+void file_transfer_client::create_directory(const std::string &dir)
+{
+    if (cotrol_)
+    {
+        cotrol_->create_directory(dir);
+    }
+}
 void file_transfer_client::change_current_dir(const std::string &dir)
 {
     if (cotrol_)
