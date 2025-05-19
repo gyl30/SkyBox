@@ -40,10 +40,14 @@ void cotrol_session::shutdown()
     LOG_INFO("{} shutdown", id_);
 }
 
-void create_directory(const std::string &dir)
+void cotrol_session::create_directory(const std::string& dir)
 {
-
+    leaf::create_dir cd;
+    cd.dir = dir;
+    cd.token = token_;
+    ws_client_->write(leaf::serialize_create_dir(cd));
 }
+
 void cotrol_session::change_current_dir(const std::string& dir) { current_dir_ = dir; }
 
 void cotrol_session::update()

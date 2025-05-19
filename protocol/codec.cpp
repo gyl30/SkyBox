@@ -6,7 +6,7 @@
 
 namespace reflect
 {
-REFLECT_STRUCT(leaf::create_dir, (dir));
+REFLECT_STRUCT(leaf::create_dir, (dir)(token));
 REFLECT_STRUCT(leaf::keepalive, (id)(client_id)(client_timestamp)(server_timestamp));
 REFLECT_STRUCT(leaf::login_request, (username)(password));
 REFLECT_STRUCT(leaf::login_token, (id)(token));

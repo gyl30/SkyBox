@@ -24,6 +24,7 @@ class cotrol_file_handle : public websocket_handle
     void on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes);
     void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
     void on_files_request(const std::optional<leaf::files_request>& message);
+    void on_create_dir(const std::optional<leaf::create_dir>& message);
 
    private:
     std::string id_;

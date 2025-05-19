@@ -57,6 +57,10 @@ void cotrol_file_handle ::on_read(boost::beast::error_code ec, const std::vector
     {
         on_files_request(leaf::deserialize_files_request(bytes));
     }
+    if (type == leaf::message_type::dir)
+    {
+        on_create_dir(leaf::deserialize_create_dir(bytes));
+    }
 }
 
 void cotrol_file_handle::on_write(boost::beast::error_code ec, std::size_t /*transferred*/)
@@ -104,6 +108,23 @@ static std::vector<leaf::file_node> lookup_dir(const std::filesystem::path& dir)
         }
     }
     return files;
+}
+
+void cotrol_file_handle::on_create_dir(const std::optional<leaf::create_dir>& message)
+{
+    if (!message.has_value())
+    {
+        return;
+    }
+
+    std::string user_path = leaf::make_file_path(message->token);
+    auto dir_path = leaf::make_file_path(message->token, message->dir);
+    if (dir_path.empty())
+    {
+        LOG_ERROR("{} create dir {} failed", id_, message->dir);
+        return;
+    }
+    LOG_INFO("{} create dir {} --> {}", id_, message->dir, dir_path);
 }
 
 void cotrol_file_handle::on_files_request(const std::optional<leaf::files_request>& message)

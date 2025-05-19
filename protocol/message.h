@@ -29,6 +29,7 @@ enum class message_type : uint8_t
 struct create_dir
 {
     std::string dir;
+    std::string token;
 };
 
 struct login_request
