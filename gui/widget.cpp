@@ -145,7 +145,6 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
         btn->setAutoRaise(true);
         btn->setToolButtonStyle(Qt::ToolButtonTextOnly);
         btn->setIconSize(QSize(64, 64));
-        // btn->setFixedSize(64, 64);
     }
 
     btn_group_ = new QButtonGroup(this);
@@ -170,10 +169,11 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     finish_list_widget_->setShowGrid(false);
     finish_list_widget_->verticalHeader()->setHidden(true);
     finish_list_widget_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    connect(files_widget_, &leaf::files_widget::notify_event_signal, this, &Widget::on_notify_event_slot);
     // clang-format off
     connect(upload_btn_, &QPushButton::clicked, this, &Widget::on_new_file_clicked);
-    connect( finish_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(finish_list_index_); });
-    connect( progress_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(upload_list_index_); });
+    connect(finish_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(finish_list_index_); });
+    connect(progress_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(upload_list_index_); });
     connect(files_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(files_list_index_); });
     connect(style_btn_, &QPushButton::clicked, [this]() { on_style_btn_clicked(); });
     // clang-format on
@@ -393,32 +393,53 @@ void Widget::on_notify_event_slot(const leaf::notify_event &e)
     {
         on_files(std::any_cast<std::vector<leaf::file_node>>(e.data));
     }
+    if (e.method == "rename")
+    {
+        rename_notify(e);
+    }
+    if (e.method == "new_directory")
+    {
+        new_directory_notify(e);
+    }
     if (e.method == "login")
     {
-        bool login = std::any_cast<bool>(e.data);
-        if (login)
-        {
-            login_btn_->setText("已登录");
-            user_edit_->setEnabled(false);
-            key_edit_->setEnabled(false);
-            login_btn_->setEnabled(false);
-        }
-        else
-        {
-            login_btn_->setText("登录");
-            user_edit_->setEnabled(true);
-            key_edit_->setEnabled(true);
-
-            login_btn_->setEnabled(true);
-        }
+        login_notify(e);
     }
     if (e.method == "logout")
+    {
+        logout_notify(e);
+    }
+}
+
+void Widget::new_directory_notify(const leaf::notify_event &e) {}
+
+void Widget::rename_notify(const leaf::notify_event &e) {}
+
+void Widget::login_notify(const leaf::notify_event &e)
+{
+    bool login = std::any_cast<bool>(e.data);
+    if (login)
+    {
+        login_btn_->setText("已登录");
+        user_edit_->setEnabled(false);
+        key_edit_->setEnabled(false);
+        login_btn_->setEnabled(false);
+    }
+    else
     {
         login_btn_->setText("登录");
         user_edit_->setEnabled(true);
         key_edit_->setEnabled(true);
+
         login_btn_->setEnabled(true);
     }
+}
+void Widget::logout_notify(const leaf::notify_event &e)
+{
+    login_btn_->setText("登录");
+    user_edit_->setEnabled(true);
+    key_edit_->setEnabled(true);
+    login_btn_->setEnabled(true);
 }
 
 void Widget::upload_progress(const leaf::upload_event &e)

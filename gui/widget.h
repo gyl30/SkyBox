@@ -39,6 +39,10 @@ class Widget : public QWidget
     void reset_ui_state();
 
    private:
+    void login_notify(const leaf::notify_event& e);
+    void logout_notify(const leaf::notify_event& e);
+    void new_directory_notify(const leaf::notify_event& e);
+    void rename_notify(const leaf::notify_event& e);
     void notify_progress(const leaf::notify_event& e);
     void upload_progress(const leaf::upload_event& e);
     void download_progress(const leaf::download_event& e);
