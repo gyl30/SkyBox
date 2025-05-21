@@ -41,8 +41,6 @@ class files_widget : public QWidget
     QListWidget *list_widget_;
     std::string old_filename_;
     std::string current_path_;
-    QAction *rename_action_;
-    QAction *new_directory_action_;
     std::map<std::string, std::vector<gfile>> gfiles_;
 };
 }    // namespace leaf

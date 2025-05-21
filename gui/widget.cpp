@@ -401,6 +401,10 @@ void Widget::on_notify_event_slot(const leaf::notify_event &e)
     {
         new_directory_notify(e);
     }
+    if (e.method == "change_directory")
+    {
+        change_directory_notify(e);
+    }
     if (e.method == "login")
     {
         login_notify(e);
@@ -411,7 +415,23 @@ void Widget::on_notify_event_slot(const leaf::notify_event &e)
     }
 }
 
-void Widget::new_directory_notify(const leaf::notify_event &e) {}
+void Widget::change_directory_notify(const leaf::notify_event &e)
+{
+    if (file_client_)
+    {
+        auto dir = std::any_cast<std::string>(e.data);
+        file_client_->change_current_dir(dir);
+    }
+}
+
+void Widget::new_directory_notify(const leaf::notify_event &e)
+{
+    if (file_client_)
+    {
+        auto dir = std::any_cast<std::string>(e.data);
+        file_client_->create_directory(dir);
+    }
+}
 
 void Widget::rename_notify(const leaf::notify_event &e) {}
 
