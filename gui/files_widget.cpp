@@ -39,6 +39,9 @@ files_widget::files_widget(QWidget *parent) : QWidget(parent)
 
 files_widget::~files_widget() {}
 
+static const auto kDirFlag = Qt::ItemIsSelectable | Qt::ItemIsEnabled;
+static const auto kFileFlag = Qt::ItemIsSelectable;
+
 void files_widget::add_or_update_file(const leaf::gfile &file)
 {
     if (file.parent == file.filename && file.type == "dir")
@@ -66,16 +69,19 @@ void files_widget::add_or_update_file(const leaf::gfile &file)
     if (file.type == "dir")
     {
         icon = QApplication::style()->standardIcon(QStyle::SP_DirIcon);
+        std::filesystem::path p(file.filename);
+        auto *item = new QListWidgetItem(icon, QString::fromStdString(p.filename().string()));
+        item->setFlags(kDirFlag);
+        list_widget_->addItem(item);
     }
     else
     {
         icon = QApplication::style()->standardIcon(QStyle::SP_FileIcon);
+        std::filesystem::path p(file.filename);
+        auto *item = new QListWidgetItem(icon, QString::fromStdString(p.filename().string()));
+        item->setFlags(kFileFlag);
+        list_widget_->addItem(item);
     }
-
-    std::filesystem::path p(file.filename);
-    auto *item = new QListWidgetItem(icon, QString::fromStdString(p.filename().string()));
-    item->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
-    list_widget_->addItem(item);
 }
 
 void files_widget::contextMenuEvent(QContextMenuEvent *event)
@@ -92,13 +98,15 @@ void files_widget::contextMenuEvent(QContextMenuEvent *event)
     if (rename_action != nullptr && selected_action == rename_action)
     {
         old_filename_ = item->text().toStdString();
+        auto flag = item->flags();
+        item->setFlags(flag | Qt::ItemIsEditable);
         list_widget_->editItem(item);
     }
     else if (selected_action == new_dir_action)
     {
         auto icon = QApplication::style()->standardIcon(QStyle::SP_DirIcon);
         auto *item = new QListWidgetItem(icon, QString("新建文件夹"));
-        item->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+        item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
         list_widget_->addItem(item);
         LOG_INFO("new directory clicked");
         leaf::notify_event e;
@@ -120,6 +128,7 @@ void files_widget::on_item_double_clicked(QListWidgetItem *item)
 void files_widget::on_item_changed(QListWidgetItem *item)
 {
     std::string filename = item->text().toStdString();
+    item->setFlags(item->flags() & ~Qt::ItemIsEditable);
     LOG_INFO("item changed from {} to {}", old_filename_, filename);
     leaf::notify_event e;
     e.method = "rename";
