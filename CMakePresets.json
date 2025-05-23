@@ -84,28 +84,28 @@
             "name": "linux-debug",
             "displayName": "Build Debug",
             "configurePreset": "linux-debug",
-            "jobs": 13,
+            "jobs": 4,
             "description": "Build using Debug preset"
         },
         {
             "name": "linux-release",
             "displayName": "Build Release",
             "configurePreset": "linux-release",
-            "jobs": 13,
+            "jobs": 4,
             "description": "Build using Release preset"
         },
         {
             "name": "windows-debug",
             "displayName": "Build Debug",
             "configurePreset": "windows-debug",
-            "jobs": 16,
+            "jobs": 4,
             "description": "Build using Debug preset"
         },
         {
             "name": "windows-release",
             "displayName": "Build Release",
             "configurePreset": "windows-release",
-            "jobs": 16,
+            "jobs": 4,
             "description": "Build using Release preset"
         }
     ]
