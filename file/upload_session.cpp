@@ -141,7 +141,7 @@ void upload_session::update_process_file()
         reset_state();
         return;
     }
-    file_ = std::make_shared<leaf::file_context>();
+    file_ = std::make_shared<leaf::file_info>();
     file_->file_path = filename;
     file_->filename = std::filesystem::path(filename).filename().string();
     file_->file_size = file_size;

@@ -48,7 +48,7 @@ class upload_file_handle : public websocket_handle
     std::string token_;
     upload_state state_;
     std::vector<uint8_t> key_;
-    leaf::file_context::ptr file_;
+    leaf::file_info::ptr file_;
     std::once_flag shutdown_flag_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;

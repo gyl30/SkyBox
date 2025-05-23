@@ -39,7 +39,7 @@ std::string tmp_to_leaf_filename(const std::string& p)
 }
 std::string make_file_path(const std::string& id)
 {
-    return std::filesystem::path(leaf::kDefatuleDir).append(id).string();
+    return std::filesystem::path(leaf::kDefaultDir).append(id).string();
 }
 
 static std::optional<std::filesystem::path> resolve_abs_path(const std::filesystem::path& root,
@@ -72,7 +72,7 @@ static std::optional<std::filesystem::path> resolve_abs_path(const std::filesyst
 }
 std::string make_file_path(const std::string& id, const std::string& filename)
 {
-    auto dir = std::filesystem::path(leaf::kDefatuleDir).append(id);
+    auto dir = std::filesystem::path(leaf::kDefaultDir).append(id);
     boost::system::error_code ec;
     bool exist = std::filesystem::exists(dir, ec);
     if (ec)

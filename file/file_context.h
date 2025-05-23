@@ -7,9 +7,9 @@
 
 namespace leaf
 {
-struct file_context
+struct file_info
 {
-    using ptr = std::shared_ptr<file_context>;
+    using ptr = std::shared_ptr<file_info>;
 
     uint64_t file_size = 0;
     uint64_t hash_count = 0;

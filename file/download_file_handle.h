@@ -46,12 +46,12 @@ class download_file_handle : public websocket_handle
     std::string id_;
     std::string token_;
     status status_ = wait_login;
-    leaf::file_context::ptr file_;
+    leaf::file_info::ptr file_;
     std::once_flag shutdown_flag_;
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> hash_;
     leaf::websocket_session::ptr session_;
-    std::queue<leaf::file_context::ptr> padding_files_;
+    std::queue<leaf::file_info::ptr> padding_files_;
 };
 
 }    // namespace leaf

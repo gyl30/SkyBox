@@ -63,7 +63,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     uint32_t seq_ = 0;
     std::string token_;
     boost::asio::io_context &io_;
-    leaf::file_context::ptr file_;
+    leaf::file_info::ptr file_;
     boost::asio::ip::tcp::endpoint ed_;
     std::shared_ptr<leaf::reader> reader_;
     std::shared_ptr<leaf::blake2b> hash_;

@@ -65,7 +65,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     boost::asio::io_context &io_;
     boost::asio::ip::tcp::endpoint ed_;
     download_status status_ = wait_download_file;
-    leaf::file_context::ptr file_;
+    leaf::file_info::ptr file_;
     std::shared_ptr<leaf::blake2b> hash_;
     std::shared_ptr<leaf::writer> writer_;
     std::queue<std::string> padding_files_;

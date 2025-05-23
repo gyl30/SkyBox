@@ -128,7 +128,7 @@ void upload_file_handle::on_upload_file_request(const std::optional<leaf::upload
         "{} upload_file request file size {} name {} path {}", id_, req->filesize, req->filename, upload_file_path);
 
     assert(file_ == nullptr);
-    file_ = std::make_shared<file_context>();
+    file_ = std::make_shared<file_info>();
     file_->file_path = upload_file_path;
     file_->filename = req->filename;
     file_->file_size = req->filesize;

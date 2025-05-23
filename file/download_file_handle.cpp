@@ -226,7 +226,7 @@ void download_file_handle::on_download_file_request(const std::optional<leaf::do
         return;
     }
     hash_ = std::make_shared<leaf::blake2b>();
-    file_ = std::make_shared<leaf::file_context>();
+    file_ = std::make_shared<leaf::file_info>();
     file_->file_path = download_file_path;
     file_->file_size = file_size;
     file_->filename = msg.filename;

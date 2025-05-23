@@ -190,7 +190,7 @@ void download_session::on_download_file_response(const std::optional<leaf::downl
     }
 
     hash_ = std::make_shared<leaf::blake2b>();
-    file_ = std::make_shared<leaf::file_context>();
+    file_ = std::make_shared<leaf::file_info>();
     file_->filename = msg.filename;
     file_->file_size = res->filesize;
     file_->file_path = file_path;
