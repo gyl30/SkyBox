@@ -3,11 +3,13 @@
 
 #include <optional>
 #include <cstdint>
+#include <string_view>
 #include "protocol/message.h"
 
 namespace leaf
 {
 leaf::message_type get_message_type(const std::string &data);
+leaf::message_type get_message_type(std::string_view data);
 leaf::message_type get_message_type(const std::vector<uint8_t> &data);
 std::vector<uint8_t> serialize_keepalive(const leaf::keepalive &k);
 std::vector<uint8_t> serialize_error_message(const error_message &msg);

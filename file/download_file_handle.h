@@ -3,8 +3,8 @@
 
 #include <queue>
 #include <mutex>
+#include <boost/asio/experimental/channel.hpp>
 #include "file/file.h"
-#include "protocol/codec.h"
 #include "protocol/message.h"
 #include "crypt/blake2b.h"
 #include "file/file_context.h"
@@ -15,8 +15,14 @@ namespace leaf
 
 class download_file_handle : public websocket_handle
 {
+    struct download_context
+    {
+        leaf::file_info::ptr file;
+        leaf::download_file_request request;
+    };
+
    public:
-    explicit download_file_handle(std::string id, leaf::websocket_session::ptr& session);
+    explicit download_file_handle(const boost::asio::any_io_executor& io, std::string id, leaf::websocket_session::ptr& session);
     ~download_file_handle() override;
 
    public:
@@ -25,33 +31,25 @@ class download_file_handle : public websocket_handle
     std::string type() const override { return "download"; }
 
    private:
-    void safe_shutdown();
-    void on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes);
-    void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
-    void on_keepalive(const std::optional<leaf::keepalive>& k);
-    void on_download_file_request(const std::optional<leaf::download_file_request>& download);
-    void on_login(const std::optional<leaf::login_token>& l);
-    void on_error_message(const std::optional<leaf::error_message>& e);
-    void reset_status();
-    void file_done();
-    void error_message(uint32_t id, int32_t error_code);
+    boost::asio::awaitable<void> recv_coro();
+    boost::asio::awaitable<void> write_coro();
+    boost::asio::awaitable<void> shutdown_coro();
+    boost::asio::awaitable<void> wait_login(boost::beast::error_code& ec);
+    boost::asio::awaitable<void> on_keepalive(boost::beast::error_code& ec);
+    boost::asio::awaitable<void> error_message(uint32_t id, int32_t error_code);
+    boost::asio::awaitable<leaf::download_file_handle::download_context> wait_download_file_request(boost::beast::error_code& ec);
+    boost::asio::awaitable<void> send_ack(boost::beast::error_code& ec);
+    boost::asio::awaitable<void> send_file_data(leaf::download_file_handle::download_context& ctx, boost::beast::error_code& ec);
+    boost::asio::awaitable<void> send_file_done(boost::beast::error_code& ec);
 
    private:
-    enum status : uint8_t
-    {
-        wait_login = 0,
-        wait_download_file_request,
-        wait_file_data,
-    };
     std::string id_;
     std::string token_;
-    status status_ = wait_login;
-    leaf::file_info::ptr file_;
     std::once_flag shutdown_flag_;
-    std::shared_ptr<leaf::reader> reader_;
-    std::shared_ptr<leaf::blake2b> hash_;
     leaf::websocket_session::ptr session_;
+    const boost::asio::any_io_executor& io_;
     std::queue<leaf::file_info::ptr> padding_files_;
+    boost::asio::experimental::channel<void(boost::system::error_code, std::vector<uint8_t>)> channel_{io_, 1024};
 };
 
 }    // namespace leaf

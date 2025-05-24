@@ -2,10 +2,11 @@
 #define LEAF_FILE_UPLOAD_SESSION_H
 
 #include <deque>
+#include <boost/asio/experimental/channel.hpp>
 #include "file/file.h"
 #include "file/event.h"
-#include "protocol/codec.h"
 #include "crypt/blake2b.h"
+#include "protocol/message.h"
 #include "file/file_context.h"
 #include "net/plain_websocket_client.h"
 
@@ -13,63 +14,50 @@ namespace leaf
 {
 class upload_session : public std::enable_shared_from_this<upload_session>
 {
+    struct upload_context
+    {
+        leaf::upload_file_request request;
+        std::shared_ptr<leaf::file_info> file;
+    };
+
    public:
-    upload_session(std::string id,
-                   std::string token,
-                   leaf::upload_handle handler,
-                   boost::asio::ip::tcp::endpoint ed,
-                   boost::asio::io_context &io);
+    upload_session(std::string id, std::string host, std::string port, std::string token, leaf::upload_handle handler, boost::asio::io_context &io);
 
     ~upload_session();
 
    public:
     void startup();
     void shutdown();
-    void update();
     void add_file(const std::string &filename);
     void add_files(const std::vector<std::string> &files);
+    boost::asio::awaitable<void> upload_coro();
+    boost::asio::awaitable<void> write_coro();
+    boost::asio::awaitable<void> shutdown_coro();
+    static leaf::upload_session::upload_context create_upload_context(const std::string &filename, boost::beast::error_code &ec);
+    boost::asio::awaitable<void> send_upload_file_request(leaf::upload_session::upload_context &ctx, boost::beast::error_code &ec);
+    boost::asio::awaitable<void> wait_upload_file_response(boost::beast::error_code &ec);
+    boost::asio::awaitable<void> send_ack(boost::beast::error_code &ec);
+    boost::asio::awaitable<void> send_file_data(leaf::upload_session::upload_context &ctx, boost::beast::error_code &ec);
+    boost::asio::awaitable<void> send_file_done(boost::beast::error_code &ec);
+    boost::asio::awaitable<void> keepalive(boost::beast::error_code &ec);
 
    private:
-    void on_read(boost::beast::error_code ec, const std::vector<uint8_t> &bytes);
-    void on_write(boost::beast::error_code ec, std::size_t transferred);
-    void on_connect(boost::beast::error_code ec);
-    void update_process_file();
-    void upload_file_request();
-    void keepalive();
     void padding_file_event();
-    void on_keepalive_response(const std::optional<leaf::keepalive> &);
-    void on_upload_file_response(const std::optional<leaf::upload_file_response> &);
-    void on_error_message(const std::optional<leaf::error_message> &);
-    void on_login_token(const std::optional<leaf::login_token> &l);
-    void upload_file_data();
-    void file_done();
     void emit_event(const leaf::upload_event &e) const;
-    void reset_state();
     void safe_add_file(const std::string &filename);
     void safe_add_files(const std::vector<std::string> &files);
-    void safe_shutdown();
 
    private:
-    enum state : uint8_t
-    {
-        init,
-        logined,
-        upload_request,
-        file_data,
-    };
-    state state_ = init;
-    bool login_ = false;
-    std::string id_;
     uint32_t seq_ = 0;
+    std::string id_;
+    std::string host_;
+    std::string port_;
     std::string token_;
     boost::asio::io_context &io_;
-    leaf::file_info::ptr file_;
-    boost::asio::ip::tcp::endpoint ed_;
-    std::shared_ptr<leaf::reader> reader_;
-    std::shared_ptr<leaf::blake2b> hash_;
-    std::deque<std::string> padding_files_;
     leaf::upload_handle handler_;
+    std::deque<std::string> padding_files_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
+    boost::asio::experimental::channel<void(boost::system::error_code, std::vector<uint8_t>)> channel_{io_, 1024};
 };
 }    // namespace leaf
 

@@ -11,8 +11,8 @@
 
 namespace leaf
 {
-download_file_handle::download_file_handle(std::string id, leaf::websocket_session::ptr& session)
-    : id_(std::move(id)), session_(session)
+download_file_handle::download_file_handle(const boost::asio::any_io_executor& io, std::string id, leaf::websocket_session::ptr& session)
+    : id_(std::move(id)), session_(session), io_(io)
 {
     LOG_INFO("create {}", id_);
 }
@@ -22,247 +22,299 @@ download_file_handle::~download_file_handle() { LOG_INFO("destroy {}", id_); }
 void download_file_handle::startup()
 {
     LOG_INFO("startup {}", id_);
-    // clang-format off
-    session_->set_read_cb([this, self = shared_from_this()](boost::beast::error_code ec, const std::vector<uint8_t>& bytes) { on_read(ec, bytes); });
-    session_->set_write_cb([this, self = shared_from_this()](boost::beast::error_code ec, std::size_t bytes_transferred) { on_write(ec, bytes_transferred); });
-    session_->startup();
-    // clang-format on
+
+    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await recv_coro(); }, boost::asio::detached);
+
+    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await write_coro(); }, boost::asio::detached);
+}
+
+boost::asio::awaitable<void> download_file_handle ::write_coro()
+{
+    LOG_INFO("{} write coro startup", id_);
+    while (true)
+    {
+        boost::system::error_code ec;
+        auto bytes = co_await channel_.async_receive(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        if (ec)
+        {
+            LOG_ERROR("{} write_coro error {}", id_, ec.message());
+            break;
+        }
+        co_await session_->write(ec, bytes.data(), bytes.size());
+        if (ec)
+        {
+            LOG_ERROR("{} write_coro error {}", id_, ec.message());
+            break;
+        }
+    }
+    LOG_INFO("{} write coro shutdown", id_);
 }
 
 void download_file_handle ::shutdown()
 {
-    std::call_once(shutdown_flag_, [this, self = shared_from_this()]() { safe_shutdown(); });
+    boost::asio::co_spawn(
+        io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); }, boost::asio::detached);
 }
 
-void download_file_handle::safe_shutdown()
+boost::asio::awaitable<void> download_file_handle::shutdown_coro()
 {
-    session_->shutdown();
-    session_.reset();
-    LOG_INFO("shutdown {}", id_);
+    if (session_)
+    {
+        channel_.close();
+        session_->close();
+        session_.reset();
+    }
+    LOG_INFO("{} shutdown", id_);
+    co_return;
 }
-
-void download_file_handle::on_write(boost::beast::error_code ec, std::size_t /*transferred*/)
+boost::asio::awaitable<void> download_file_handle::recv_coro()
 {
+    boost::beast::error_code ec;
+    // setup 1 wait login
+    co_await wait_login(ec);
     if (ec)
     {
-        shutdown();
-        return;
+        LOG_ERROR("{} login error {}", id_, ec.message());
+        co_return;
     }
+    boost::beast::flat_buffer buffer;
+    while (true)
+    {
+        co_await on_keepalive(ec);
+        if (ec)
+        {
+            LOG_ERROR("{} keepalive error {}", id_, ec.message());
+            break;
+        }
+        continue;
 
-    if (status_ != leaf::download_file_handle::status::wait_file_data)
-    {
-        return;
-    }
-    assert(reader_->size() < file_->file_size);
-    // read block data
-    std::vector<uint8_t> buffer(kBlockSize, '0');
-    boost::system::error_code read_ec;
-    auto read_size = reader_->read_at(static_cast<int64_t>(reader_->size()), buffer.data(), buffer.size(), read_ec);
-    if (read_ec && read_ec != boost::asio::error::eof)
-    {
-        LOG_ERROR("{} download_file read file {} error {}", id_, file_->file_path, read_ec.message());
-        reset_status();
-        return;
-    }
-    buffer.resize(read_size);
-    leaf::file_data fd;
-    fd.data.swap(buffer);
-    if (read_size != 0)
-    {
-        hash_->update(fd.data.data(), read_size);
-        file_->hash_count++;
-    }
-    // block count hash or eof hash
-    if (file_->hash_count == kHashBlockCount || file_->file_size == reader_->size() ||
-        read_ec == boost::asio::error::eof)
-    {
-        hash_->final();
-        fd.hash = hash_->hex();
-        file_->hash_count = 0;
-        hash_ = std::make_shared<leaf::blake2b>();
-    }
-    LOG_DEBUG(
-        "{} download_file {} size {} hash {}", id_, file_->file_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
-    if (!fd.data.empty())
-    {
-        auto bytes = leaf::serialize_file_data(fd);
-        session_->write(bytes);
-    }
+        // setup 2 wait download file request
+        auto ctx = co_await wait_download_file_request(ec);
+        if (ec)
+        {
+            LOG_ERROR("{} download file request error {}", id_, ec.message());
+            co_return;
+        }
 
-    // eof reset
-    if (read_ec == boost::asio::error::eof || reader_->size() == file_->file_size)
-    {
-        LOG_INFO("{} upload_file {} complete", id_, file_->file_path);
-        reset_status();
-        file_done();
+        // setup 3 send ack
+        co_await send_ack(ec);
+        if (ec)
+        {
+            LOG_ERROR("{} ack error {}", id_, ec.message());
+            co_return;
+        }
+
+        // setup 4 send file data
+        co_await send_file_data(ctx, ec);
+        if (ec)
+        {
+            LOG_ERROR("{} file data error {}", id_, ec.message());
+            co_return;
+        }
+        // setup 5 send data done
+        co_await send_file_done(ec);
+        if (ec)
+        {
+            LOG_ERROR("{} file done error {}", id_, ec.message());
+            co_return;
+        }
+        LOG_INFO("{} download file {} complete", id_, ctx.file->file_path);
     }
 }
-void download_file_handle::error_message(uint32_t id, int32_t error_code)
+
+boost::asio::awaitable<void> download_file_handle::wait_login(boost::beast::error_code& ec)
 {
+    co_await session_->handshake(ec);
+    if (ec)
+    {
+        co_return;
+    }
+    boost::beast::flat_buffer buffer;
+    co_await session_->read(ec, buffer);
+    if (ec)
+    {
+        LOG_ERROR("{} recv_coro error {}", id_, ec.message());
+        co_return;
+    }
+    auto message = boost::beast::buffers_to_string(buffer.data());
+    auto type = leaf::get_message_type(message);
+    auto bytes = std::vector<uint8_t>(message.begin(), message.end());
+    if (type != leaf::message_type::login)
+    {
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return;
+    }
+    auto login = leaf::deserialize_login_token(bytes);
+    if (!login.has_value())
+    {
+        co_return;
+    }
+
+    token_ = login->token;
+
+    co_await channel_.async_send(ec, leaf::serialize_login_token(login.value()), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+}
+boost::asio::awaitable<void> download_file_handle::on_keepalive(boost::beast::error_code& ec)
+{
+    boost::beast::flat_buffer buffer;
+    co_await session_->read(ec, buffer);
+    if (ec)
+    {
+        LOG_ERROR("{} recv_coro error {}", id_, ec.message());
+        co_return;
+    }
+    auto message = boost::beast::buffers_to_string(buffer.data());
+    auto type = leaf::get_message_type(message);
+    if (type != leaf::message_type::keepalive)
+    {
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return;
+    }
+    auto k = leaf::deserialize_keepalive_response(std::vector<uint8_t>(message.begin(), message.end()));
+    if (!k.has_value())
+    {
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return;
+    }
+
+    auto sk = k.value();
+
+    sk.server_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    LOG_DEBUG("{} on_keepalive client {} server_timestamp {} client_timestamp {} token {}",
+              id_,
+              sk.client_id,
+              sk.server_timestamp,
+              sk.client_timestamp,
+              token_);
+    co_await channel_.async_send(ec, serialize_keepalive(sk), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+}
+boost::asio::awaitable<void> download_file_handle::error_message(uint32_t id, int32_t error_code)
+{
+    boost::system::error_code ec;
     leaf::error_message e;
     e.id = id;
     e.error = error_code;
-    session_->write(leaf::serialize_error_message(e));
+    auto bytes = leaf::serialize_error_message(e);
+    co_await channel_.async_send(boost::system::error_code{}, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
-void download_file_handle::file_done()
+boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download_file_handle::download_context& ctx, boost::beast::error_code& ec)
 {
-    leaf::done d;
-    session_->write(leaf::serialize_done(d));
-}
-void download_file_handle::reset_status()
-{
-    if (reader_)
-    {
-        auto ec = reader_->close();
-        boost::ignore_unused(ec);
-        reader_.reset();
-    }
-    if (file_)
-    {
-        file_.reset();
-    }
-    if (hash_)
-    {
-        hash_.reset();
-    }
-    status_ = leaf::download_file_handle::status::wait_download_file_request;
-}
-void download_file_handle::on_read(boost::beast::error_code ec, const std::vector<uint8_t>& bytes)
-{
+    uint8_t buffer[kBlockSize] = {0};
+    auto hash = std::make_shared<leaf::blake2b>();
+    auto reader = std::make_shared<leaf::file_reader>(ctx.file->file_path);
+    ec = reader->open();
     if (ec)
     {
-        shutdown();
-        return;
+        LOG_ERROR("{} download file open file {} error {}", id_, ctx.file->file_path, ec.message());
+        co_return;
     }
-    if (bytes.empty())
+    while (true)
     {
-        return;
+        auto read_size = reader->read_at(static_cast<int64_t>(reader->size()), buffer, kBlockSize, ec);
+        if (ec && ec != boost::asio::error::eof)
+        {
+            LOG_ERROR("{} download file read file {} error {}", id_, ctx.file->file_path, ec.message());
+            break;
+        }
+        leaf::file_data fd;
+        fd.data.insert(fd.data.end(), buffer, buffer + read_size);
+        if (read_size != 0)
+        {
+            hash->update(fd.data.data(), read_size);
+            ctx.file->hash_count++;
+        }
+        // block count hash or eof hash
+        if (ctx.file->hash_count == kHashBlockCount || ctx.file->file_size == reader->size() || ec == boost::asio::error::eof)
+        {
+            hash->final();
+            fd.hash = hash->hex();
+            ctx.file->hash_count = 0;
+            hash = std::make_shared<leaf::blake2b>();
+        }
+        LOG_DEBUG("{} download file {} size {} hash {}", id_, ctx.file->file_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
+        if (!fd.data.empty())
+        {
+            auto bytes = leaf::serialize_file_data(fd);
+            co_await channel_.async_send(ec, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        }
+        if (ec == boost::asio::error::eof || reader->size() == ctx.file->file_size)
+        {
+            LOG_INFO("{} upload file {} complete", id_, ctx.file->file_path);
+            break;
+        }
     }
-    auto type = get_message_type(bytes);
-    if (type == leaf::message_type::login)
+    ec = reader->close();
+    if (ec)
     {
-        on_login(leaf::deserialize_login_token(bytes));
-    }
-    if (type == leaf::message_type::keepalive)
-    {
-        on_keepalive(leaf::deserialize_keepalive_response(bytes));
-    }
-    if (type == leaf::message_type::download_file_request)
-    {
-        on_download_file_request(leaf::deserialize_download_file_request(bytes));
+        LOG_ERROR("{} download file close file {} error {}", id_, ctx.file->file_path, ec.message());
     }
 }
 
-void download_file_handle::on_login(const std::optional<leaf::login_token>& l)
+boost::asio::awaitable<void> download_file_handle::send_file_done(boost::beast::error_code& ec)
 {
-    if (status_ != wait_login)
-    {
-        LOG_ERROR("{} on_login status error", id_);
-        shutdown();
-        return;
-    }
-    if (!l.has_value())
-    {
-        return;
-    }
-    status_ = wait_download_file_request;
-    token_ = l->token;
-    LOG_INFO("{} on_login token {}", id_, token_);
-    session_->write(leaf::serialize_login_token(l.value()));
+    leaf::done d;
+    co_await channel_.async_send(ec, leaf::serialize_done(d), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
-void download_file_handle::on_download_file_request(const std::optional<leaf::download_file_request>& download)
+boost::asio::awaitable<leaf::download_file_handle::download_context> download_file_handle::wait_download_file_request(boost::beast::error_code& ec)
 {
-    if (status_ != wait_download_file_request)
+    leaf::download_file_handle::download_context ctx;
+    boost::beast::flat_buffer buffer;
+    co_await session_->read(ec, buffer);
+    if (ec)
     {
-        LOG_ERROR("{} download_file status error", id_);
-        shutdown();
-        return;
+        LOG_ERROR("{} recv coro error {}", id_, ec.message());
+        co_return ctx;
     }
+    auto message = boost::beast::buffers_to_string(buffer.data());
+    auto type = leaf::get_message_type(message);
+    if (type != leaf::message_type::download_file_request)
+    {
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return ctx;
+    }
+    auto download = leaf::deserialize_download_file_request(std::vector<uint8_t>(message.begin(), message.end()));
     if (!download.has_value())
     {
-        return;
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return ctx;
     }
     const auto& msg = download.value();
     auto download_file_path = leaf::encode_leaf_filename(leaf::make_file_path(token_, leaf::encode(msg.filename)));
-    LOG_INFO("{} download_file file {} to {}", id_, msg.filename, download_file_path);
-    boost::system::error_code exists_ec;
-    bool exist = std::filesystem::exists(download_file_path, exists_ec);
-    if (exists_ec)
+    LOG_INFO("{} download file {} to {}", id_, msg.filename, download_file_path);
+    bool exist = std::filesystem::exists(download_file_path, ec);
+    if (ec)
     {
-        LOG_ERROR("{} download_file file {} exist error {}", id_, msg.filename, exists_ec.message());
-        reset_status();
-        error_message(download->id, exists_ec.value());
-        return;
+        LOG_ERROR("{} download file {} exist error {}", id_, msg.filename, ec.message());
+        co_return ctx;
     }
     if (!exist)
     {
-        LOG_ERROR("{} download_file file {} not exist", id_, download_file_path);
-        reset_status();
-        exists_ec = boost::system::errc::make_error_code(boost::system::errc::no_such_file_or_directory);
-        error_message(download->id, exists_ec.value());
-        return;
+        LOG_ERROR("{} download file {} not exist", id_, download_file_path);
+        ec = boost::system::errc::make_error_code(boost::system::errc::no_such_file_or_directory);
+        co_return ctx;
     }
 
-    std::error_code size_ec;
-    auto file_size = std::filesystem::file_size(download_file_path, size_ec);
-    if (size_ec)
-    {
-        LOG_ERROR("{} download_file file {} size error {}", id_, msg.filename, size_ec.message());
-        reset_status();
-        error_message(download->id, size_ec.value());
-        return;
-    }
-
-    assert(!file_ && !reader_ && !hash_);
-    reader_ = std::make_shared<leaf::file_reader>(download_file_path);
-    auto ec = reader_->open();
+    auto file_size = std::filesystem::file_size(download_file_path, ec);
     if (ec)
     {
-        LOG_ERROR("{} download_file open file {} error {}", id_, download_file_path, ec.message());
-        reset_status();
-        error_message(download->id, ec.value());
-        return;
+        LOG_ERROR("{} download file {} size error {}", id_, msg.filename, ec.message());
+        co_return ctx;
     }
-    hash_ = std::make_shared<leaf::blake2b>();
-    file_ = std::make_shared<leaf::file_info>();
-    file_->file_path = download_file_path;
-    file_->file_size = file_size;
-    file_->filename = msg.filename;
-    LOG_INFO("{} download_file file {} size {}", id_, file_->file_path, file_->file_size);
+    auto file = std::make_shared<leaf::file_info>();
+    file->file_path = download_file_path;
+    file->file_size = file_size;
+    file->filename = msg.filename;
+    ctx.file = file;
+    ctx.request = download.value();
+    LOG_INFO("{} download_file file {} size {}", id_, file->file_path, file->file_size);
     leaf::download_file_response response;
-    response.filename = file_->filename;
+    response.filename = file->filename;
     response.id = download->id;
-    response.filesize = file_->file_size;
-    status_ = leaf::download_file_handle::status::wait_file_data;
-    session_->write(leaf::serialize_download_file_response(response));
+    response.filesize = file->file_size;
+    co_await channel_.async_send(ec, leaf::serialize_download_file_response(response), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_return ctx;
 }
 
-void download_file_handle::on_keepalive(const std::optional<leaf::keepalive>& k)
-{
-    if (!k.has_value())
-    {
-        return;
-    }
-    auto kk = k.value();
-    kk.server_timestamp =
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-            .count();
-    LOG_DEBUG("{} on_keepalive client {} server_timestamp {} client_timestamp {} token {}",
-              id_,
-              kk.client_id,
-              kk.server_timestamp,
-              kk.client_timestamp,
-              token_);
-    session_->write(leaf::serialize_keepalive(kk));
-}
-void download_file_handle::on_error_message(const std::optional<leaf::error_message>& e)
-{
-    if (!e.has_value())
-    {
-        return;
-    }
-    LOG_INFO("{} download_file error {}", id_, e->error);
-}
 }    // namespace leaf

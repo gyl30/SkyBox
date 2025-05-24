@@ -9,10 +9,10 @@ namespace leaf
 
 struct session_handle
 {
-    // clang-format off
-    std::function<leaf::websocket_handle::ptr(leaf::websocket_session::ptr &, const std::string &, const std::string &)> ws_handle;
+    std::function<leaf::websocket_handle::ptr(
+        const boost::asio::any_io_executor &, leaf::websocket_session::ptr &, const std::string &, const std::string &)>
+        ws_handle;
     std::function<void(const leaf::http_session::ptr &, const leaf::http_session::http_request_ptr &)> http_handle;
-    // clang-format on
 };
 
 }    // namespace leaf

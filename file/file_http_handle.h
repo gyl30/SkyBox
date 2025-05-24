@@ -8,7 +8,8 @@
 namespace leaf
 {
 void http_handle(const leaf::http_session::ptr &session, const leaf::http_session::http_request_ptr &req);
-leaf::websocket_handle::ptr websocket_handle(leaf::websocket_session::ptr &session,
+leaf::websocket_handle::ptr websocket_handle(const boost::asio::any_io_executor &io,
+                                             leaf::websocket_session::ptr &session,
                                              const std::string &id,
                                              const std::string &target);
 }    // namespace leaf

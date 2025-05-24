@@ -4,11 +4,13 @@
 #include "protocol/message.h"
 #include "file/file_transfer_client.h"
 
+#include <utility>
+
 namespace leaf
 {
 
-file_transfer_client::file_transfer_client(const std::string &ip, uint16_t port, leaf::progress_handler handler)
-    : id_(leaf::random_string(8)), handler_(std::move(handler)), ed_(boost::asio::ip::address::from_string(ip), port)
+file_transfer_client::file_transfer_client(std::string ip, uint16_t port, leaf::progress_handler handler)
+    : id_(leaf::random_string(8)), host_(std::move(ip)), port_(std::to_string(port)), handler_(std::move(handler))
 {
 }
 
@@ -56,11 +58,9 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     login_ = true;
     token_ = l->token;
     LOG_INFO("login {} {} token {}", user_, pass_, token_, l->token);
-    // clang-format off
-    cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", l->token, handler_.c,  ed_, executors.get_executor());
-    upload_ = std::make_shared<leaf::upload_session>("upload", l->token, handler_.u, ed_, executors.get_executor());
-    download_ = std::make_shared<leaf::download_session>("download", l->token, handler_.d, ed_, executors.get_executor());
-    // clang-format on
+    cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", host_, port_, l->token, handler_.c, executors.get_executor());
+    upload_ = std::make_shared<leaf::upload_session>("upload", host_, port_, l->token, handler_.u, executors.get_executor());
+    download_ = std::make_shared<leaf::download_session>("download", host_, port_, l->token, handler_.d, executors.get_executor());
     cotrol_->startup();
     upload_->startup();
     download_->startup();
@@ -187,18 +187,6 @@ void file_transfer_client::timer_callback(const boost::system::error_code &ec)
     {
         do_login();
         return;
-    }
-    if (upload_)
-    {
-        upload_->update();
-    }
-    if (download_)
-    {
-        download_->update();
-    }
-    if (cotrol_)
-    {
-        cotrol_->update();
     }
 
     start_timer();

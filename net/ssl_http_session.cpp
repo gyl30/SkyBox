@@ -5,11 +5,8 @@
 namespace leaf
 {
 
-ssl_http_session::ssl_http_session(std::string id,
-                                   tcp_stream_limited&& stream,
-                                   boost::asio::ssl::context& ctx,
-                                   boost::beast::flat_buffer&& buffer,
-                                   leaf::session_handle handle)
+ssl_http_session::ssl_http_session(
+    std::string id, tcp_stream_limited&& stream, boost::asio::ssl::context& ctx, boost::beast::flat_buffer&& buffer, leaf::session_handle handle)
     : id_(std::move(id)), handle_(std::move(handle)), buffer_(std::move(buffer)), stream_(std::move(stream), ctx)
 {
     LOG_INFO("create {}", id_);
@@ -20,8 +17,7 @@ ssl_http_session::~ssl_http_session() { LOG_INFO("destroy {}", id_); }
 void ssl_http_session::startup()
 {
     self_ = shared_from_this();
-    boost::asio::dispatch(stream_.get_executor(),
-                          boost::beast::bind_front_handler(&ssl_http_session::safe_startup, this));
+    boost::asio::dispatch(stream_.get_executor(), boost::beast::bind_front_handler(&ssl_http_session::safe_startup, this));
 }
 
 void ssl_http_session::safe_startup()
@@ -29,15 +25,13 @@ void ssl_http_session::safe_startup()
     LOG_INFO("startup {}", id_);
     boost::beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
 
-    stream_.async_handshake(boost::asio::ssl::stream_base::server,
-                            buffer_.data(),
-                            boost::beast::bind_front_handler(&ssl_http_session::on_handshake, this));
+    stream_.async_handshake(
+        boost::asio::ssl::stream_base::server, buffer_.data(), boost::beast::bind_front_handler(&ssl_http_session::on_handshake, this));
 }
 
 void ssl_http_session::shutdown()
 {
-    boost::asio::dispatch(stream_.get_executor(),
-                          boost::beast::bind_front_handler(&ssl_http_session::safe_shutdown, this));
+    boost::asio::dispatch(stream_.get_executor(), boost::beast::bind_front_handler(&ssl_http_session::safe_shutdown, this));
 }
 void ssl_http_session::safe_shutdown()
 {
@@ -75,8 +69,7 @@ void ssl_http_session::safe_read()
 
     boost::beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
 
-    boost::beast::http::async_read(
-        stream_, buffer_, *parser_, boost::beast::bind_front_handler(&ssl_http_session::on_read, this));
+    boost::beast::http::async_read(stream_, buffer_, *parser_, boost::beast::bind_front_handler(&ssl_http_session::on_read, this));
 }
 void ssl_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_transferred)
 {
@@ -93,8 +86,9 @@ void ssl_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_tr
         boost::beast::get_lowest_layer(stream_).expires_never();
         boost::beast::http::request<boost::beast::http::string_body> req(parser_->release());
         std::string target = req.target();
+        const auto& io = stream_.get_executor();
         leaf::websocket_session::ptr s = std::make_shared<leaf::ssl_websocket_session>(id_, std::move(stream_), std::move(req));
-        handle_.ws_handle(s, id_, target)->startup();
+        handle_.ws_handle(io, s, id_, target)->startup();
         return;
     }
     auto req_ptr = std::make_shared<boost::beast::http::request<boost::beast::http::string_body>>(parser_->release());
@@ -103,8 +97,7 @@ void ssl_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_tr
 
 void ssl_http_session::write(const http_response_ptr& ptr)
 {
-    boost::asio::dispatch(stream_.get_executor(),
-                          boost::beast::bind_front_handler(&ssl_http_session::safe_write, this, ptr));
+    boost::asio::dispatch(stream_.get_executor(), boost::beast::bind_front_handler(&ssl_http_session::safe_write, this, ptr));
 }
 void ssl_http_session::safe_write(const http_response_ptr& ptr)
 {

@@ -9,9 +9,7 @@
 namespace leaf
 {
 
-detect_session::detect_session(boost::asio::ip::tcp::socket&& socket,
-                               boost::asio::ssl::context& ctx,
-                               leaf::session_handle h)
+detect_session::detect_session(boost::asio::ip::tcp::socket&& socket, boost::asio::ssl::context& ctx, leaf::session_handle h)
     : h_(std::move(h)), stream_(std::move(socket)), ssl_ctx_(ctx)
 {
     id_ = leaf::get_socket_remote_address(stream_.socket());
@@ -22,14 +20,12 @@ detect_session::~detect_session() { LOG_INFO("destroy {}", id_); }
 
 void detect_session::startup()
 {
-    boost::asio::dispatch(stream_.get_executor(),
-                          boost::beast::bind_front_handler(&detect_session::detect, shared_from_this()));
+    boost::asio::dispatch(stream_.get_executor(), boost::beast::bind_front_handler(&detect_session::detect, shared_from_this()));
 }
 void detect_session::shutdown()
 {
     auto self = shared_from_this();
-    boost::asio::dispatch(stream_.get_executor(),
-                          boost::beast::bind_front_handler(&detect_session::safe_shutdown, self));
+    boost::asio::dispatch(stream_.get_executor(), boost::beast::bind_front_handler(&detect_session::safe_shutdown, self));
 }
 
 void detect_session::detect()
@@ -39,8 +35,7 @@ void detect_session::detect()
     stream_.rate_policy().write_limit(kWriteWsLimited);
     stream_.expires_after(std::chrono::seconds(30));
 
-    boost::beast::async_detect_ssl(
-        stream_, buffer_, boost::beast::bind_front_handler(&detect_session::safe_detect, shared_from_this()));
+    boost::beast::async_detect_ssl(stream_, buffer_, boost::beast::bind_front_handler(&detect_session::safe_detect, shared_from_this()));
 }
 
 void detect_session::safe_detect(boost::beast::error_code ec, bool result)

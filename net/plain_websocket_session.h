@@ -16,38 +16,20 @@ namespace leaf
 class plain_websocket_session : public leaf::websocket_session
 {
    public:
-    explicit plain_websocket_session(std::string id,
-                                     tcp_stream_limited&& stream,
-                                     boost::beast::http::request<boost::beast::http::string_body> req);
+    explicit plain_websocket_session(std::string id, tcp_stream_limited&& stream, boost::beast::http::request<boost::beast::http::string_body> req);
     ~plain_websocket_session() override;
 
    public:
-    void startup() override;
-    void shutdown() override;
-    void write(const std::vector<uint8_t>& msg) override;
-    void set_read_cb(leaf::websocket_session::read_cb cb) override;
-    void set_write_cb(leaf::websocket_session::write_cb cb) override;
-    void set_handshake_cb(leaf::websocket_session::handshake_cb cb) override;
-
-   private:
-    void do_accept(const boost::beast::http::request<boost::beast::http::string_body>& req);
-    void on_accept(boost::beast::error_code ec);
-    void do_read();
-    void safe_read();
-    void on_read(boost::beast::error_code ec, std::size_t bytes_transferred);
-    void safe_write(const std::vector<uint8_t>& msg);
-    void do_write();
-    void on_write(boost::beast::error_code ec, std::size_t bytes_transferred);
-    void safe_shutdown();
+    boost::asio::awaitable<void> handshake(boost::beast::error_code& /*unused*/) override;
+    boost::asio::awaitable<void> read(boost::beast::error_code& /*unused*/, boost::beast::flat_buffer& /*unused*/) override;
+    boost::asio::awaitable<void> write(boost::beast::error_code& /*unused*/, const uint8_t* /*unused*/, std::size_t /*unused*/) override;
+    void close() override;
 
    private:
     std::string id_;
     bool writing_ = false;
     std::shared_ptr<void> self_;
     boost::beast::flat_buffer buffer_;
-    leaf::websocket_session::read_cb read_cb_;
-    leaf::websocket_session::write_cb write_cb_;
-    leaf::websocket_session::handshake_cb handshake_cb_;
     std::queue<std::vector<uint8_t>> msg_queue_;
     boost::beast::websocket::stream<tcp_stream_limited> ws_;
     boost::beast::http::request<boost::beast::http::string_body> req_;

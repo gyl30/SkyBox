@@ -6,10 +6,7 @@
 namespace leaf
 {
 
-plain_http_session::plain_http_session(std::string id,
-                                       tcp_stream_limited&& stream,
-                                       boost::beast::flat_buffer&& buffer,
-                                       leaf::session_handle handle)
+plain_http_session::plain_http_session(std::string id, tcp_stream_limited&& stream, boost::beast::flat_buffer&& buffer, leaf::session_handle handle)
     : id_(std::move(id)), handle_(std::move(handle)), buffer_(std::move(buffer)), stream_(std::move(stream))
 {
     LOG_INFO("create {}", id_);
@@ -25,14 +22,12 @@ void plain_http_session::startup()
 
 void plain_http_session::shutdown()
 {
-    boost::asio::dispatch(stream_.get_executor(),
-                          boost::beast::bind_front_handler(&plain_http_session::safe_shutdown, this));
+    boost::asio::dispatch(stream_.get_executor(), boost::beast::bind_front_handler(&plain_http_session::safe_shutdown, this));
 }
 
 void plain_http_session::do_read()
 {
-    boost::asio::dispatch(stream_.get_executor(),
-                          boost::beast::bind_front_handler(&plain_http_session::safe_read, this));
+    boost::asio::dispatch(stream_.get_executor(), boost::beast::bind_front_handler(&plain_http_session::safe_read, this));
 }
 
 void plain_http_session::safe_read()
@@ -43,8 +38,7 @@ void plain_http_session::safe_read()
 
     boost::beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
 
-    boost::beast::http::async_read(
-        stream_, buffer_, *parser_, boost::beast::bind_front_handler(&plain_http_session::on_read, this));
+    boost::beast::http::async_read(stream_, buffer_, *parser_, boost::beast::bind_front_handler(&plain_http_session::on_read, this));
 }
 
 void plain_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_transferred)
@@ -63,8 +57,9 @@ void plain_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_
 
         boost::beast::get_lowest_layer(stream_).expires_never();
         std::string target = req.target();
+        const auto& io = stream_.get_executor();
         leaf::websocket_session::ptr s = std::make_shared<leaf::plain_websocket_session>(id_, std::move(stream_), std::move(req));
-        handle_.ws_handle(s, id_, target)->startup();
+        handle_.ws_handle(io, s, id_, target)->startup();
         return;
     }
     auto req_ptr = std::make_shared<boost::beast::http::request<boost::beast::http::string_body>>(parser_->release());
@@ -73,8 +68,7 @@ void plain_http_session::on_read(boost::beast::error_code ec, std::size_t bytes_
 
 void plain_http_session::write(const http_response_ptr& ptr)
 {
-    boost::asio::dispatch(stream_.get_executor(),
-                          boost::beast::bind_front_handler(&plain_http_session::safe_write, this, ptr));
+    boost::asio::dispatch(stream_.get_executor(), boost::beast::bind_front_handler(&plain_http_session::safe_write, this, ptr));
 }
 
 void plain_http_session::safe_write(const http_response_ptr& ptr)

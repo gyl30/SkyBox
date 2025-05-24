@@ -23,10 +23,7 @@ REFLECT_STRUCT(leaf::files_response, (files)(token)(dir));
 
 namespace leaf
 {
-static uint16_t to_underlying(leaf::message_type type)
-{
-    return static_cast<std::underlying_type_t<leaf::message_type>>(type);
-}
+static uint16_t to_underlying(leaf::message_type type) { return static_cast<std::underlying_type_t<leaf::message_type>>(type); }
 
 static void write_padding(leaf::write_buffer &w)
 {
@@ -39,7 +36,7 @@ static void read_padding(leaf::read_buffer &r)
     r.read_uint64(&xx);
 }
 
-leaf::message_type get_message_type(const std::string &data)
+leaf::message_type get_message_type(std::string_view data)
 {
     leaf::read_buffer r(data.data(), data.size());
     read_padding(r);
@@ -47,6 +44,9 @@ leaf::message_type get_message_type(const std::string &data)
     r.read_uint16(&type);
     return static_cast<leaf::message_type>(type);
 }
+
+leaf::message_type get_message_type(const std::string &data) { return get_message_type(std::string_view(data)); }
+
 leaf::message_type get_message_type(const std::vector<uint8_t> &data)
 {
     leaf::read_buffer r(data.data(), data.size());

@@ -2,6 +2,7 @@
 
 #include "log/log.h"
 #include "crypt/passwd.h"
+#include "protocol/codec.h"
 #include "protocol/message.h"
 #include "file/file_session.h"
 #include "file/file_http_handle.h"
@@ -13,22 +14,23 @@
 namespace leaf
 {
 
-leaf::websocket_handle::ptr websocket_handle(leaf::websocket_session::ptr &session,
+leaf::websocket_handle::ptr websocket_handle(const boost::asio::any_io_executor &io,
+                                             leaf::websocket_session::ptr &session,
                                              const std::string &id,
                                              const std::string &target)
 {
     LOG_INFO("{} websocket handle target {}", id, target);
     if (boost::ends_with(target, "upload"))
     {
-        return std::make_shared<upload_file_handle>(id, session);
+        return std::make_shared<upload_file_handle>(io, id, session);
     }
     if (boost::ends_with(target, "download"))
     {
-        return std::make_shared<download_file_handle>(id, session);
+        return std::make_shared<download_file_handle>(io, id, session);
     }
     if (boost::ends_with(target, "cotrol"))
     {
-        return std::make_shared<cotrol_file_handle>(id, session);
+        return std::make_shared<cotrol_file_handle>(io, id, session);
     }
     return nullptr;
 }

@@ -13,7 +13,7 @@ namespace leaf
 class file_transfer_client
 {
    public:
-    file_transfer_client(const std::string &ip, uint16_t port, leaf::progress_handler handler);
+    file_transfer_client(std::string ip, uint16_t port, leaf::progress_handler handler);
 
     ~file_transfer_client();
 
@@ -43,11 +43,12 @@ class file_transfer_client
     void on_write_download_message(std::vector<uint8_t> msg);
     void on_read_cotrol_message(const std::shared_ptr<std::vector<uint8_t>> &msg, const boost::system::error_code &ec);
     void on_read_upload_message(const std::shared_ptr<std::vector<uint8_t>> &msg, const boost::system::error_code &ec);
-    void on_read_download_message(const std::shared_ptr<std::vector<uint8_t>> &msg,
-                                  const boost::system::error_code &ec);
+    void on_read_download_message(const std::shared_ptr<std::vector<uint8_t>> &msg, const boost::system::error_code &ec);
 
    private:
     std::string id_;
+    std::string host_;
+    std::string port_;
     std::string token_;
     std::string user_;
     std::string pass_;
