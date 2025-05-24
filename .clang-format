@@ -14,4 +14,4 @@ BinPackArguments: false
 BraceWrapping:
   AfterCaseLabel:  true
 
-ColumnLimit: 120
+ColumnLimit: 150
