@@ -79,18 +79,11 @@ boost::asio::awaitable<void> cotrol_file_handle::recv_coro()
     boost::beast::flat_buffer buffer;
     while (true)
     {
-        co_await keepalive(ec);
-        if (ec)
-        {
-            LOG_ERROR("{} keepalive error {}", id_, ec.message());
-            break;
-        }
-        continue;
         boost::beast::flat_buffer buffer;
         co_await session_->read(ec, buffer);
         if (ec)
         {
-            LOG_ERROR("{} recv coro error {}", id_, ec.message());
+            LOG_ERROR("{} recv error {}", id_, ec.message());
             co_return;
         }
         auto message = boost::beast::buffers_to_string(buffer.data());

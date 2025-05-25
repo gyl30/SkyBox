@@ -80,14 +80,6 @@ boost::asio::awaitable<void> download_file_handle::recv_coro()
     boost::beast::flat_buffer buffer;
     while (true)
     {
-        co_await on_keepalive(ec);
-        if (ec)
-        {
-            LOG_ERROR("{} keepalive error {}", id_, ec.message());
-            break;
-        }
-        continue;
-
         // setup 2 wait download file request
         auto ctx = co_await wait_download_file_request(ec);
         if (ec)
@@ -121,19 +113,24 @@ boost::asio::awaitable<void> download_file_handle::recv_coro()
         LOG_INFO("{} download file {} complete", id_, ctx.file->file_path);
     }
 }
-
+boost::asio::awaitable<void> download_file_handle::send_ack(boost::beast::error_code& ec)
+{
+    leaf::ack a;
+    co_await channel_.async_send(ec, leaf::serialize_ack(a), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+}
 boost::asio::awaitable<void> download_file_handle::wait_login(boost::beast::error_code& ec)
 {
     co_await session_->handshake(ec);
     if (ec)
     {
+        LOG_ERROR("{} handshake error {}", id_, ec.message());
         co_return;
     }
     boost::beast::flat_buffer buffer;
     co_await session_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} recv_coro error {}", id_, ec.message());
+        LOG_ERROR("{} wait_login read error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
@@ -147,11 +144,12 @@ boost::asio::awaitable<void> download_file_handle::wait_login(boost::beast::erro
     auto login = leaf::deserialize_login_token(bytes);
     if (!login.has_value())
     {
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
 
     token_ = login->token;
-
+    LOG_INFO("{} login success token {}", id_, token_);
     co_await channel_.async_send(ec, leaf::serialize_login_token(login.value()), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 boost::asio::awaitable<void> download_file_handle::on_keepalive(boost::beast::error_code& ec)
