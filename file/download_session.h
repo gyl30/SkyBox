@@ -35,6 +35,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     void add_files(const std::vector<std::string> &files);
 
    public:
+    boost::asio::awaitable<void> login(boost::beast::error_code &);
     boost::asio::awaitable<void> download_coro();
     boost::asio::awaitable<void> write_coro();
     boost::asio::awaitable<void> shutdown_coro();
