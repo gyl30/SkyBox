@@ -40,6 +40,57 @@ boost::asio::awaitable<void> cotrol_session::recv_coro()
         LOG_ERROR("{} recv coro handshake error {}", id_, ec.message());
         co_return;
     }
+    co_await login(ec);
+    if (ec)
+    {
+        LOG_ERROR("{} recv coro login error {}", id_, ec.message());
+        co_return;
+    }
+    while (true)
+    {
+        co_await files_response(ec);
+        if (ec)
+        {
+            break;
+        }
+    }
+    LOG_INFO("{} recv coro shutdown", id_);
+}
+
+boost::asio::awaitable<void> cotrol_session::files_response(boost::beast::error_code& ec)
+{
+    boost::beast::flat_buffer buffer;
+    co_await ws_client_->read(ec, buffer);
+    if (ec)
+    {
+        LOG_ERROR("{} recv coro error {}", id_, ec.message());
+        co_return;
+    }
+
+    auto message = boost::beast::buffers_to_string(buffer.data());
+    auto type = leaf::get_message_type(message);
+    if (type != leaf::message_type::files_response)
+    {
+        LOG_ERROR("{} message type error files_response:{}", id_, leaf::message_type_to_string(type));
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return;
+    }
+    auto files = leaf::deserialize_files_response(std::vector<uint8_t>(message.begin(), message.end()));
+    if (!files.has_value())
+    {
+        LOG_ERROR("{} deserialize files response error", id_);
+        co_return;
+    }
+
+    LOG_INFO("{} files response {} file size {}", id_, files->token, files->files.size());
+    leaf::notify_event e;
+    e.method = "files";
+    e.data = files->files;
+    handler_.notify(e);
+    buffer.consume(buffer.size());
+}
+boost::asio::awaitable<void> cotrol_session::login(boost::beast::error_code& ec)
+{
     LOG_INFO("{} connect ws client will login use token {}", id_, token_);
     leaf::login_token lt;
     lt.id = 0x01;
@@ -51,38 +102,30 @@ boost::asio::awaitable<void> cotrol_session::recv_coro()
         co_return;
     }
     boost::beast::flat_buffer buffer;
-    while (true)
+    co_await ws_client_->read(ec, buffer);
+    if (ec)
     {
-        co_await ws_client_->read(ec, buffer);
-        if (ec)
-        {
-            LOG_ERROR("{} recv coro error {}", id_, ec.message());
-            break;
-        }
-
-        auto message = boost::beast::buffers_to_string(buffer.data());
-        auto type = leaf::get_message_type(message);
-        if (type != leaf::message_type::files_response)
-        {
-            ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
-            break;
-        }
-        auto files = leaf::deserialize_files_response(std::vector<uint8_t>(message.begin(), message.end()));
-        if (!files.has_value())
-        {
-            break;
-        }
-
-        LOG_INFO("{} files response {} file size {}", id_, files->token, files->files.size());
-        leaf::notify_event e;
-        e.method = "files";
-        e.data = files->files;
-        handler_.notify(e);
-        buffer.consume(buffer.size());
+        LOG_ERROR("{} login error {}", id_, ec.message());
+        co_return;
     }
-    LOG_INFO("{} recv coro shutdown", id_);
+    auto message = boost::beast::buffers_to_string(buffer.data());
+    auto type = leaf::get_message_type(message);
+    bytes = std::vector<uint8_t>(message.begin(), message.end());
+    if (type != leaf::message_type::login)
+    {
+        LOG_ERROR("{} message type error login:{}", id_, leaf::message_type_to_string(type));
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return;
+    }
+    auto login = leaf::deserialize_login_token(bytes);
+    if (!login.has_value())
+    {
+        LOG_ERROR("{} deserialize login message error", id_);
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return;
+    }
+    LOG_INFO("{} login success token {}", id_, login->token);
 }
-
 boost::asio::awaitable<void> cotrol_session::timer_coro()
 {
     LOG_INFO("{} timer coro startup", id_);

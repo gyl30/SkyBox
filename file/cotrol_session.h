@@ -30,6 +30,8 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     boost::asio::awaitable<void> write_coro();
     boost::asio::awaitable<void> create_directory_coro(const std::string &dir);
     boost::asio::awaitable<void> shutdown_coro();
+    boost::asio::awaitable<void> login(boost::beast::error_code &);
+    boost::asio::awaitable<void> files_response(boost::beast::error_code &);
 
    private:
     std::string id_;
