@@ -56,7 +56,6 @@ class file_transfer_client
     leaf::executors executors{4};
     std::once_flag shutdown_flag_;
     leaf::progress_handler handler_;
-    boost::asio::ip::tcp::endpoint ed_;
     std::shared_ptr<leaf::cotrol_session> cotrol_;
     std::shared_ptr<leaf::upload_session> upload_;
     leaf::executors::executor *ex_;

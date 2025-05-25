@@ -25,7 +25,7 @@ void file_transfer_client::do_login()
     leaf::login_request l;
     l.username = user_;
     l.password = pass_;
-    std::string login_url = "http://" + ed_.address().to_string() + ":" + std::to_string(ed_.port()) + "/leaf/login";
+    std::string login_url = "http://" + host_ + ":" + port_ + "/leaf/login";
     auto data = leaf::serialize_login_request(l);
     c->post(login_url,
             std::string(data.begin(), data.end()),
@@ -58,9 +58,9 @@ void file_transfer_client::on_login(boost::beast::error_code ec, const std::stri
     login_ = true;
     token_ = l->token;
     LOG_INFO("login {} {} token {}", user_, pass_, token_, l->token);
-    cotrol_ = std::make_shared<leaf::cotrol_session>("cotrol", host_, port_, l->token, handler_.c, executors.get_executor());
-    upload_ = std::make_shared<leaf::upload_session>("upload", host_, port_, l->token, handler_.u, executors.get_executor());
-    download_ = std::make_shared<leaf::download_session>("download", host_, port_, l->token, handler_.d, executors.get_executor());
+    cotrol_ = std::make_shared<leaf::cotrol_session>(id_, host_, port_, l->token, handler_.c, executors.get_executor());
+    upload_ = std::make_shared<leaf::upload_session>(id_, host_, port_, l->token, handler_.u, executors.get_executor());
+    download_ = std::make_shared<leaf::download_session>(id_, host_, port_, l->token, handler_.d, executors.get_executor());
     cotrol_->startup();
     upload_->startup();
     download_->startup();
