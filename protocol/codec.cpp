@@ -56,6 +56,31 @@ leaf::message_type get_message_type(const std::vector<uint8_t> &data)
     return static_cast<leaf::message_type>(type);
 }
 
+std::string message_type_to_string(leaf::message_type type)
+{
+#define MESSAGE_TYPE_TO_STRING(t)      \
+    if (type == leaf::message_type::t) \
+    {                                  \
+        return #t;                     \
+    }
+    MESSAGE_TYPE_TO_STRING(keepalive)
+    MESSAGE_TYPE_TO_STRING(login)
+    MESSAGE_TYPE_TO_STRING(upload_file_request)
+    MESSAGE_TYPE_TO_STRING(upload_file_response)
+    MESSAGE_TYPE_TO_STRING(delete_file_request)
+    MESSAGE_TYPE_TO_STRING(delete_file_response)
+    MESSAGE_TYPE_TO_STRING(download_file_request)
+    MESSAGE_TYPE_TO_STRING(download_file_response)
+    MESSAGE_TYPE_TO_STRING(files_request)
+    MESSAGE_TYPE_TO_STRING(files_response)
+    MESSAGE_TYPE_TO_STRING(file_data)
+    MESSAGE_TYPE_TO_STRING(ack)
+    MESSAGE_TYPE_TO_STRING(done)
+    MESSAGE_TYPE_TO_STRING(dir)
+    MESSAGE_TYPE_TO_STRING(error)
+#undef MESSAGE_TYPE_TO_STRING
+    return "unknown";
+}
 std::vector<uint8_t> serialize_upload_file_request(const upload_file_request &msg)
 {
     leaf::write_buffer w;

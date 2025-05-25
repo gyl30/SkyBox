@@ -11,6 +11,7 @@ namespace leaf
 leaf::message_type get_message_type(const std::string &data);
 leaf::message_type get_message_type(std::string_view data);
 leaf::message_type get_message_type(const std::vector<uint8_t> &data);
+std::string message_type_to_string(leaf::message_type type);
 std::vector<uint8_t> serialize_keepalive(const leaf::keepalive &k);
 std::vector<uint8_t> serialize_error_message(const error_message &msg);
 std::vector<uint8_t> serialize_login_request(const leaf::login_request &l);
