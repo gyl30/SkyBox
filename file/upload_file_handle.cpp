@@ -79,14 +79,6 @@ boost::asio::awaitable<void> upload_file_handle::recv_coro()
     boost::beast::flat_buffer buffer;
     while (true)
     {
-        co_await on_keepalive(ec);
-        if (ec)
-        {
-            LOG_ERROR("{} keepalive error {}", id_, ec.message());
-            break;
-        }
-        continue;
-
         // setup 2 wait upload file request
         auto ctx = co_await wait_upload_file_request(ec);
         if (ec)
@@ -125,7 +117,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_login(boost::beast::error_
     co_await session_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} recv coro error {}", id_, ec.message());
+        LOG_ERROR("{} wait_login read error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
