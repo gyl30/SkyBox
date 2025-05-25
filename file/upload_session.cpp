@@ -26,6 +26,44 @@ void upload_session::startup()
     boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await write_coro(); }, boost::asio::detached);
 }
 
+boost::asio::awaitable<void> upload_session::login(boost::beast::error_code& ec)
+{
+    LOG_INFO("{} connect ws client will login use token {}", id_, token_);
+    leaf::login_token lt;
+    lt.id = 0x01;
+    lt.token = token_;
+    auto bytes = leaf::serialize_login_token(lt);
+    co_await channel_.async_send(boost::system::error_code{}, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    if (ec)
+    {
+        co_return;
+    }
+    boost::beast::flat_buffer buffer;
+    co_await ws_client_->read(ec, buffer);
+    if (ec)
+    {
+        LOG_ERROR("{} login error {}", id_, ec.message());
+        co_return;
+    }
+
+    auto message = boost::beast::buffers_to_string(buffer.data());
+    auto type = leaf::get_message_type(message);
+    bytes = std::vector<uint8_t>(message.begin(), message.end());
+    if (type != leaf::message_type::login)
+    {
+        LOG_ERROR("{} message type error login:{}", id_, leaf::message_type_to_string(type));
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return;
+    }
+    auto login = leaf::deserialize_login_token(bytes);
+    if (!login.has_value())
+    {
+        LOG_ERROR("{} deserialize login message error", id_);
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return;
+    }
+    LOG_INFO("{} login success token {}", id_, login->token);
+}
 boost::asio::awaitable<void> upload_session::upload_coro()
 {
     LOG_INFO("{} upload coro startup", id_);
@@ -36,15 +74,10 @@ boost::asio::awaitable<void> upload_session::upload_coro()
         LOG_ERROR("{} upload coro handshake error {}", id_, ec.message());
         co_return;
     }
-    LOG_INFO("{} connect ws client will login use token {}", id_, token_);
-    leaf::login_token lt;
-    lt.id = 0x01;
-    lt.token = token_;
-    auto bytes = leaf::serialize_login_token(lt);
-    co_await channel_.async_send(boost::system::error_code{}, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await login(ec);
     if (ec)
     {
-        LOG_ERROR("{} upload coro send login token error {}", id_, ec.message());
+        LOG_ERROR("{} upload coro login error {}", id_, ec.message());
         co_return;
     }
     while (true)

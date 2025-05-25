@@ -40,6 +40,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     boost::asio::awaitable<void> send_file_data(leaf::upload_session::upload_context &ctx, boost::beast::error_code &ec);
     boost::asio::awaitable<void> send_file_done(boost::beast::error_code &ec);
     boost::asio::awaitable<void> keepalive(boost::beast::error_code &ec);
+    boost::asio::awaitable<void> login(boost::beast::error_code &);
 
    private:
     void padding_file_event();
