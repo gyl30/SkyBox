@@ -131,7 +131,6 @@ boost::asio::awaitable<void> upload_file_handle::wait_login(boost::beast::error_
     co_await session_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} wait_login read error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
@@ -160,7 +159,6 @@ boost::asio::awaitable<leaf::upload_file_handle::upload_context> upload_file_han
     co_await session_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} upload file request error {}", id_, ec.message());
         co_return ctx;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
@@ -183,16 +181,16 @@ boost::asio::awaitable<leaf::upload_file_handle::upload_context> upload_file_han
     bool exist = std::filesystem::exists(upload_file_path, ec);
     if (ec)
     {
-        LOG_ERROR("{} upload_file request file {} exist failed {}", id_, upload_file_path, ec.message());
+        LOG_ERROR("{} upload request file {} exist failed {}", id_, upload_file_path, ec.message());
         co_return ctx;
     }
     if (exist)
     {
-        LOG_ERROR("{} upload_file request file {} exist", id_, upload_file_path);
+        LOG_ERROR("{} upload request file {} exist", id_, upload_file_path);
         ec = boost::system::errc::make_error_code(boost::system::errc::file_exists);
         co_return ctx;
     }
-    LOG_INFO("{} upload_file request file size {} name {} path {}", id_, req->filesize, req->filename, upload_file_path);
+    LOG_INFO("{} upload request file size {} name {} path {}", id_, req->filesize, req->filename, upload_file_path);
 
     auto file = std::make_shared<file_info>();
     file->file_path = upload_file_path;
@@ -214,7 +212,6 @@ boost::asio::awaitable<void> upload_file_handle::wait_ack(boost::beast::error_co
     co_await session_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} recv_coro error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
@@ -244,7 +241,6 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
         co_await session_->read(ec, buffer);
         if (ec)
         {
-            LOG_ERROR("{} recv file data error {}", id_, ec.message());
             break;
         }
         auto message = boost::beast::buffers_to_string(buffer.data());
@@ -302,10 +298,10 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
             LOG_INFO("{} file {} to {} done", id_, ctx.file->file_path, filename);
         }
     }
-    ec = writer->close();
-    if (ec)
+    auto file_ec = writer->close();
+    if (file_ec)
     {
-        LOG_ERROR("{} file close file {} error {}", id_, ctx.file->file_path, ec.message());
+        LOG_ERROR("{} file close file {} error {}", id_, ctx.file->file_path, file_ec.message());
     }
 }
 
