@@ -30,23 +30,23 @@ void upload_file_handle::startup()
 
 boost::asio::awaitable<void> upload_file_handle ::write_coro()
 {
-    LOG_INFO("{} write coro startup", id_);
+    LOG_INFO("{} write startup", id_);
     while (true)
     {
         boost::system::error_code ec;
         auto bytes = co_await channel_.async_receive(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
         if (ec)
         {
-            LOG_ERROR("{} write coro error {}", id_, ec.message());
+            LOG_ERROR("{} write error {}", id_, ec.message());
             co_return;
         }
         co_await session_->write(ec, bytes.data(), bytes.size());
         if (ec)
         {
-            LOG_ERROR("{} write_:oro error {}", id_, ec.message());
+            LOG_ERROR("{} write error {}", id_, ec.message());
         }
     }
-    LOG_INFO("{} write coro shutdown", id_);
+    LOG_INFO("{} write shutdown", id_);
 }
 
 void upload_file_handle ::shutdown()
@@ -93,6 +93,7 @@ boost::asio::awaitable<void> upload_file_handle::recv_coro()
         if (ec)
         {
             LOG_ERROR("{} wait keepalive error {}", id_, ec.message());
+            break;
         }
         LOG_INFO("{} wait upload file request", id_);
         // setup 2 wait upload file request
@@ -100,7 +101,7 @@ boost::asio::awaitable<void> upload_file_handle::recv_coro()
         if (ec)
         {
             LOG_ERROR("{} upload file request error {}", id_, ec.message());
-            co_return;
+            break;
         }
         LOG_INFO("{} upload file request success filename {} filesize {}", id_, ctx.file->filename, ctx.file->file_size);
         // setup 3 wait ack
@@ -109,7 +110,7 @@ boost::asio::awaitable<void> upload_file_handle::recv_coro()
         if (ec)
         {
             LOG_ERROR("{} ack error {} {}", id_, ec.message(), ctx.file->filename);
-            co_return;
+            break;
         }
         LOG_INFO("{} ack success {}", id_, ctx.file->filename);
         // setup 4 wait file data
@@ -118,7 +119,7 @@ boost::asio::awaitable<void> upload_file_handle::recv_coro()
         if (ec)
         {
             LOG_ERROR("{} file data error {} {}", id_, ec.message(), ctx.file->filename);
-            co_return;
+            break;
         }
     }
     LOG_INFO("{} recv shutdown", id_);
@@ -308,23 +309,12 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
     }
 }
 
-boost::asio::awaitable<void> upload_file_handle::error_message(uint32_t id, int32_t error_code)
-{
-    boost::system::error_code ec;
-    leaf::error_message e;
-    e.id = id;
-    e.error = error_code;
-    auto bytes = leaf::serialize_error_message(e);
-    co_await channel_.async_send(boost::system::error_code{}, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-}
-
 boost::asio::awaitable<void> upload_file_handle::wait_keepalive(boost::beast::error_code& ec)
 {
     boost::beast::flat_buffer buffer;
     co_await session_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} recv error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
