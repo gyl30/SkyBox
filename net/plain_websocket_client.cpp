@@ -52,6 +52,7 @@ boost::asio::awaitable<void> plain_websocket_client::read(boost::beast::error_co
 
 boost::asio::awaitable<void> plain_websocket_client::write(boost::beast::error_code& ec, const uint8_t* data, std::size_t data_size)
 {
+    ws_->binary(true);
     co_await ws_->async_write(boost::asio::buffer(data, data_size), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
