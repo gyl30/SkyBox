@@ -33,6 +33,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     boost::asio::awaitable<void> upload_coro();
     boost::asio::awaitable<void> write_coro();
     boost::asio::awaitable<void> shutdown_coro();
+    boost::asio::awaitable<void> delay(int second);
     static leaf::upload_session::upload_context create_upload_context(const std::string &filename, boost::beast::error_code &ec);
     boost::asio::awaitable<void> send_upload_file_request(leaf::upload_session::upload_context &ctx, boost::beast::error_code &ec);
     boost::asio::awaitable<void> wait_upload_file_response(boost::beast::error_code &ec);
