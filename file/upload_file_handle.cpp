@@ -68,7 +68,15 @@ boost::asio::awaitable<void> upload_file_handle::shutdown_coro()
 }
 boost::asio::awaitable<void> upload_file_handle::recv_coro()
 {
+    LOG_INFO("{} recv startup", id_);
     boost::beast::error_code ec;
+    co_await session_->handshake(ec);
+    if (ec)
+    {
+        LOG_ERROR("{} handshake error {}", id_, ec.message());
+        co_return;
+    }
+    LOG_INFO("{} handshake success", id_);
     // setup 1 wait login
     co_await wait_login(ec);
     if (ec)
@@ -76,9 +84,17 @@ boost::asio::awaitable<void> upload_file_handle::recv_coro()
         LOG_ERROR("{} login error {}", id_, ec.message());
         co_return;
     }
+    LOG_INFO("{} login success token {}", id_, token_);
     boost::beast::flat_buffer buffer;
     while (true)
     {
+        LOG_INFO("{} wait keepalive", id_);
+        co_await wait_keepalive(ec);
+        if (ec)
+        {
+            LOG_ERROR("{} wait keepalive error {}", id_, ec.message());
+        }
+        LOG_INFO("{} wait upload file request", id_);
         // setup 2 wait upload file request
         auto ctx = co_await wait_upload_file_request(ec);
         if (ec)
@@ -86,33 +102,30 @@ boost::asio::awaitable<void> upload_file_handle::recv_coro()
             LOG_ERROR("{} upload file request error {}", id_, ec.message());
             co_return;
         }
-
+        LOG_INFO("{} upload file request success filename {} filesize {}", id_, ctx.file->filename, ctx.file->file_size);
         // setup 3 wait ack
+        LOG_INFO("{} wait ack {}", id_, ctx.file->filename);
         co_await wait_ack(ec);
         if (ec)
         {
-            LOG_ERROR("{} ack error {}", id_, ec.message());
+            LOG_ERROR("{} ack error {} {}", id_, ec.message(), ctx.file->filename);
             co_return;
         }
-
+        LOG_INFO("{} ack success {}", id_, ctx.file->filename);
         // setup 4 wait file data
+        LOG_INFO("{} wait file data {}", id_, ctx.file->filename);
         co_await wait_file_data(ctx, ec);
         if (ec)
         {
-            LOG_ERROR("{} file data error {}", id_, ec.message());
+            LOG_ERROR("{} file data error {} {}", id_, ec.message(), ctx.file->filename);
             co_return;
         }
     }
+    LOG_INFO("{} recv shutdown", id_);
 }
 
 boost::asio::awaitable<void> upload_file_handle::wait_login(boost::beast::error_code& ec)
 {
-    co_await session_->handshake(ec);
-    if (ec)
-    {
-        LOG_ERROR("{} handshake error {}", id_, ec.message());
-        co_return;
-    }
     boost::beast::flat_buffer buffer;
     co_await session_->read(ec, buffer);
     if (ec)
@@ -136,7 +149,6 @@ boost::asio::awaitable<void> upload_file_handle::wait_login(boost::beast::error_
     }
 
     token_ = login->token;
-    LOG_INFO("{} login success token {}", id_, token_);
     co_await channel_.async_send(ec, leaf::serialize_login_token(login.value()), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
@@ -221,7 +233,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
     ec = writer->open();
     if (ec)
     {
-        LOG_ERROR("{} upload_file open file {} error {}", id_, ctx.file->file_path, ec.message());
+        LOG_ERROR("{} open file {} error {}", id_, ctx.file->file_path, ec.message());
         co_return;
     }
 
@@ -231,7 +243,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
         co_await session_->read(ec, buffer);
         if (ec)
         {
-            LOG_ERROR("{} recv_coro error {}", id_, ec.message());
+            LOG_ERROR("{} recv file data error {}", id_, ec.message());
             break;
         }
         auto message = boost::beast::buffers_to_string(buffer.data());
@@ -256,13 +268,13 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
         writer->write_at(static_cast<int64_t>(writer->size()), d->data.data(), d->data.size(), ec);
         if (ec)
         {
-            LOG_ERROR("{} upload file write error {} {}", id_, ctx.file->filename, ec.message());
+            LOG_ERROR("{} file write error {} {}", id_, ctx.file->filename, ec.message());
             break;
         }
         ctx.file->hash_count++;
         hash->update(d->data.data(), d->data.size());
 
-        LOG_DEBUG("{} upload file {} hash count {} hash {} data size {} write size {}",
+        LOG_DEBUG("{} file {} hash count {} hash {} data size {} write size {}",
                   id_,
                   ctx.file->filename,
                   ctx.file->hash_count,
@@ -276,7 +288,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
             auto hex_str = hash->hex();
             if (hex_str != d->hash)
             {
-                LOG_ERROR("{} upload file hash not match {} {} {}", id_, ctx.file->filename, hex_str, d->hash);
+                LOG_ERROR("{} file hash not match {} {} {}", id_, ctx.file->filename, hex_str, d->hash);
                 break;
             }
             ctx.file->hash_count = 0;
@@ -286,13 +298,13 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
         {
             auto filename = leaf::encode_leaf_filename(leaf::make_file_path(token_, ctx.file->filename));
             leaf::rename(ctx.file->file_path, filename);
-            LOG_INFO("{} upload file {} to {} done", id_, ctx.file->file_path, filename);
+            LOG_INFO("{} file {} to {} done", id_, ctx.file->file_path, filename);
         }
     }
     ec = writer->close();
     if (ec)
     {
-        LOG_ERROR("{} upload file close file {} error {}", id_, ctx.file->file_path, ec.message());
+        LOG_ERROR("{} file close file {} error {}", id_, ctx.file->file_path, ec.message());
     }
 }
 
@@ -306,13 +318,13 @@ boost::asio::awaitable<void> upload_file_handle::error_message(uint32_t id, int3
     co_await channel_.async_send(boost::system::error_code{}, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
-boost::asio::awaitable<void> upload_file_handle::on_keepalive(boost::beast::error_code& ec)
+boost::asio::awaitable<void> upload_file_handle::wait_keepalive(boost::beast::error_code& ec)
 {
     boost::beast::flat_buffer buffer;
     co_await session_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} recv_coro error {}", id_, ec.message());
+        LOG_ERROR("{} recv error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
@@ -332,7 +344,7 @@ boost::asio::awaitable<void> upload_file_handle::on_keepalive(boost::beast::erro
     auto sk = k.value();
 
     sk.server_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    LOG_DEBUG("{} on_keepalive client {} server_timestamp {} client_timestamp {} token {}",
+    LOG_DEBUG("{} keepalive client {} server_timestamp {} client_timestamp {} token {}",
               id_,
               sk.client_id,
               sk.server_timestamp,

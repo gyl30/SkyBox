@@ -34,7 +34,7 @@ class upload_file_handle : public websocket_handle
     boost::asio::awaitable<void> write_coro();
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> wait_login(boost::beast::error_code& ec);
-    boost::asio::awaitable<void> on_keepalive(boost::beast::error_code& ec);
+    boost::asio::awaitable<void> wait_keepalive(boost::beast::error_code& ec);
     boost::asio::awaitable<void> error_message(uint32_t id, int32_t error_code);
 
     boost::asio::awaitable<leaf::upload_file_handle::upload_context> wait_upload_file_request(boost::beast::error_code& ec);
