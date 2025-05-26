@@ -287,9 +287,8 @@ void Widget::on_login_btn_clicked()
     handler.d.error = [this](const boost::system::error_code &ec) { error_progress(ec); };
     handler.c.error = [this](const boost::system::error_code &ec) { error_progress(ec); };
 
-    file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, handler);
+    file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user.toStdString(), key.toStdString(), handler);
     file_client_->startup();
-    file_client_->login(user.toStdString(), key.toStdString());
 }
 
 void Widget::on_style_btn_clicked()

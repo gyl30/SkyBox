@@ -5,15 +5,9 @@
 #include "net/scoped_exit.hpp"
 #include "file/file_transfer_client.h"
 
-static void download_progress(const leaf::download_event &e)
-{
-    LOG_INFO("--> download progress {} {} {}", e.filename, e.download_size, e.file_size);
-}
+static void download_progress(const leaf::download_event &e) { LOG_INFO("--> download progress {} {} {}", e.filename, e.download_size, e.file_size); }
 
-static void upload_progress(const leaf::upload_event &e)
-{
-    LOG_INFO("<-- upload progress {} {} {}", e.filename, e.upload_size, e.file_size);
-}
+static void upload_progress(const leaf::upload_event &e) { LOG_INFO("<-- upload progress {} {} {}", e.filename, e.upload_size, e.file_size); }
 static void cotrol_progress(const leaf::cotrol_event &e)
 {
     //
@@ -114,7 +108,7 @@ int main(int argc, char *argv[])
     handler.c.cotrol = cotrol_progress;
     handler.c.notify = notify_progress;
 
-    leaf::file_transfer_client fm(args->ip, args->port, handler);
+    leaf::file_transfer_client fm(args->ip, args->port, args->username, args->password, handler);
     auto error = [&fm](const boost::system::error_code &ec)
     {
         error_progress(ec);
@@ -125,8 +119,6 @@ int main(int argc, char *argv[])
     handler.c.error = error;
 
     fm.startup();
-
-    fm.login(args->username, args->password);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 

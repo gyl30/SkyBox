@@ -1,6 +1,9 @@
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/redirect_error.hpp>
 #include "log/log.h"
 #include "crypt/random.h"
-#include "net/http_client.h"
 #include "protocol/message.h"
 #include "file/file_transfer_client.h"
 
@@ -9,8 +12,13 @@
 namespace leaf
 {
 
-file_transfer_client::file_transfer_client(std::string ip, uint16_t port, leaf::progress_handler handler)
-    : id_(leaf::random_string(8)), host_(std::move(ip)), port_(std::to_string(port)), handler_(std::move(handler))
+file_transfer_client::file_transfer_client(std::string ip, uint16_t port, std::string username, std::string password, leaf::progress_handler handler)
+    : id_(leaf::random_string(8)),
+      host_(std::move(ip)),
+      port_(std::to_string(port)),
+      user_(std::move(username)),
+      pass_(std::move(password)),
+      handler_(std::move(handler))
 {
 }
 
@@ -19,69 +27,119 @@ file_transfer_client::~file_transfer_client()
     //
     LOG_INFO("{} shutdown", id_);
 }
-void file_transfer_client::do_login()
-{
-    auto c = std::make_shared<leaf::http_client>(executors.get_executor());
-    leaf::login_request l;
-    l.username = user_;
-    l.password = pass_;
-    std::string login_url = "http://" + host_ + ":" + port_ + "/leaf/login";
-    auto data = leaf::serialize_login_request(l);
-    c->post(login_url,
-            std::string(data.begin(), data.end()),
-            [this, c](boost::beast::error_code ec, const std::string &res)
-            {
-                on_login(ec, res);
-                c->shutdown();
-            });
-}
 
-void file_transfer_client::on_login(boost::beast::error_code ec, const std::string &res)
+boost::asio::awaitable<void> file_transfer_client::login(boost::system::error_code &ec)
 {
+    leaf::login_request login_request;
+    login_request.username = user_;
+    login_request.password = pass_;
+    auto data = leaf::serialize_login_request(login_request);
+    std::string target = "/leaf/login";
+    boost::beast::http::request<boost::beast::http::string_body> req;
+    req.version(11);
+    req.method(boost::beast::http::verb::post);
+    req.target(target);
+    req.set(boost::beast::http::field::host, host_);
+    req.set(boost::beast::http::field::content_type, "application/json");
+    req.set(boost::beast::http::field::user_agent, "leaf/http");
+    req.body() = std::string(data.begin(), data.end());
+    req.prepare_payload();
+    auto resolver = boost::asio::use_awaitable_t<boost::asio::any_io_executor>::as_default_on(
+        boost::asio::ip::tcp::resolver(co_await boost::asio::this_coro::executor));
+
+    auto const results = co_await resolver.async_resolve(host_, port_);
+
+    leaf::tcp_stream_limited stream(co_await boost::asio::this_coro::executor);
+    stream.expires_after(std::chrono::seconds(30));
+    auto ep = co_await stream.async_connect(results, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    if (ec)
+    {
+        LOG_ERROR("{} connect {}:{} failed {}", id_, host_, port_, ec.message());
+        co_return;
+    }
+    std::string host = host_ + ':' + std::to_string(ep.port());
+    LOG_INFO("{} connect {} success", id_, host);
+    stream.expires_after(std::chrono::seconds(30));
+    co_await boost::beast::http::async_write(stream, req, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    if (ec)
+    {
+        LOG_ERROR("{} write to {} failed {}", id_, host, ec.message());
+        co_return;
+    }
+    boost::beast::flat_buffer buffer;
+    boost::beast::http::response<boost::beast::http::vector_body<uint8_t>> res;
+    stream.expires_after(std::chrono::seconds(30));
+    co_await boost::beast::http::async_read(stream, buffer, res, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    if (ec)
+    {
+        LOG_ERROR("{} read from {} failed {}", id_, host, ec.message());
+        co_return;
+    }
+    auto login_response = leaf::deserialize_login_token(res.body());
+    if (!login_response)
+    {
+        LOG_ERROR("{} login deserialize failed", id_);
+        co_return;
+    }
+    token_ = login_response->token;
+    ec = stream.socket().close(ec);
+    if (ec)
+    {
+        LOG_ERROR("{} close socket failed {}", id_, ec.message());
+        co_return;
+    }
+}
+boost::asio::awaitable<void> file_transfer_client::loop_coro()
+{
+    timer_ = std::make_shared<boost::asio::steady_timer>(co_await boost::asio::this_coro::executor, std::chrono::seconds(5));
+    boost::system::error_code ec;
+    while (true)
+    {
+        co_await timer_->async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        if (ec)
+        {
+            LOG_ERROR("{} timer error {}", id_, ec.message());
+            co_return;
+        }
+    }
+    timer_->cancel(ec);
+    timer_.reset();
+    co_await login(ec);
     if (ec)
     {
         LOG_ERROR("{} login failed {}", id_, ec.message());
-        return;
+        co_return;
     }
-    if (login_)
-    {
-        return;
-    }
-    std::vector<uint8_t> data(res.begin(), res.end());
-    auto l = leaf::deserialize_login_token(data);
-    if (!l)
-    {
-        LOG_ERROR("{} login deserialize failed {}", id_, res);
-        return;
-    }
-
-    login_ = true;
-    token_ = l->token;
-    LOG_INFO("login {} {} token {}", user_, pass_, token_, l->token);
-    cotrol_ = std::make_shared<leaf::cotrol_session>(id_, host_, port_, l->token, handler_.c, executors.get_executor());
-    upload_ = std::make_shared<leaf::upload_session>(id_, host_, port_, l->token, handler_.u, executors.get_executor());
-    download_ = std::make_shared<leaf::download_session>(id_, host_, port_, l->token, handler_.d, executors.get_executor());
+    LOG_INFO("{} login success token {}", id_, token_);
+    cotrol_ = std::make_shared<leaf::cotrol_session>(id_, host_, port_, token_, handler_.c, executors.get_executor());
+    upload_ = std::make_shared<leaf::upload_session>(id_, host_, port_, token_, handler_.u, executors.get_executor());
+    download_ = std::make_shared<leaf::download_session>(id_, host_, port_, token_, handler_.d, executors.get_executor());
     cotrol_->startup();
     upload_->startup();
     download_->startup();
-    start_timer();
 }
 
 void file_transfer_client::startup()
 {
     executors.startup();
     ex_ = &executors.get_executor();
-    timer_ = std::make_shared<boost::asio::steady_timer>(*ex_);
+    boost::asio::co_spawn(*ex_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop_coro(); }, boost::asio::detached);
 }
 
 void file_transfer_client::shutdown()
 {
-    std::call_once(shutdown_flag_, [this]() { safe_shutdown(); });
+    std::call_once(shutdown_flag_, [this, self = shared_from_this()]() { ex_->post([this, self]() { safe_shutdown(); }); });
 }
+
 void file_transfer_client::safe_shutdown()
 {
-    boost::system::error_code ec;
-    timer_->cancel(ec);
+    LOG_INFO("{}  shutdown", id_);
+    if (timer_)
+    {
+        boost::system::error_code ignore;
+        timer_->cancel(ignore);
+        timer_.reset();
+    }
     if (upload_)
     {
         upload_->shutdown();
@@ -97,19 +155,9 @@ void file_transfer_client::safe_shutdown()
         cotrol_->shutdown();
         cotrol_.reset();
     }
-    executors.shutdown();
+    LOG_INFO("{} shutdown complete", id_);
 }
 
-void file_transfer_client::login(const std::string &user, const std::string &pass)
-{
-    ex_->post(
-        [user, pass, this]()
-        {
-            user_ = user;
-            pass_ = pass;
-            do_login();
-        });
-}
 void file_transfer_client::add_upload_file(const std::string &filename)
 {
     ex_->post(
@@ -169,27 +217,4 @@ void file_transfer_client::change_current_dir(const std::string &dir)
         cotrol_->change_current_dir(dir);
     }
 }
-void file_transfer_client::start_timer()
-{
-    timer_->expires_after(std::chrono::seconds(1));
-    timer_->async_wait(std::bind(&file_transfer_client::timer_callback, this, std::placeholders::_1));
-    //
-}
-void file_transfer_client::timer_callback(const boost::system::error_code &ec)
-{
-    if (ec)
-    {
-        LOG_ERROR("{} timer error {}", id_, ec.message());
-        return;
-    }
-
-    if (!login_)
-    {
-        do_login();
-        return;
-    }
-
-    start_timer();
-}
-
 }    // namespace leaf
