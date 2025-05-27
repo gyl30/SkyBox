@@ -14,9 +14,10 @@ cotrol_session::cotrol_session(
     std::string id, std::string host, std::string port, std::string token, leaf::cotrol_handle handler, boost::asio::io_context& io)
     : id_(std::move(id)), host_(std::move(host)), port_(std::move(port)), token_(std::move(token)), handler_(std::move(handler)), io_(io)
 {
+    LOG_INFO("{} created", id_);
 }
 
-cotrol_session::~cotrol_session() = default;
+cotrol_session::~cotrol_session() { LOG_INFO("{} destroyed", id_); }
 
 void cotrol_session::startup()
 {
@@ -32,6 +33,7 @@ void cotrol_session::startup()
 
 boost::asio::awaitable<void> cotrol_session::recv_coro()
 {
+    auto self = shared_from_this();
     LOG_INFO("{} recv startup", id_);
     boost::beast::error_code ec;
     LOG_INFO("{} connect ws client {}:{}", id_, host_, port_);
@@ -55,7 +57,7 @@ boost::asio::awaitable<void> cotrol_session::recv_coro()
         co_await wait_files_response(ec);
         if (ec)
         {
-            LOG_ERROR("{} files response error {}", id_, ec.message());
+            LOG_ERROR("{} wait files response error {}", id_, ec.message());
             break;
         }
     }
@@ -129,12 +131,14 @@ boost::asio::awaitable<void> cotrol_session::login(boost::beast::error_code& ec)
 }
 boost::asio::awaitable<void> cotrol_session::timer_coro()
 {
+    auto self = shared_from_this();
     LOG_INFO("{} timer startup", id_);
+    timer_ = std::make_shared<boost::asio::steady_timer>(co_await boost::asio::this_coro::executor);
     boost::system::error_code ec;
     while (true)
     {
-        boost::asio::steady_timer timer(io_, std::chrono::seconds(5));
-        co_await timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        timer_->expires_after(std::chrono::seconds(5));
+        co_await timer_->async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
         if (ec)
         {
             LOG_ERROR("{} timer wait error {}", id_, ec.message());
@@ -161,6 +165,7 @@ boost::asio::awaitable<void> cotrol_session::send_files_request(boost::beast::er
 
 boost::asio::awaitable<void> cotrol_session::write_coro()
 {
+    auto self = shared_from_this();
     LOG_INFO("{} write startup", id_);
     while (true)
     {
@@ -189,6 +194,13 @@ void cotrol_session::shutdown()
 
 boost::asio::awaitable<void> cotrol_session::shutdown_coro()
 {
+    if (timer_)
+    {
+        boost::system::error_code ec;
+        timer_->cancel(ec);
+        timer_.reset();
+    }
+
     if (ws_client_)
     {
         channel_.close();

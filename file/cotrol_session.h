@@ -42,6 +42,7 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     std::string current_dir_;
     leaf::cotrol_handle handler_;
     boost::asio::io_context &io_;
+    std::shared_ptr<boost::asio::steady_timer> timer_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
     boost::asio::experimental::channel<void(boost::system::error_code, std::vector<uint8_t>)> channel_{io_, 1024};
 };
