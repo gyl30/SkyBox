@@ -30,6 +30,7 @@ void download_file_handle::startup()
 
 boost::asio::awaitable<void> download_file_handle ::write_coro()
 {
+    auto self = shared_from_this();
     LOG_INFO("{} write startup", id_);
     while (true)
     {
@@ -69,6 +70,7 @@ boost::asio::awaitable<void> download_file_handle::shutdown_coro()
 }
 boost::asio::awaitable<void> download_file_handle::recv_coro()
 {
+    auto self = shared_from_this();
     LOG_INFO("{} recv startup", id_);
     boost::beast::error_code ec;
     co_await session_->handshake(ec);
@@ -97,7 +99,7 @@ boost::asio::awaitable<void> download_file_handle::recv_coro()
         if (ec)
         {
             LOG_ERROR("{} wait download file request error {}", id_, ec.message());
-            co_return;
+            break;
         }
 
         LOG_INFO("{} download file request {} size {}", id_, ctx.file->file_path, ctx.file->file_size);
@@ -107,7 +109,7 @@ boost::asio::awaitable<void> download_file_handle::recv_coro()
         if (ec)
         {
             LOG_ERROR("{} ack error {} {}", id_, ctx.file->file_path, ec.message());
-            co_return;
+            break;
         }
         LOG_INFO("{} ack success {}", id_, ctx.file->file_path);
 
@@ -117,7 +119,7 @@ boost::asio::awaitable<void> download_file_handle::recv_coro()
         if (ec)
         {
             LOG_ERROR("{} file data error {} {}", id_, ctx.file->file_path, ec.message());
-            co_return;
+            break;
         }
         LOG_INFO("{} send file data {} complete", id_, ctx.file->file_path);
         // setup 5 send data done
@@ -126,7 +128,7 @@ boost::asio::awaitable<void> download_file_handle::recv_coro()
         if (ec)
         {
             LOG_ERROR("{} file done error {} {}", id_, ctx.file->file_path, ec.message());
-            co_return;
+            break;
         }
         LOG_INFO("{} send file done {} complete", id_, ctx.file->file_path);
     }
