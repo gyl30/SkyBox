@@ -125,15 +125,7 @@ int main(int argc, char *argv[])
     std::vector<std::string> download_files;
     for (const auto &dir : args->download_paths)
     {
-        if (leaf::is_file(dir))
-        {
-            download_files.push_back(dir);
-        }
-        if (leaf::is_dir(dir))
-        {
-            auto files = leaf::dir_files(dir);
-            download_files.insert(download_files.end(), files.begin(), files.end());
-        }
+        download_files.push_back(dir);
     }
 
     std::vector<std::string> upload_files;
