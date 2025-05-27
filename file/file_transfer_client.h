@@ -30,7 +30,7 @@ class file_transfer_client : public std::enable_shared_from_this<file_transfer_c
     void change_current_dir(const std::string &dir);
 
    private:
-    boost::asio::awaitable<void> loop_coro();
+    boost::asio::awaitable<void> start_coro();
     boost::asio::awaitable<void> login(boost::system::error_code &ec);
     void safe_shutdown();
 
@@ -48,7 +48,6 @@ class file_transfer_client : public std::enable_shared_from_this<file_transfer_c
     std::shared_ptr<leaf::cotrol_session> cotrol_;
     std::shared_ptr<leaf::upload_session> upload_;
     std::shared_ptr<leaf::download_session> download_;
-    std::shared_ptr<boost::asio::steady_timer> timer_;
 };
 
 }    // namespace leaf

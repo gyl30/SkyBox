@@ -89,21 +89,10 @@ boost::asio::awaitable<void> file_transfer_client::login(boost::system::error_co
         co_return;
     }
 }
-boost::asio::awaitable<void> file_transfer_client::loop_coro()
+boost::asio::awaitable<void> file_transfer_client::start_coro()
 {
-    timer_ = std::make_shared<boost::asio::steady_timer>(co_await boost::asio::this_coro::executor, std::chrono::seconds(5));
+    LOG_INFO("{} start login", id_);
     boost::system::error_code ec;
-    while (true)
-    {
-        co_await timer_->async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-        if (ec)
-        {
-            LOG_ERROR("{} timer error {}", id_, ec.message());
-            co_return;
-        }
-    }
-    timer_->cancel(ec);
-    timer_.reset();
     co_await login(ec);
     if (ec)
     {
@@ -123,7 +112,8 @@ void file_transfer_client::startup()
 {
     executors.startup();
     ex_ = &executors.get_executor();
-    boost::asio::co_spawn(*ex_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop_coro(); }, boost::asio::detached);
+    boost::asio::co_spawn(
+        *ex_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await start_coro(); }, boost::asio::detached);
 }
 
 void file_transfer_client::shutdown()
@@ -134,12 +124,6 @@ void file_transfer_client::shutdown()
 void file_transfer_client::safe_shutdown()
 {
     LOG_INFO("{}  shutdown", id_);
-    if (timer_)
-    {
-        boost::system::error_code ignore;
-        timer_->cancel(ignore);
-        timer_.reset();
-    }
     if (upload_)
     {
         upload_->shutdown();
