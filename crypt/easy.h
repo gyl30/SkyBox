@@ -2,6 +2,7 @@
 #define LEAF_CRYPT_EASY_H
 
 #include <string>
+#include <cstdint>
 #include <vector>
 
 namespace leaf
