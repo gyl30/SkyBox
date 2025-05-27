@@ -1,6 +1,7 @@
 #include <utility>
 #include <filesystem>
 #include "log/log.h"
+#include "crypt/easy.h"
 #include "crypt/passwd.h"
 #include "config/config.h"
 #include "protocol/codec.h"
@@ -177,7 +178,7 @@ boost::asio::awaitable<leaf::upload_file_handle::upload_context> upload_file_han
         co_return ctx;
     }
 
-    auto upload_file_path = leaf::encode_tmp_filename(leaf::make_file_path(token_, req->filename));
+    auto upload_file_path = leaf::encode_tmp_filename(leaf::make_file_path(token_, leaf::encode(req->filename)));
     bool exist = std::filesystem::exists(upload_file_path, ec);
     if (ec)
     {
@@ -293,7 +294,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
         }
         if (ctx.file->file_size == writer->size())
         {
-            auto filename = leaf::encode_leaf_filename(leaf::make_file_path(token_, ctx.file->filename));
+            auto filename = leaf::encode_leaf_filename(ctx.file->file_path);
             leaf::rename(ctx.file->file_path, filename);
             LOG_INFO("{} file {} to {} done", id_, ctx.file->file_path, filename);
         }

@@ -231,7 +231,7 @@ boost::asio::awaitable<void> upload_session::send_upload_file_request(leaf::uplo
     u.id = seq_++;
     u.filename = std::filesystem::path(ctx.file->file_path).filename().string();
     u.filesize = ctx.file->file_size;
-    LOG_DEBUG("{} upload_file request {} filename {} filesize {}", id_, u.id, ctx.file->file_path, ctx.file->file_size);
+    LOG_DEBUG("{} upload request {} filename {} filesize {}", id_, u.id, ctx.file->file_path, ctx.file->file_size);
     co_await channel_.async_send(ec, leaf::serialize_upload_file_request(u), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
@@ -263,7 +263,7 @@ boost::asio::awaitable<void> upload_session::wait_upload_file_response(boost::be
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
-    LOG_DEBUG("{} upload_file response {} filename {}", id_, response->id, response->filename);
+    LOG_DEBUG("{} upload file response {} filename {}", id_, response->id, response->filename);
 }
 boost::asio::awaitable<void> upload_session::send_file_data(leaf::upload_session::upload_context& ctx, boost::beast::error_code& ec)
 {
@@ -388,12 +388,18 @@ boost::asio::awaitable<void> upload_session::keepalive(boost::beast::error_code&
     k.client_id = reinterpret_cast<uintptr_t>(this);
     k.client_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     k.server_timestamp = 0;
+    LOG_DEBUG("{} keepalive request client {} server_timestamp {} client_timestamp {} token {}",
+              id_,
+              k.client_id,
+              k.server_timestamp,
+              k.client_timestamp,
+              token_);
+
     co_await channel_.async_send(ec, leaf::serialize_keepalive(k), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
     boost::beast::flat_buffer buffer;
     co_await ws_client_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} wait keepalive error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
@@ -409,7 +415,7 @@ boost::asio::awaitable<void> upload_session::keepalive(boost::beast::error_code&
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
-    LOG_DEBUG("{} on_keepalive client {} server_timestamp {} client_timestamp {} token {}",
+    LOG_DEBUG("{} keepalive response client {} server_timestamp {} client_timestamp {} token {}",
               id_,
               kk->client_id,
               kk->server_timestamp,
