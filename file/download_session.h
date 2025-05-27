@@ -46,6 +46,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     boost::asio::awaitable<void> wait_ack(boost::beast::error_code &ec);
     boost::asio::awaitable<void> wait_file_data(leaf::download_session::download_context &ctx, boost::beast::error_code &ec);
     boost::asio::awaitable<void> wait_file_done(boost::beast::error_code &ec);
+    boost::asio::awaitable<void> delay(int second);
 
    private:
     void safe_add_file(const std::string &filename);

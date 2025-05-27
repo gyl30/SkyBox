@@ -41,7 +41,6 @@ boost::asio::awaitable<void> download_session::keepalive(boost::beast::error_cod
     co_await ws_client_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} wait keepalive error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
@@ -81,7 +80,6 @@ boost::asio::awaitable<void> download_session::login(boost::beast::error_code& e
     co_await ws_client_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} login error {}", id_, ec.message());
         co_return;
     }
 
@@ -121,15 +119,11 @@ boost::asio::awaitable<void> download_session::download_coro()
     }
     while (true)
     {
-        // padding files empty will send keepalive message
+        LOG_INFO("{} download file size {}", id_, padding_files_.size());
         if (padding_files_.empty())
         {
-            co_await keepalive(ec);
-        }
-        if (ec)
-        {
-            LOG_ERROR("{} download keepalive error {}", id_, ec.message());
-            break;
+            co_await delay(1);
+            continue;
         }
         co_await download(ec);
         if (ec)
@@ -141,21 +135,33 @@ boost::asio::awaitable<void> download_session::download_coro()
 
     LOG_INFO("{} download coro shutdown", id_);
 }
+boost::asio::awaitable<void> download_session::delay(int second)
+{
+    boost::beast::error_code ec;
+    boost::asio::steady_timer timer(io_, std::chrono::seconds(second));
+    co_await timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+}
 
 boost::asio::awaitable<void> download_session::write_coro()
 {
-    boost::system::error_code ec;
-    auto bytes = co_await channel_.async_receive(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-    if (ec)
+    LOG_INFO("{} write startup", id_);
+    while (true)
     {
-        LOG_ERROR("{} write_coro error {}", id_, ec.message());
-        co_return;
+        boost::system::error_code ec;
+        auto bytes = co_await channel_.async_receive(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        if (ec)
+        {
+            LOG_ERROR("{} write_coro error {}", id_, ec.message());
+            break;
+        }
+        co_await ws_client_->write(ec, bytes.data(), bytes.size());
+        if (ec)
+        {
+            LOG_ERROR("{} write_coro error {}", id_, ec.message());
+            break;
+        }
     }
-    co_await ws_client_->write(ec, bytes.data(), bytes.size());
-    if (ec)
-    {
-        LOG_ERROR("{} write_coro error {}", id_, ec.message());
-    }
+    LOG_INFO("{} write shutdown", id_);
 }
 
 void download_session::shutdown()
@@ -178,55 +184,54 @@ boost::asio::awaitable<void> download_session::shutdown_coro()
 
 boost::asio::awaitable<void> download_session::download(boost::beast::error_code& ec)
 {
-    while (true)
+    while (!padding_files_.empty())
     {
-        co_await keepalive(ec);
-        if (ec)
-        {
-            LOG_ERROR("{} download keepalive error {}", id_, ec.message());
-            break;
-        }
-        if (!padding_files_.empty())
-        {
-            break;
-        }
         auto file = padding_files_.front();
         padding_files_.pop();
         // send download file request
+        LOG_INFO("{} send download file request {}", id_, file);
         co_await send_download_file_request(file, ec);
         if (ec)
         {
-            LOG_ERROR("{} send download file request error {}", id_, ec.message());
+            LOG_ERROR("{} send download file request error {} {}", id_, file, ec.message());
             break;
         }
+        LOG_INFO("{} send download file request success {}", id_, file);
         // wait download file response
         auto ctx = co_await wait_download_file_response(ec);
         if (ec)
         {
-            LOG_ERROR("{} wait download file response error {}", id_, ec.message());
+            LOG_ERROR("{} wait download file response error {} {}", id_, file, ec.message());
             break;
         }
+        LOG_INFO("{} wait download file response success {} file size {}", id_, ctx.response.filename, ctx.response.filesize);
         // wait ack message
+        LOG_INFO("{} wait ack for download file {}", id_, ctx.response.filename);
         co_await wait_ack(ec);
         if (ec)
         {
-            LOG_ERROR("{} wait ack error {}", id_, ec.message());
+            LOG_ERROR("{} wait ack error {} {}", id_, file, ec.message());
             break;
         }
+        LOG_INFO("{} wait ack success for download file {}", id_, ctx.response.filename);
         // wait file data
+        LOG_INFO("{} wait file data for download file {}", id_, ctx.response.filename);
         co_await wait_file_data(ctx, ec);
         if (ec)
         {
-            LOG_ERROR("{} wait file data error {}", id_, ec.message());
+            LOG_ERROR("{} wait file data error {} {}", id_, ctx.response.filename, ec.message());
             break;
         }
+        LOG_INFO("{} wait file data success for download file {}", id_, ctx.response.filename);
         // wait file done
+        LOG_INFO("{} wait file done for download file {}", id_, ctx.response.filename);
         co_await wait_file_done(ec);
         if (ec)
         {
-            LOG_ERROR("{} wait file done error {}", id_, ec.message());
+            LOG_ERROR("{} wait file done error {} {}", id_, ctx.response.filename, ec.message());
             break;
         }
+        LOG_INFO("{} wait file done success for download file {}", id_, ctx.response.filename);
     }
     co_return;
 }
@@ -236,7 +241,6 @@ boost::asio::awaitable<void> download_session::send_download_file_request(const 
     leaf::download_file_request req;
     req.filename = filename;
     req.id = ++seq_;
-    LOG_INFO("{} download_file {}", id_, req.filename);
     co_await channel_.async_send(ec, leaf::serialize_download_file_request(req), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
@@ -247,7 +251,6 @@ boost::asio::awaitable<leaf::download_session::download_context> download_sessio
     co_await ws_client_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} wait download file response error {}", id_, ec.message());
         co_return ctx;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
@@ -300,7 +303,6 @@ boost::asio::awaitable<void> download_session::wait_ack(boost::beast::error_code
     co_await ws_client_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} wait ack error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
@@ -407,7 +409,6 @@ boost::asio::awaitable<void> download_session::wait_file_done(boost::beast::erro
     co_await ws_client_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} wait ack error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
