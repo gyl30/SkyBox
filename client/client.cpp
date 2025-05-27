@@ -108,17 +108,17 @@ int main(int argc, char *argv[])
     handler.c.cotrol = cotrol_progress;
     handler.c.notify = notify_progress;
 
-    leaf::file_transfer_client fm(args->ip, args->port, args->username, args->password, handler);
+    auto fm = std::make_shared<leaf::file_transfer_client>(args->ip, args->port, args->username, args->password, handler);
     auto error = [&fm](const boost::system::error_code &ec)
     {
         error_progress(ec);
-        fm.shutdown();
+        fm->shutdown();
     };
     handler.d.error = error;
     handler.u.error = error;
     handler.c.error = error;
 
-    fm.startup();
+    fm->startup();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -150,11 +150,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    fm.add_upload_files(upload_files);
-    fm.add_download_files(download_files);
+    fm->add_upload_files(upload_files);
+    fm->add_download_files(download_files);
 
     std::this_thread::sleep_for(std::chrono::seconds(60));
 
-    fm.shutdown();
+    fm->shutdown();
     return 0;
 }
