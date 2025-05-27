@@ -20,13 +20,10 @@ file_transfer_client::file_transfer_client(std::string ip, uint16_t port, std::s
       pass_(std::move(password)),
       handler_(std::move(handler))
 {
+    LOG_INFO("{} created", id_);
 }
 
-file_transfer_client::~file_transfer_client()
-{
-    //
-    LOG_INFO("{} shutdown", id_);
-}
+file_transfer_client::~file_transfer_client() { LOG_INFO("{} destroyed", id_); }
 
 boost::asio::awaitable<void> file_transfer_client::login(boost::system::error_code &ec)
 {
@@ -91,6 +88,7 @@ boost::asio::awaitable<void> file_transfer_client::login(boost::system::error_co
 }
 boost::asio::awaitable<void> file_transfer_client::start_coro()
 {
+    auto self = shared_from_this();
     LOG_INFO("{} start login", id_);
     boost::system::error_code ec;
     co_await login(ec);
@@ -118,12 +116,19 @@ void file_transfer_client::startup()
 
 void file_transfer_client::shutdown()
 {
-    std::call_once(shutdown_flag_, [this, self = shared_from_this()]() { ex_->post([this, self]() { safe_shutdown(); }); });
+    auto self = shared_from_this();
+    std::call_once(shutdown_flag_,
+                   [this, self]()
+                   {
+                       boost::asio::co_spawn(
+                           *ex_, [this, self]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); }, boost::asio::detached);
+                   });
 }
 
-void file_transfer_client::safe_shutdown()
+boost::asio::awaitable<void> file_transfer_client::shutdown_coro()
 {
-    LOG_INFO("{}  shutdown", id_);
+    auto self = shared_from_this();
+    LOG_INFO("{} shutdown", id_);
     if (upload_)
     {
         upload_->shutdown();
@@ -139,6 +144,10 @@ void file_transfer_client::safe_shutdown()
         cotrol_->shutdown();
         cotrol_.reset();
     }
+    boost::system::error_code ec;
+    boost::asio::steady_timer timer(co_await boost::asio::this_coro::executor, std::chrono::seconds(1));
+    co_await timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    timer.cancel();
     LOG_INFO("{} shutdown complete", id_);
 }
 

@@ -32,7 +32,7 @@ class file_transfer_client : public std::enable_shared_from_this<file_transfer_c
    private:
     boost::asio::awaitable<void> start_coro();
     boost::asio::awaitable<void> login(boost::system::error_code &ec);
-    void safe_shutdown();
+    boost::asio::awaitable<void> shutdown_coro();
 
    private:
     std::string id_;
