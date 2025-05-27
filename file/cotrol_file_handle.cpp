@@ -4,6 +4,7 @@
 
 #include "log/log.h"
 #include "file/file.h"
+#include "crypt/easy.h"
 #include "config/config.h"
 #include "protocol/codec.h"
 #include "file/cotrol_file_handle.h"
@@ -224,16 +225,18 @@ boost::asio::awaitable<void> cotrol_file_handle::on_files_request(const std::str
     const auto& msg = files_request.value();
     std::string user_path = leaf::make_file_path(msg.token);
     auto dir_path = leaf::make_file_path(msg.token, msg.dir);
+    LOG_INFO("{} on files request dir {}", id_, dir_path);
     leaf::files_response response;
     // 递归遍历目录中的所有文件
     auto files = lookup_dir(dir_path);
     for (auto&& file : files)
     {
-        file.name = std::filesystem::relative(file.name, user_path).string();
+        std::string filename = std::filesystem::relative(file.name, user_path).stem().string();
+        LOG_INFO("file name {} relative to user path {}", filename, user_path);
+        file.name = leaf::decode(filename);
     }
     response.token = msg.token;
     response.files.swap(files);
-    LOG_INFO("{} on files request dir {}", id_, dir_path);
     co_await channel_.async_send(ec, leaf::serialize_files_response(response), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
@@ -246,7 +249,6 @@ boost::asio::awaitable<void> cotrol_file_handle::on_create_dir(const std::string
         co_return;
     }
 
-    std::string user_path = leaf::make_file_path(dir_request->token);
     auto dir_path = leaf::make_file_path(dir_request->token, dir_request->dir);
     if (dir_path.empty())
     {
