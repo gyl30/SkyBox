@@ -32,38 +32,42 @@ void cotrol_session::startup()
 
 boost::asio::awaitable<void> cotrol_session::recv_coro()
 {
-    LOG_INFO("{} recv coro startup", id_);
+    LOG_INFO("{} recv startup", id_);
     boost::beast::error_code ec;
+    LOG_INFO("{} connect ws client {}:{}", id_, host_, port_);
     co_await ws_client_->handshake(ec);
     if (ec)
     {
-        LOG_ERROR("{} recv coro handshake error {}", id_, ec.message());
+        LOG_ERROR("{} handshake error {}", id_, ec.message());
         co_return;
     }
+    LOG_INFO("{} connect ws client success {}:{}", id_, host_, port_);
+    LOG_INFO("{} login start", id_);
     co_await login(ec);
     if (ec)
     {
-        LOG_ERROR("{} recv coro login error {}", id_, ec.message());
+        LOG_ERROR("{} login error {}", id_, ec.message());
         co_return;
     }
+    LOG_INFO("{} login success", id_);
     while (true)
     {
-        co_await files_response(ec);
+        co_await wait_files_response(ec);
         if (ec)
         {
+            LOG_ERROR("{} files response error {}", id_, ec.message());
             break;
         }
     }
-    LOG_INFO("{} recv coro shutdown", id_);
+    LOG_INFO("{} recv shutdown", id_);
 }
 
-boost::asio::awaitable<void> cotrol_session::files_response(boost::beast::error_code& ec)
+boost::asio::awaitable<void> cotrol_session::wait_files_response(boost::beast::error_code& ec)
 {
     boost::beast::flat_buffer buffer;
     co_await ws_client_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} recv coro error {}", id_, ec.message());
         co_return;
     }
 
@@ -71,14 +75,14 @@ boost::asio::awaitable<void> cotrol_session::files_response(boost::beast::error_
     auto type = leaf::get_message_type(message);
     if (type != leaf::message_type::files_response)
     {
-        LOG_ERROR("{} message type error files_response:{}", id_, leaf::message_type_to_string(type));
+        LOG_ERROR("{} files response message type error {}", id_, leaf::message_type_to_string(type));
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
     auto files = leaf::deserialize_files_response(std::vector<uint8_t>(message.begin(), message.end()));
     if (!files.has_value())
     {
-        LOG_ERROR("{} deserialize files response error", id_);
+        LOG_ERROR("{} files response deserialize error", id_);
         co_return;
     }
 
@@ -91,7 +95,6 @@ boost::asio::awaitable<void> cotrol_session::files_response(boost::beast::error_
 }
 boost::asio::awaitable<void> cotrol_session::login(boost::beast::error_code& ec)
 {
-    LOG_INFO("{} connect ws client will login use token {}", id_, token_);
     leaf::login_token lt;
     lt.id = 0x01;
     lt.token = token_;
@@ -105,7 +108,6 @@ boost::asio::awaitable<void> cotrol_session::login(boost::beast::error_code& ec)
     co_await ws_client_->read(ec, buffer);
     if (ec)
     {
-        LOG_ERROR("{} login error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
@@ -113,22 +115,21 @@ boost::asio::awaitable<void> cotrol_session::login(boost::beast::error_code& ec)
     bytes = std::vector<uint8_t>(message.begin(), message.end());
     if (type != leaf::message_type::login)
     {
-        LOG_ERROR("{} message type error login:{}", id_, leaf::message_type_to_string(type));
+        LOG_ERROR("{} login message type error {}", id_, leaf::message_type_to_string(type));
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
     auto login = leaf::deserialize_login_token(bytes);
     if (!login.has_value())
     {
-        LOG_ERROR("{} deserialize login message error", id_);
+        LOG_ERROR("{} login message deserialize error", id_);
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
-    LOG_INFO("{} login success token {}", id_, login->token);
 }
 boost::asio::awaitable<void> cotrol_session::timer_coro()
 {
-    LOG_INFO("{} timer coro startup", id_);
+    LOG_INFO("{} timer startup", id_);
     boost::system::error_code ec;
     while (true)
     {
@@ -136,41 +137,48 @@ boost::asio::awaitable<void> cotrol_session::timer_coro()
         co_await timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
         if (ec)
         {
-            LOG_ERROR("{} timer coro error {}", id_, ec.message());
+            LOG_ERROR("{} timer wait error {}", id_, ec.message());
             break;
         }
-        leaf::files_request req;
-        req.token = token_;
-        req.dir = current_dir_;
-        auto bytes = leaf::serialize_files_request(req);
-        co_await channel_.async_send(ec, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        co_await send_files_request(ec);
         if (ec)
         {
-            LOG_ERROR("{} timer coro error {}", id_, ec.message());
+            LOG_ERROR("{} send files request error {}", id_, ec.message());
             break;
         }
     }
-    LOG_INFO("{} timer coro shutdown", id_);
+    LOG_INFO("{} timer shutdown", id_);
 }
+
+boost::asio::awaitable<void> cotrol_session::send_files_request(boost::beast::error_code& ec)
+{
+    leaf::files_request req;
+    req.token = token_;
+    req.dir = current_dir_;
+    auto bytes = leaf::serialize_files_request(req);
+    co_await channel_.async_send(ec, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+}
+
 boost::asio::awaitable<void> cotrol_session::write_coro()
 {
-    LOG_INFO("{} write coro startup", id_);
+    LOG_INFO("{} write startup", id_);
     while (true)
     {
         boost::system::error_code ec;
         auto bytes = co_await channel_.async_receive(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
         if (ec)
         {
-            LOG_ERROR("{} write coro error {}", id_, ec.message());
-            co_return;
+            LOG_ERROR("{} write error {}", id_, ec.message());
+            break;
         }
         co_await ws_client_->write(ec, bytes.data(), bytes.size());
         if (ec)
         {
-            LOG_ERROR("{} write coro error {}", id_, ec.message());
+            LOG_ERROR("{} write error {}", id_, ec.message());
+            break;
         }
     }
-    LOG_INFO("{} write coro shutdown", id_);
+    LOG_INFO("{} write shutdown", id_);
 }
 
 void cotrol_session::shutdown()
