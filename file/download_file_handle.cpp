@@ -250,7 +250,7 @@ boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download
         }
         if (ec == boost::asio::error::eof || reader->size() == ctx.file->file_size)
         {
-            LOG_INFO("{} upload file {} complete", id_, ctx.file->file_path);
+            LOG_INFO("{} download file {} complete", id_, ctx.file->file_path);
             break;
         }
     }

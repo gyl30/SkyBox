@@ -225,6 +225,12 @@ boost::asio::awaitable<void> upload_file_handle::wait_ack(boost::beast::error_co
     }
 }
 
+boost::asio::awaitable<void> upload_file_handle::send_file_done(boost::beast::error_code& ec)
+{
+    leaf::done d;
+    co_await channel_.async_send(ec, leaf::serialize_done(d), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+}
+
 boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_file_handle::upload_context& ctx, boost::beast::error_code& ec)
 {
     auto hash = std::make_shared<leaf::blake2b>();
@@ -235,7 +241,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
         LOG_ERROR("{} open file {} error {}", id_, ctx.file->file_path, ec.message());
         co_return;
     }
-
+    bool done = false;
     while (true)
     {
         boost::beast::flat_buffer buffer;
@@ -248,6 +254,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
         auto type = leaf::get_message_type(message);
         if (type == leaf::message_type::done)
         {
+            done = true;
             LOG_INFO("{} upload file {} done", id_, ctx.file->filename);
             break;
         }
@@ -303,6 +310,17 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
     if (file_ec)
     {
         LOG_ERROR("{} file close file {} error {}", id_, ctx.file->file_path, file_ec.message());
+    }
+    if (!done)
+    {
+        co_return;
+    }
+    LOG_INFO("{} upload file {} done", id_, ctx.file->filename);
+    LOG_INFO("{} send file done {}", id_, ctx.file->file_path);
+    co_await send_file_done(ec);
+    if (ec)
+    {
+        LOG_ERROR("{} send file done error {} {}", id_, ctx.file->file_path, ec.message());
     }
 }
 

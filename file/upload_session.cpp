@@ -137,6 +137,14 @@ boost::asio::awaitable<void> upload_session::upload_coro()
             break;
         }
         LOG_INFO("{} send file data complete {}", id_, ctx.file->file_path);
+        LOG_INFO("{} wait file done {}", id_, ctx.file->file_path);
+        co_await wait_file_done(ec);
+        if (ec)
+        {
+            LOG_ERROR("{} wait file done error {} {}", id_, ec.message(), ctx.file->file_path);
+            break;
+        }
+        LOG_INFO("{} wait file done complete {}", id_, ctx.file->file_path);
     }
     LOG_INFO("{} shutdown", id_);
 }
@@ -348,15 +356,31 @@ boost::asio::awaitable<void> upload_session::send_file_data(leaf::upload_session
             break;
         }
     }
-    ec = reader->close();
-    if (ec)
+    auto close_ec = reader->close();
+    if (close_ec)
     {
-        LOG_ERROR("{} reader close error {} {}", id_, ec.message(), ctx.file->file_path);
+        LOG_ERROR("{} reader close error {} {}", id_, close_ec.message(), ctx.file->file_path);
         co_return;
     }
     LOG_DEBUG("{} reader close success {}", id_, ctx.file->file_path);
 }
 
+boost::asio::awaitable<void> upload_session::wait_file_done(boost::beast::error_code& ec)
+{
+    boost::beast::flat_buffer buffer;
+    co_await ws_client_->read(ec, buffer);
+    if (ec)
+    {
+        co_return;
+    }
+    auto message = boost::beast::buffers_to_string(buffer.data());
+    auto type = leaf::get_message_type(message);
+    if (type != leaf::message_type::done)
+    {
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return;
+    }
+}
 boost::asio::awaitable<void> upload_session::send_file_done(boost::beast::error_code& ec)
 {
     leaf::done d;
