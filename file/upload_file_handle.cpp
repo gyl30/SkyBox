@@ -90,11 +90,16 @@ boost::asio::awaitable<void> upload_file_handle::recv_coro()
     while (true)
     {
         LOG_INFO("{} wait keepalive", id_);
-        co_await wait_keepalive(ec);
+        auto k = co_await wait_keepalive(ec);
         if (ec)
         {
             LOG_ERROR("{} wait keepalive error {}", id_, ec.message());
             break;
+        }
+        LOG_DEBUG("{} wait keepalive server timestamp {}", id_, k.server_timestamp);
+        if (k.server_timestamp == 0)
+        {
+            continue;    // ignore keepalive with server_timestamp 0
         }
         LOG_INFO("{} wait upload file request", id_);
         // setup 2 wait upload file request
@@ -121,6 +126,12 @@ boost::asio::awaitable<void> upload_file_handle::recv_coro()
         {
             LOG_ERROR("{} file data error {} {}", id_, ec.message(), ctx.file->filename);
             break;
+        }
+        LOG_INFO("{} send file done {}", id_, ctx.file->file_path);
+        co_await send_file_done(ec);
+        if (ec)
+        {
+            LOG_ERROR("{} send file done error {} {}", id_, ctx.file->file_path, ec.message());
         }
     }
     LOG_INFO("{} recv shutdown", id_);
@@ -316,45 +327,37 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
         co_return;
     }
     LOG_INFO("{} upload file {} done", id_, ctx.file->filename);
-    LOG_INFO("{} send file done {}", id_, ctx.file->file_path);
-    co_await send_file_done(ec);
-    if (ec)
-    {
-        LOG_ERROR("{} send file done error {} {}", id_, ctx.file->file_path, ec.message());
-    }
 }
 
-boost::asio::awaitable<void> upload_file_handle::wait_keepalive(boost::beast::error_code& ec)
+boost::asio::awaitable<leaf::keepalive> upload_file_handle::wait_keepalive(boost::beast::error_code& ec)
 {
+    leaf::keepalive k;
     boost::beast::flat_buffer buffer;
     co_await session_->read(ec, buffer);
     if (ec)
     {
-        co_return;
+        co_return k;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
     auto type = leaf::get_message_type(message);
     if (type != leaf::message_type::keepalive)
     {
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
-        co_return;
+        co_return k;
     }
-    auto k = leaf::deserialize_keepalive_response(std::vector<uint8_t>(message.begin(), message.end()));
-    if (!k.has_value())
+    auto keepalive_request = leaf::deserialize_keepalive(std::vector<uint8_t>(message.begin(), message.end()));
+    if (!keepalive_request.has_value())
     {
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
-        co_return;
+        co_return k;
     }
 
-    auto sk = k.value();
+    k = keepalive_request.value();
 
-    sk.server_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    LOG_DEBUG("{} keepalive client {} server_timestamp {} client_timestamp {} token {}",
-              id_,
-              sk.client_id,
-              sk.server_timestamp,
-              sk.client_timestamp,
-              token_);
-    co_await channel_.async_send(ec, serialize_keepalive(sk), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    k.server_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    LOG_DEBUG(
+        "{} keepalive client {} server_timestamp {} client_timestamp {} token {}", id_, k.client_id, k.server_timestamp, k.client_timestamp, token_);
+    co_await channel_.async_send(ec, serialize_keepalive(k), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_return keepalive_request.value();
 }
 }    // namespace leaf

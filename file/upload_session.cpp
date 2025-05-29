@@ -83,6 +83,11 @@ boost::asio::awaitable<void> upload_session::upload_coro()
     LOG_INFO("{} login success token {}", id_, token_);
     while (true)
     {
+        co_await send_keepalive(ec);
+        if (ec)
+        {
+            break;
+        }
         if (padding_files_.empty())
         {
             co_await delay(3);
@@ -94,14 +99,6 @@ boost::asio::awaitable<void> upload_session::upload_coro()
         if (ec)
         {
             LOG_ERROR("{} create upload context error {}", id_, ec.message());
-            break;
-        }
-        // send keepalive
-        LOG_INFO("{} keepalive", id_);
-        co_await keepalive(ec);
-        if (ec)
-        {
-            LOG_ERROR("{} keepalive error {}", id_, ec.message());
             break;
         }
         // send upload file request
@@ -405,13 +402,13 @@ void upload_session::padding_file_event()
         emit_event(e);
     }
 }
-boost::asio::awaitable<void> upload_session::keepalive(boost::beast::error_code& ec)
+boost::asio::awaitable<void> upload_session::send_keepalive(boost::beast::error_code& ec)
 {
     leaf::keepalive k;
     k.id = 0;
     k.client_id = reinterpret_cast<uintptr_t>(this);
     k.client_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    k.server_timestamp = 0;
+    k.server_timestamp = padding_files_.size();
     LOG_DEBUG("{} keepalive request client {} server_timestamp {} client_timestamp {} token {}",
               id_,
               k.client_id,
@@ -433,7 +430,7 @@ boost::asio::awaitable<void> upload_session::keepalive(boost::beast::error_code&
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
-    auto kk = leaf::deserialize_keepalive_response(std::vector<uint8_t>(message.begin(), message.end()));
+    auto kk = leaf::deserialize_keepalive(std::vector<uint8_t>(message.begin(), message.end()));
     if (!kk.has_value())
     {
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
