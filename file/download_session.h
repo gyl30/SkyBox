@@ -39,7 +39,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     boost::asio::awaitable<void> download_coro();
     boost::asio::awaitable<void> write_coro();
     boost::asio::awaitable<void> shutdown_coro();
-    boost::asio::awaitable<void> keepalive(boost::beast::error_code &ec);
+    boost::asio::awaitable<void> send_keepalive(boost::beast::error_code &ec);
     boost::asio::awaitable<void> download(boost::beast::error_code &ec);
     boost::asio::awaitable<void> send_download_file_request(const std::string &filename, boost::beast::error_code &ec);
     boost::asio::awaitable<leaf::download_session::download_context> wait_download_file_response(boost::beast::error_code &ec);

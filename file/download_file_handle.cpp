@@ -93,6 +93,15 @@ boost::asio::awaitable<void> download_file_handle::recv_coro()
     boost::beast::flat_buffer buffer;
     while (true)
     {
+        auto k = co_await wait_keepalive(ec);
+        if (ec)
+        {
+            break;
+        }
+        if (k.server_timestamp == 0)
+        {
+            continue;    // ignore keepalive with server_timestamp 0
+        }
         // setup 2 wait download file request
         LOG_INFO("{} wait download file request", id_);
         auto ctx = co_await wait_download_file_request(ec);
@@ -165,38 +174,40 @@ boost::asio::awaitable<void> download_file_handle::wait_login(boost::beast::erro
     token_ = login->token;
     co_await channel_.async_send(ec, leaf::serialize_login_token(login.value()), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
-boost::asio::awaitable<void> download_file_handle::on_keepalive(boost::beast::error_code& ec)
+boost::asio::awaitable<leaf::keepalive> download_file_handle::wait_keepalive(boost::beast::error_code& ec)
 {
+    leaf::keepalive k;
     boost::beast::flat_buffer buffer;
     co_await session_->read(ec, buffer);
     if (ec)
     {
-        co_return;
+        co_return k;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
     auto type = leaf::get_message_type(message);
     if (type != leaf::message_type::keepalive)
     {
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
-        co_return;
+        co_return k;
     }
-    auto k = leaf::deserialize_keepalive_response(std::vector<uint8_t>(message.begin(), message.end()));
-    if (!k.has_value())
+    auto keepalive_request = leaf::deserialize_keepalive(std::vector<uint8_t>(message.begin(), message.end()));
+    if (!keepalive_request.has_value())
     {
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
-        co_return;
+        co_return k;
     }
 
-    auto sk = k.value();
+    k = keepalive_request.value();
 
-    sk.server_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    k.server_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     LOG_DEBUG("{} on_keepalive client {} server_timestamp {} client_timestamp {} token {}",
               id_,
-              sk.client_id,
-              sk.server_timestamp,
-              sk.client_timestamp,
+              k.client_id,
+              k.server_timestamp,
+              k.client_timestamp,
               token_);
-    co_await channel_.async_send(ec, serialize_keepalive(sk), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await channel_.async_send(ec, serialize_keepalive(k), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_return keepalive_request.value();
 }
 boost::asio::awaitable<void> download_file_handle::error_message(uint32_t id, int32_t error_code)
 {

@@ -29,13 +29,13 @@ void download_session::startup()
     boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await write_coro(); }, boost::asio::detached);
 }
 
-boost::asio::awaitable<void> download_session::keepalive(boost::beast::error_code& ec)
+boost::asio::awaitable<void> download_session::send_keepalive(boost::beast::error_code& ec)
 {
     leaf::keepalive k;
     k.id = 0;
     k.client_id = reinterpret_cast<uintptr_t>(this);
     k.client_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    k.server_timestamp = 0;
+    k.server_timestamp = padding_files_.size();
     co_await channel_.async_send(ec, leaf::serialize_keepalive(k), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
     boost::beast::flat_buffer buffer;
     co_await ws_client_->read(ec, buffer);
@@ -50,7 +50,7 @@ boost::asio::awaitable<void> download_session::keepalive(boost::beast::error_cod
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
-    auto kk = leaf::deserialize_keepalive_response(std::vector<uint8_t>(message.begin(), message.end()));
+    auto kk = leaf::deserialize_keepalive(std::vector<uint8_t>(message.begin(), message.end()));
     if (!kk.has_value())
     {
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
@@ -120,9 +120,14 @@ boost::asio::awaitable<void> download_session::download_coro()
     while (true)
     {
         LOG_INFO("{} download file size {}", id_, padding_files_.size());
+        co_await send_keepalive(ec);
+        if (ec)
+        {
+            break;
+        }
         if (padding_files_.empty())
         {
-            co_await delay(1);
+            co_await delay(3);
             continue;
         }
         co_await download(ec);

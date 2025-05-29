@@ -35,7 +35,7 @@ class download_file_handle : public websocket_handle
     boost::asio::awaitable<void> write_coro();
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> wait_login(boost::beast::error_code& ec);
-    boost::asio::awaitable<void> on_keepalive(boost::beast::error_code& ec);
+    boost::asio::awaitable<leaf::keepalive> wait_keepalive(boost::beast::error_code& ec);
     boost::asio::awaitable<void> error_message(uint32_t id, int32_t error_code);
     boost::asio::awaitable<leaf::download_file_handle::download_context> wait_download_file_request(boost::beast::error_code& ec);
     boost::asio::awaitable<void> send_ack(boost::beast::error_code& ec);
