@@ -122,7 +122,7 @@ boost::asio::awaitable<void> cotrol_file_handle::keepalive(boost::beast::error_c
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
-    auto k = leaf::deserialize_keepalive_response(std::vector<uint8_t>(message.begin(), message.end()));
+    auto k = leaf::deserialize_keepalive(std::vector<uint8_t>(message.begin(), message.end()));
     if (!k.has_value())
     {
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
