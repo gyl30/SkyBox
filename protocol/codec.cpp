@@ -327,7 +327,7 @@ std::vector<uint8_t> serialize_keepalive(const leaf::keepalive &k)
     w.copy_to(&bytes);
     return bytes;
 }
-std::optional<leaf::keepalive> deserialize_keepalive_response(const std::vector<uint8_t> &data)
+std::optional<leaf::keepalive> deserialize_keepalive(const std::vector<uint8_t> &data)
 {
     leaf::read_buffer r(data.data(), data.size());
     if (r.size() > 2048)

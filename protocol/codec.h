@@ -34,7 +34,7 @@ std::optional<leaf::upload_file_response> deserialize_upload_file_response(const
 std::optional<leaf::download_file_request> deserialize_download_file_request(const std::vector<uint8_t> &data);
 std::optional<leaf::download_file_response> deserialize_download_file_response(const std::vector<uint8_t> &data);
 std::optional<leaf::delete_file_request> deserialize_delete_file_request(const std::vector<uint8_t> &data);
-std::optional<leaf::keepalive> deserialize_keepalive_response(const std::vector<uint8_t> &data);
+std::optional<leaf::keepalive> deserialize_keepalive(const std::vector<uint8_t> &data);
 std::optional<leaf::login_request> deserialize_login_request(const std::vector<uint8_t> &data);
 std::optional<leaf::login_token> deserialize_login_token(const std::vector<uint8_t> &data);
 std::optional<leaf::files_request> deserialize_files_request(const std::vector<uint8_t> &data);
