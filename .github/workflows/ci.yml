@@ -48,11 +48,11 @@ jobs:
           useLocalCache: true
           cmakeVersion: "~3.25.0"
 
-      - name: Setup MSVC
-        uses: TheMrMilchmann/setup-msvc-dev@v3
-        with:
-          arch: ${{ matrix.msvc_arch }}
-
+      # - name: Setup MSVC
+      #   uses: TheMrMilchmann/setup-msvc-dev@v3
+      #   with:
+      #     arch: ${{ matrix.msvc_arch }}
+      #
       - name: Install Boost
         uses: MarkusJx/install-boost@v2
         id: install-boost
