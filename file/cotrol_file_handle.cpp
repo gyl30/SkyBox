@@ -181,7 +181,7 @@ static std::vector<leaf::file_node> lookup_dir(const std::filesystem::path& dir)
         return {};
     }
     std::stack<std::string> dirs;
-    dirs.push(dir);
+    dirs.push(dir.string());
     std::vector<leaf::file_node> files;
     while (!dirs.empty())
     {
@@ -201,7 +201,7 @@ static std::vector<leaf::file_node> lookup_dir(const std::filesystem::path& dir)
             }
             else if (entry.is_regular_file())
             {
-                std::string ext = entry.path().extension();
+                std::string ext = entry.path().extension().string();
                 if (ext != kLeafFilenameSuffix)
                 {
                     continue;
