@@ -233,7 +233,7 @@ void Widget::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton)
     {
-        click_pos_ = e->globalPos() - frameGeometry().topLeft();
+        click_pos_ = e->globalPosition().toPoint() - frameGeometry().topLeft();
         e->accept();
     }
 }
@@ -241,7 +241,7 @@ void Widget::mouseMoveEvent(QMouseEvent *e)
 {
     if ((e->buttons() & Qt::LeftButton) != 0U)
     {
-        move(e->globalPos() - click_pos_);
+        move(e->globalPosition().toPoint() - click_pos_);
         e->accept();
     }
 }
