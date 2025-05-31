@@ -100,10 +100,9 @@ void plain_http_session::on_write(bool keep_alive, boost::beast::error_code ec, 
 void plain_http_session::safe_shutdown()
 {
     LOG_INFO("shutdown {}", id_);
-    boost::beast::error_code ec;
     if (stream_.socket().is_open())
     {
-        ec = stream_.socket().close(ec);
+        stream_.socket().close();
     }
 
     std::shared_ptr<void> self = self_;

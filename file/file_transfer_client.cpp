@@ -79,12 +79,7 @@ boost::asio::awaitable<void> file_transfer_client::login(boost::system::error_co
         co_return;
     }
     token_ = login_response->token;
-    ec = stream.socket().close(ec);
-    if (ec)
-    {
-        LOG_ERROR("{} close socket failed {}", id_, ec.message());
-        co_return;
-    }
+    stream.socket().close();
 }
 boost::asio::awaitable<void> file_transfer_client::start_coro()
 {
@@ -153,47 +148,47 @@ boost::asio::awaitable<void> file_transfer_client::shutdown_coro()
 
 void file_transfer_client::add_upload_file(const std::string &filename)
 {
-    ex_->post(
-        [this, filename]()
-        {
-            if (upload_)
-            {
-                upload_->add_file(filename);
-            }
-        });
+    boost::asio::post(*ex_,
+                      [this, filename]()
+                      {
+                          if (upload_)
+                          {
+                              upload_->add_file(filename);
+                          }
+                      });
 }
 void file_transfer_client::add_download_file(const std::string &filename)
 {
-    ex_->post(
-        [this, filename]()
-        {
-            if (download_)
-            {
-                download_->add_file(filename);
-            }
-        });
+    boost::asio::post(*ex_,
+                      [this, filename]()
+                      {
+                          if (download_)
+                          {
+                              download_->add_file(filename);
+                          }
+                      });
 }
 void file_transfer_client::add_upload_files(const std::vector<std::string> &files)
 {
-    ex_->post(
-        [this, files]()
-        {
-            if (upload_)
-            {
-                upload_->add_files(files);
-            }
-        });
+    boost::asio::post(*ex_,
+                      [this, files]()
+                      {
+                          if (upload_)
+                          {
+                              upload_->add_files(files);
+                          }
+                      });
 }
 void file_transfer_client::add_download_files(const std::vector<std::string> &files)
 {
-    ex_->post(
-        [this, files]()
-        {
-            if (download_)
-            {
-                download_->add_files(files);
-            }
-        });
+    boost::asio::post(*ex_,
+                      [this, files]()
+                      {
+                          if (download_)
+                          {
+                              download_->add_files(files);
+                          }
+                      });
 }
 
 void file_transfer_client::create_directory(const std::string &dir)

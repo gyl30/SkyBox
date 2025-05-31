@@ -196,8 +196,7 @@ boost::asio::awaitable<void> cotrol_session::shutdown_coro()
 {
     if (timer_)
     {
-        boost::system::error_code ec;
-        timer_->cancel(ec);
+        timer_->cancel();
         timer_.reset();
     }
 

@@ -62,13 +62,7 @@ int application::exec()
     {
         std::atomic<bool> stop{false};
         boost::asio::signal_set sig(executors_->get_executor());
-        boost::system::error_code ec;
-        ec = sig.add(SIGINT, ec);
-        if (ec)
-        {
-            LOG_ERROR("add signal failed", ec.message());
-            return -1;
-        }
+        sig.add(SIGINT);
 
         // 注册退出信号
         sig.async_wait([&stop](boost::system::error_code, int /*s*/) { stop = true; });
@@ -83,7 +77,7 @@ int application::exec()
         }
         //
 
-        ec = sig.cancel(ec);
+        sig.cancel();
     }
     LOG_INFO("shutdown");
     shutdown();

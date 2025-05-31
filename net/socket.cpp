@@ -7,12 +7,7 @@ namespace leaf
 template <typename Ed>
 std::string get_endpoint_address_(const Ed& ed)
 {
-    boost::system::error_code ec;
-    const std::string ip = ed.address().to_string(ec);
-    if (ec)
-    {
-        return "";
-    }
+    const std::string ip = ed.address().to_string();
     const uint16_t port = ed.port();
     return ip + ":" + std::to_string(port);
 }
@@ -26,11 +21,7 @@ static std::string get_socket_local_ip_(Socket& socket)
     {
         return "";
     }
-    std::string ip = ed.address().to_string(ec);
-    if (ec)
-    {
-        return "";
-    }
+    std::string ip = ed.address().to_string();
     return ip;
 }
 template <typename Socket>
@@ -54,11 +45,7 @@ static std::string get_socket_remote_ip_(Socket& socket)
     {
         return "";
     }
-    std::string ip = ed.address().to_string(ec);
-    if (ec)
-    {
-        return "";
-    }
+    std::string ip = ed.address().to_string();
     return ip;
 }
 template <typename Socket>
@@ -137,11 +124,7 @@ boost::asio::ip::tcp::socket change_socket_io_context(boost::asio::ip::tcp::sock
     {
         return tmp;
     }
-    ec = tmp.assign(boost::asio::ip::tcp::v4(), fd, ec);
-    if (ec)
-    {
-        return tmp;
-    }
+    tmp.assign(boost::asio::ip::tcp::v4(), fd);
     return tmp;
 }
 }    // namespace leaf
