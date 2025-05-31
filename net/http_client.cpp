@@ -54,8 +54,7 @@ void http_client::post(const std::string &url, const std::string &data, const ht
 
     auto remote_endpoint = boost::asio::ip::tcp::endpoint(addr, port);
     stream_.expires_after(std::chrono::seconds(30));
-    stream_.async_connect(remote_endpoint,
-                          boost::beast::bind_front_handler(&http_client::on_connect, shared_from_this()));
+    stream_.async_connect(remote_endpoint, boost::beast::bind_front_handler(&http_client::on_connect, shared_from_this()));
 }
 
 void http_client::on_connect(boost::beast::error_code ec)
@@ -69,8 +68,7 @@ void http_client::on_connect(boost::beast::error_code ec)
     }
 
     stream_.expires_after(std::chrono::seconds(30));
-    boost::beast::http::async_write(
-        stream_, req_, boost::beast::bind_front_handler(&http_client::on_write, shared_from_this()));
+    boost::beast::http::async_write(stream_, req_, boost::beast::bind_front_handler(&http_client::on_write, shared_from_this()));
 }
 
 void http_client::on_write(boost::beast::error_code ec, std::size_t bytes_transferred)
@@ -86,8 +84,7 @@ void http_client::on_write(boost::beast::error_code ec, std::size_t bytes_transf
     }
     LOG_DEBUG("{} wirte {} bytes", id_, bytes_transferred);
     stream_.expires_after(std::chrono::seconds(30));
-    boost::beast::http::async_read(
-        stream_, buffer_, res_, boost::beast::bind_front_handler(&http_client::on_read, shared_from_this()));
+    boost::beast::http::async_read(stream_, buffer_, res_, boost::beast::bind_front_handler(&http_client::on_read, shared_from_this()));
 }
 
 void http_client::call_cb(boost::beast::error_code ec, const std::string &result)
@@ -113,19 +110,18 @@ void http_client::on_read(boost::beast::error_code ec, std::size_t bytes_transfe
 void http_client::shutdown()
 {
     auto self = shared_from_this();
-    io_context_.post([this, self]() { safe_shutdown(); });
+    boost::asio::post(io_context_, [this, self]() { safe_shutdown(); });
 }
 
 void http_client::safe_shutdown()
 {
-    if(shutdown_)
+    if (shutdown_)
     {
         return;
     }
     shutdown_ = true;
     LOG_DEBUG("{} safe shutdown", id_);
-    boost::system::error_code ec;
-    ec = stream_.socket().close(ec);
+    stream_.socket().close();
 }
 
 }    // namespace leaf

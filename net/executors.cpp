@@ -2,11 +2,7 @@
 
 using leaf::executors;
 
-static void worker(const leaf::executors::executor_ptr &ex)
-{
-    boost::system::error_code ignore;
-    ex->run(ignore);
-}
+static void worker(const leaf::executors::executor_ptr &ex) { ex->run(); }
 
 executors::executors(std::size_t executor_size) : executor_size_(executor_size) {}
 

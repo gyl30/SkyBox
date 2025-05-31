@@ -206,12 +206,12 @@ void upload_session::safe_add_files(const std::vector<std::string>& files)
 
 void upload_session::add_file(const std::string& filename)
 {
-    io_.post([this, filename, self = shared_from_this()]() { safe_add_file(filename); });
+    boost::asio::post(io_, [this, filename, self = shared_from_this()]() { safe_add_file(filename); });
 }
 
 void upload_session::add_files(const std::vector<std::string>& files)
 {
-    io_.post([this, files, self = shared_from_this()]() { safe_add_files(files); });
+    boost::asio::post(io_, [this, files, self = shared_from_this()]() { safe_add_files(files); });
 }
 
 leaf::upload_session::upload_context upload_session::create_upload_context(const std::string& filename, boost::beast::error_code& ec)

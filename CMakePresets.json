@@ -98,14 +98,14 @@
             "name": "windows-debug",
             "displayName": "Build Debug",
             "configurePreset": "windows-debug",
-            "jobs": 4,
+            "jobs": 16,
             "description": "Build using Debug preset"
         },
         {
             "name": "windows-release",
             "displayName": "Build Release",
             "configurePreset": "windows-release",
-            "jobs": 4,
+            "jobs": 16,
             "description": "Build using Release preset"
         }
     ]

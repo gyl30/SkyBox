@@ -12,46 +12,22 @@ tcp_server::~tcp_server() = default;
 void tcp_server::startup()
 {
     auto self = shared_from_this();
-    ex_.post([this, self] { safe_startup(); });
+    boost::asio::post(ex_, [this, self] { safe_startup(); });
 }
 
 void tcp_server::safe_startup()
 {
-    boost::beast::error_code ec;
-    ec = acceptor_.open(endpoint_.protocol(), ec);
-    if (ec)
-    {
-        handle_.error(ec);
-        return;
-    }
-
-    ec = acceptor_.set_option(boost::asio::socket_base::reuse_address(true), ec);
-    if (ec)
-    {
-        handle_.error(ec);
-        return;
-    }
-
-    ec = acceptor_.bind(endpoint_, ec);
-    if (ec)
-    {
-        handle_.error(ec);
-        return;
-    }
-
-    ec = acceptor_.listen(boost::asio::socket_base::max_listen_connections, ec);
-    if (ec)
-    {
-        handle_.error(ec);
-        return;
-    }
+    acceptor_.open(endpoint_.protocol());
+    acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
+    acceptor_.bind(endpoint_);
+    acceptor_.listen(boost::asio::socket_base::max_listen_connections);
     do_accept();
 }
 
 void tcp_server::shutdown()
 {
     auto self = shared_from_this();
-    ex_.post([this, self] { safe_shutdown(); });
+    boost::asio::post(ex_, [this, self] { safe_shutdown(); });
     while (!shutdown_)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(30));
@@ -60,8 +36,7 @@ void tcp_server::shutdown()
 
 void tcp_server::safe_shutdown()
 {
-    boost::system::error_code ec;
-    ec = acceptor_.close(ec);
+    acceptor_.close();
     shutdown_ = true;
 }
 

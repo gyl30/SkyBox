@@ -449,12 +449,12 @@ void download_session::safe_add_files(const std::vector<std::string>& files)
 
 void download_session::add_file(const std::string& file)
 {
-    io_.post([this, file, self = shared_from_this()]() { safe_add_file(file); });
+    boost::asio::post(io_, [this, file, self = shared_from_this()]() { safe_add_file(file); });
 }
 
 void download_session::add_files(const std::vector<std::string>& files)
 {
-    io_.post([this, files, self = shared_from_this()]() { safe_add_files(files); });
+    boost::asio::post(io_, [this, files, self = shared_from_this()]() { safe_add_files(files); });
 }
 
 }    // namespace leaf

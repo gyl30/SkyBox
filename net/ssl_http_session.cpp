@@ -36,8 +36,7 @@ void ssl_http_session::shutdown()
 void ssl_http_session::safe_shutdown()
 {
     LOG_INFO("shutdown {}", id_);
-    boost::system::error_code ec;
-    ec = stream_.next_layer().socket().close(ec);
+    stream_.next_layer().socket().close();
 
     auto self = self_;
     self_.reset();

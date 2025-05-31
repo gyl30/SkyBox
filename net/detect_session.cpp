@@ -61,8 +61,7 @@ void detect_session::safe_detect(boost::beast::error_code ec, bool result)
 void detect_session::safe_shutdown()
 {
     LOG_INFO("shutdown {}", id_);
-    boost::system::error_code ec;
-    ec = stream_.socket().close(ec);
+    stream_.socket().close();
 }
 
 }    // namespace leaf
