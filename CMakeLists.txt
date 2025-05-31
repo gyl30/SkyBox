@@ -2,13 +2,15 @@ cmake_minimum_required(VERSION 3.20)
 
 project(SkyBox VERSION 1.0.0)
 
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 OLD)
+endif()
+
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/install)
 
-
-# 构建类型和调试信息
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
@@ -40,14 +42,17 @@ if(NOT WIN32)
 endif()
 
 # Boost
+add_definitions(-DBOOST_ASIO_NO_DEPRECATED)
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_DEBUG_LIBS ON)
 set(Boost_USE_RELEASE_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME ON)
-find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem context url thread program_options)
+find_package(Boost 1.86.0 REQUIRED COMPONENTS system filesystem context url thread program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 list(APPEND LINK_LIBS ${Boost_LIBRARIES})
+MESSAGE(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
+MESSAGE(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
 
 find_package(PkgConfig REQUIRED)
 # Sodium + libuv
