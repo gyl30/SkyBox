@@ -9,7 +9,7 @@ static QIcon emoji_to_icon(const QString &emoji, int size)
 
     QPainter painter(&pixmap);
     QFont font("EmojiOne");
-    font.setPointSizeF(size * 0.5);
+    font.setPointSizeF(size * 0.8);
     painter.setFont(font);
     painter.setPen(Qt::black);
     painter.drawText(pixmap.rect(), Qt::AlignCenter, emoji);
@@ -45,14 +45,9 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
     layout->addWidget(close_btn_);
 
     setStyleSheet(R"(
-        QWidget#TitleBar {
-            border-top-left-radius: 4px;
-            border-top-right-radius: 4px;
-        }
         QPushButton {
             background: transparent;
             border: none;
-            padding: 4px;
             min-width: 32px;
             min-height: 32px;
             border-radius: 0;
@@ -67,7 +62,6 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
             background: #F44336;
         }
         QLabel#TitleLabel {
-            font-size: 18px;
             font-weight: bold;
             padding-left: 0px;
         }
