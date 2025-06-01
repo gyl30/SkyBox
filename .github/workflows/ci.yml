@@ -145,6 +145,9 @@ jobs:
           echo "---------------- dir .\install\gclient"
           dir .\install\gclient
 
+      - name: Dump Qt EXE dependencies
+        shell: pwsh
+        run: |
           echo "---------------- dir .\install\gclient"
           dir .\install\gclient
           echo "---------------- windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe"
