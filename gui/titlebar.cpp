@@ -87,7 +87,7 @@ void TitleBar::mousePressEvent(QMouseEvent *event)
 {
     if ((event->buttons() & Qt::LeftButton) != 0U)
     {
-        drag_position_ = event->globalPos() - parentWidget()->frameGeometry().topLeft();
+        drag_position_ = event->globalPosition().toPoint() - parentWidget()->frameGeometry().topLeft();
         event->accept();
     }
 }
@@ -96,7 +96,7 @@ void TitleBar::mouseMoveEvent(QMouseEvent *event)
 {
     if ((event->buttons() & Qt::LeftButton) != 0U)
     {
-        parentWidget()->move(event->globalPos() - drag_position_);
+        parentWidget()->move(event->globalPosition().toPoint() - drag_position_);
         event->accept();
     }
 }
