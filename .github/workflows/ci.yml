@@ -114,14 +114,6 @@ jobs:
           dir .\install\server
           echo "---------------- dir .\install\client"
           dir .\install\client
-          echo "---------------- dir .\install\gclient"
-          dir .\install\gclient
-          echo "---------------- windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe"
-          windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe --${{ matrix.build_type }} --no-translations --no-system-d3d-compiler --dir .\install\gclient\
-          echo "---------------- dir .\install\gclient"
-          dir .\install\gclient
-          echo "---------------- ldd .\install\gclient\gclient.exe"
-          ldd .\install\gclient\gclient.exe
 
       - name: Dump EXE dependencies
         if: matrix.build_type == 'debug'
@@ -145,8 +137,18 @@ jobs:
           ldd .\install\client\client.exe | awk '{print $3}' | xargs -I % cp % .\install\client\
           echo "---------------- dir .\install\client"
           dir .\install\client
- 
-          ldd .\install\glient\gclient.exe | awk '{print $3}' | xargs -I % cp % .\install\gclient\
+
+          echo "---------------- ldd .\install\gclient\gclient.exe"
+          ldd .\install\gclient\gclient.exe
+
+          ldd .\install\gclient\gclient.exe | awk '{print $3}' | xargs -I % cp % .\install\gclient\
+          echo "---------------- dir .\install\gclient"
+          dir .\install\gclient
+
+          echo "---------------- dir .\install\gclient"
+          dir .\install\gclient
+          echo "---------------- windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe"
+          windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe --${{ matrix.build_type }} --no-translations --no-system-d3d-compiler --dir .\install\gclient\
           echo "---------------- dir .\install\gclient"
           dir .\install\gclient
 
