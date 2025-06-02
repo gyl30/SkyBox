@@ -9,7 +9,7 @@ static QIcon emoji_to_icon(const QString &emoji, int size)
 
     QPainter painter(&pixmap);
     QFont font("EmojiOne");
-    font.setPointSizeF(size * 0.8);
+    font.setPointSizeF(size * 0.65);
     painter.setFont(font);
     painter.setPen(Qt::black);
     painter.drawText(pixmap.rect(), Qt::AlignCenter, emoji);
@@ -48,15 +48,13 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
         QPushButton {
             background: transparent;
             border: none;
-            min-width: 32px;
-            min-height: 32px;
             border-radius: 0;
         }
         QPushButton:hover {
             background: rgba(255, 255, 255, 0.2);
         }
         QPushButton#MinButton:hover {
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.2);
         }
         QPushButton#CloseButton:hover {
             background: #F44336;
@@ -70,6 +68,8 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
     // 设置按钮图标
     min_btn_->setIcon(emoji_to_icon("➖", 24));
     close_btn_->setIcon(emoji_to_icon("❌", 24));
+    min_btn_->setFixedSize(36, 36);
+    close_btn_->setFixedSize(36, 36);
     min_btn_->setIconSize(QSize(24, 24));
     close_btn_->setIconSize(QSize(24, 24));
 
