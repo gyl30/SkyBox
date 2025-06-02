@@ -54,10 +54,10 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
             background: rgba(255, 255, 255, 0.2);
         }
         QPushButton#MinButton:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.2);
         }
         QPushButton#CloseButton:hover {
-            background: #F44336;
+            background: #ff4c4c;
         }
         QLabel#TitleLabel {
             font-weight: bold;

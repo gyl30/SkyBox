@@ -5,6 +5,7 @@
 #include <QFileDialog>
 #include <QMetaType>
 #include <QTime>
+#include <QMenu>
 #include <QLabel>
 #include <QTableWidget>
 #include <QTableWidgetItem>
@@ -18,76 +19,123 @@
 #include <QMap>
 #include <QMessageBox>
 
+#include <memory>
 #include "log/log.h"
 #include "gui/task.h"
 #include "gui/widget.h"
 #include "gui/titlebar.h"
-#include "gui/table_view.h"
-#include "gui/table_model.h"
-#include "gui/table_widget.h"
-#include "gui/table_delegate.h"
-#include "gui/files_widget.h"
-#include "protocol/message.h"
-
-static QIcon emoji_to_icon(const QString &emoji, int size = 32)
-{
-    QPixmap pixmap(size, size);
-    pixmap.fill(Qt::transparent);
-
-    QPainter painter(&pixmap);
-    QFont font("EmojiOne");
-    font.setPointSizeF(size * 0.5);
-    painter.setFont(font);
-    painter.setPen(Qt::black);
-    painter.drawText(pixmap.rect(), Qt::AlignCenter, emoji);
-    painter.end();
-    return pixmap;
-}
-static void append_task_to_wiget(QTableWidget *table, const leaf::task &task, const QTime &t)
-{
-    // 0
-    auto *filename_item = new QTableWidgetItem();
-    filename_item->setText(QString::fromStdString(task.filename));
-    filename_item->setTextAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-    // 1
-    auto *op_item = new QTableWidgetItem();
-    op_item->setText(QString::fromStdString(task.op));
-    op_item->setTextAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-    // 2
-    auto *size_item = new QTableWidgetItem();
-    size_item->setText(QString::fromStdString(std::to_string(task.file_size)));
-    size_item->setTextAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-    // 3
-    auto *time_item = new QTableWidgetItem();
-    time_item->setText(t.toString());
-    time_item->setTextAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-    //
-    table->insertRow(table->rowCount());
-    table->setItem(table->rowCount() - 1, 0, filename_item);
-    table->setItem(table->rowCount() - 1, 1, op_item);
-    table->setItem(table->rowCount() - 1, 2, size_item);
-    table->setItem(table->rowCount() - 1, 3, time_item);
-}
+#include "gui/file_item.h"
 
 Widget::Widget(QWidget *parent) : QWidget(parent)
 {
+    resize(800, 600);
+    QFont font("EmojiOne");
+    QApplication::setFont(font);
     qRegisterMetaType<leaf::task>("leaf::task");
-    qRegisterMetaType<leaf::gfile>("leaf::gfile");
     qRegisterMetaType<leaf::notify_event>("leaf::notify_event");
     setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
 
-    table_view_ = new leaf::task_table_view(this);
+    main_layout = new QVBoxLayout(this);
 
-    model_ = new leaf::task_model();
+    stack_ = new QStackedWidget(this);
+    file_page_ = new QWidget(stack_);
+    upload_page_ = new QWidget(stack_);
+    stack_->addWidget(file_page_);
+    stack_->addWidget(upload_page_);
+    stack_->setCurrentWidget(file_page_);
 
-    table_view_->setModel(model_);
+    setup_login_ui();
 
-    auto *delegate = new leaf::task_style_delegate();
-    table_view_->setItemDelegateForColumn(1, delegate);
+    setup_side_ui();
 
-    // 用户登录区域
+    setup_files_ui();
+
+    setup_connections();
+
+    auto *title_bar = new TitleBar(this);
+    connect(title_bar, &TitleBar::minimizeClicked, this, &QWidget::showMinimized);
+    connect(title_bar, &TitleBar::closeClicked, this, &QWidget::close);
+
+    content_layout_ = new QHBoxLayout();
+    content_layout_->addLayout(side_layout_);
+    content_layout_->addWidget(stack_);
+    content_layout_->setSpacing(8);
+    content_layout_->setContentsMargins(0, 0, 0, 0);
+
+    main_layout->addWidget(title_bar);
+    main_layout->addLayout(login_layout_);
+    main_layout->addLayout(content_layout_);
+    main_layout->setContentsMargins(8, 0, 0, 0);
+
+    connect(this, &Widget::progress_slot, this, &Widget::on_progress_slot);
+    connect(this, &Widget::notify_event_slot, this, &Widget::on_notify_event_slot);
+    connect(this, &Widget::error_occurred, this, &Widget::on_error_occurred);
+
+    setup_demo_data();
+
+    current_dir_ = root_;
+    model_->set_current_dir(current_dir_);
+
+    update_breadcrumb();
+}
+void Widget::setup_demo_data()
+{
+    root_ = std::make_shared<file_item>("根目录", file_item_type::Folder);
+    auto folder_a = std::make_shared<file_item>("文档", file_item_type::Folder);
+    folder_a->parent_ = root_;
+    folder_a->last_modified_ = QDateTime::currentDateTime().addDays(-5);
+
+    auto file_a1 = std::make_shared<file_item>("产品需求文档.docx", file_item_type::File);
+    file_a1->parent_ = folder_a;
+    file_a1->file_size_ = 1024L * 350;                                           // 350KB
+    file_a1->last_modified_ = QDateTime::currentDateTime().addSecs(360L * 2);    // 2小时前
+
+    auto file_a2 = std::make_shared<file_item>("会议纪要.txt", file_item_type::File);
+    file_a2->parent_ = folder_a;
+    file_a2->file_size_ = 1024L * 2;    // 2KB
+    file_a2->last_modified_ = QDateTime::currentDateTime().addDays(-1);
+
+    folder_a->children_ = {file_a1, file_a2};
+
+    auto folder_b = std::make_shared<file_item>("图片收藏", file_item_type::Folder);
+    folder_b->parent_ = root_;
+    folder_b->last_modified_ = QDateTime::currentDateTime().addDays(-2);
+
+    auto file_b1 = std::make_shared<file_item>("风景照 (1).jpg", file_item_type::File);
+    file_b1->parent_ = folder_b;
+    file_b1->file_size_ = 1024L * 1024 * 2;    // 2MB
+    file_b1->last_modified_ = QDateTime::currentDateTime().addSecs(-30);
+
+    folder_b->children_ = {file_b1};
+
+    auto file_c = std::make_shared<file_item>("项目计划.pdf", file_item_type::File);
+    file_c->parent_ = root_;
+    file_c->file_size_ = 1024L * 780;    // 780KB
+    file_c->last_modified_ = QDateTime::currentDateTime().addDays(-10);
+
+    root_->children_ = {folder_a, folder_b, file_c};
+}
+
+void Widget::setup_side_ui()
+{
+    side_layout_ = new QVBoxLayout(this);
+    btn_file_page_ = new QPushButton("📁 我的文件");
+    btn_file_page_->setCheckable(true);
+    btn_file_page_->setChecked(true);
+    btn_file_page_->setFixedHeight(30);
+
+    btn_upload_page_ = new QPushButton("⏳ 上传任务");
+    btn_upload_page_->setCheckable(true);
+    btn_upload_page_->setFixedHeight(30);
+
+    side_layout_->addWidget(btn_file_page_);
+    side_layout_->addWidget(btn_upload_page_);
+}
+
+void Widget::setup_login_ui()
+{
+    login_layout_ = new QHBoxLayout(this);
     user_label_ = new QLabel("用户名:");
-
     user_edit_ = new QLineEdit();
     user_edit_->setPlaceholderText("请输入用户名");
     user_edit_->setMinimumWidth(150);
@@ -108,132 +156,503 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     login_btn_->setMinimumHeight(30);
     connect(login_btn_, &QToolButton::clicked, this, &Widget::on_login_btn_clicked);
 
-    auto *user_layout = new QHBoxLayout();
-    user_layout->setSpacing(10);
-    user_layout->addStretch();
-    user_layout->addWidget(user_label_);
-    user_layout->addWidget(user_edit_);
-    user_layout->addSpacing(20);
-    user_layout->addWidget(key_label_);
-    user_layout->addWidget(key_edit_);
-    user_layout->addSpacing(20);
-    user_layout->addWidget(login_btn_);
-    user_layout->addStretch();
+    login_layout_->setSpacing(10);
+    login_layout_->addStretch();
+    login_layout_->addWidget(user_label_);
+    login_layout_->addWidget(user_edit_);
+    login_layout_->addSpacing(20);
+    login_layout_->addWidget(key_label_);
+    login_layout_->addWidget(key_edit_);
+    login_layout_->addSpacing(20);
+    login_layout_->addWidget(login_btn_);
+    login_layout_->addStretch();
+}
 
-    finish_btn_ = new QToolButton(this);
-    finish_btn_->setText("已完成");
-    progress_btn_ = new QToolButton(this);
-    progress_btn_->setText("上传中");
-    upload_btn_ = new QToolButton(this);
-    upload_btn_->setText("上传文件");
-    files_btn_ = new QToolButton(this);
-    files_btn_->setText("文件列表");
-    style_btn_ = new QToolButton(this);
-    style_btn_->setText("切换主题");
+void Widget::setup_files_ui()
+{
+    new_folder_btn_ = new QPushButton("📂 新建文件夹");
+    new_folder_btn_->setFixedHeight(30);
+    upload_file_btn_ = new QPushButton("⏫ 上传文件");
+    upload_file_btn_->setFixedHeight(30);
 
-    files_btn_->setIcon(emoji_to_icon("📁", 64));
-    upload_btn_->setIcon(emoji_to_icon("📤", 64));
-    progress_btn_->setIcon(emoji_to_icon("⏳", 64));
-    finish_btn_->setIcon(emoji_to_icon("✅", 64));
-    style_btn_->setIcon(emoji_to_icon("🌈", 64));
-    QToolButton *buttons[] = {finish_btn_, progress_btn_, upload_btn_, files_btn_, style_btn_};
+    auto *file_page_layout = new QVBoxLayout(file_page_);
+    file_page_layout->setContentsMargins(0, 0, 0, 0);
+    file_page_layout->setSpacing(0);
 
-    // 设置按钮样式
-    for (QToolButton *btn : buttons)
+    auto *breadcrumb_container = new QWidget(file_page_);    // 面包屑的容器，用于背景色和边框
+    breadcrumb_container->setFixedHeight(40);
+    breadcrumb_container->setStyleSheet("QWidget { background-color: #fafafa; border-bottom: 1px solid #e0e0e0; }");
+    auto *breadcrumb_container_layout = new QHBoxLayout(breadcrumb_container);
+    breadcrumb_container_layout->setContentsMargins(10, 0, 10, 0);
+    breadcrumb_widget_ = new QWidget(breadcrumb_container);    // breadcrumb_widget_ 实际放按钮
+    breadcrumb_layout_ = new QHBoxLayout(breadcrumb_widget_);
+    breadcrumb_layout_->setContentsMargins(0, 0, 10, 0);
+    breadcrumb_layout_->setSpacing(0);    // 面包屑按钮间无间距
+    breadcrumb_container_layout->addWidget(breadcrumb_widget_);
+    breadcrumb_container_layout->addStretch();
+    breadcrumb_container_layout->addWidget(new_folder_btn_);
+    breadcrumb_container_layout->setSpacing(5);    // 面包屑按钮间无间距
+    breadcrumb_container_layout->addWidget(upload_file_btn_);
+    file_page_layout->addWidget(breadcrumb_container);
+    // 文件列表视图
+    view_ = new QListView(file_page_);
+    view_->setViewMode(QListView::IconMode);
+    view_->setIconSize(QSize(56, 56));
+    view_->setGridSize(QSize(110, 100));
+    view_->setSpacing(15);
+    view_->setUniformItemSizes(true);
+    view_->setSelectionMode(QAbstractItemView::SingleSelection);
+    view_->setContextMenuPolicy(Qt::CustomContextMenu);
+    view_->setEditTriggers(QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked);
+    view_->setWordWrap(true);
+    view_->setContentsMargins(10, 10, 10, 10);
+
+    view_->setStyleSheet(
+        "QListView {"
+        "    background-color: white;"
+        "    outline: 0;"
+        "    border: none;"
+        "}"
+        "QListView::item {"
+        "    background-color: transparent;"
+        "    color: #212121;"
+        "    padding: 4px;"
+        "    border-radius: 3px;"
+        "    text-align: center;"
+        "}"
+        "QListView::item:selected {"
+        "    background-color: #e3f2fd; /* 浅蓝 Material Design Blue 50 */"
+        "    color: #0d47a1;       /* 深蓝 Material Design Blue 900 */"
+        "}"
+        "QListView::item:hover {"
+        "    background-color: #f5f5f5; /* 浅灰 Material Design Grey 100 */"
+        "}"
+        "QListView::item:selected:hover {"
+        "    background-color: #bbdefb; /* 稍深选中蓝 Material Design Blue 100 */"
+        "}"
+        // 隐藏滚动条
+        "QListView QScrollBar:vertical { border: none; background: transparent; width: 0px; margin: 0px; }"
+        "QListView QScrollBar::handle:vertical { background: transparent; min-height: 0px; }"
+        "QListView QScrollBar::add-line:vertical, QListView QScrollBar::sub-line:vertical { border: none; background: "
+        "transparent; height: 0px; }"
+        "QListView QScrollBar::up-arrow:vertical, QListView QScrollBar::down-arrow:vertical { background: transparent; "
+        "}"
+        "QListView QScrollBar::add-page:vertical, QListView QScrollBar::sub-page:vertical { background: transparent; }"
+        "QListView QScrollBar:horizontal { border: none; background: transparent; height: 0px; margin: 0px; }"
+        "QListView QScrollBar::handle:horizontal { background: transparent; min-width: 0px; }"
+        "QListView QScrollBar::add-line:horizontal, QListView QScrollBar::sub-line:horizontal { border: none; "
+        "background: transparent; width: 0px; }"
+        "QListView QScrollBar::left-arrow:horizontal, QListView QScrollBar::right-arrow:horizontal { background: "
+        "transparent; }"
+        "QListView QScrollBar::add-page:horizontal, QListView QScrollBar::sub-page:horizontal { background: "
+        "transparent; }");
+    view_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    view_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);    // IconMode通常不需要水平滚动
+
+    model_ = new file_model(this);
+    view_->setModel(model_);
+    file_page_layout->addWidget(view_, 1);
+    loading_overlay_ = new QWidget(file_page_);
+    loading_overlay_->setObjectName("loadingOverlay");
+    loading_overlay_->setStyleSheet(
+        "#loadingOverlay {"
+        "   background-color: rgba(255, 255, 255, 220);"
+        "   border-radius: 5px;"
+        "}");
+    auto *overlay_v_layout = new QVBoxLayout(loading_overlay_);
+    loading_label_ = new QLabel("🔄 加载中...", loading_overlay_);
+    loading_label_->setAlignment(Qt::AlignCenter);
+    QFont loading_font = loading_label_->font();
+    loading_font.setPointSize(14);
+    loading_font.setBold(true);
+    loading_label_->setFont(loading_font);
+    loading_label_->setStyleSheet("QLabel { color: #555555; background-color: transparent; }");
+    overlay_v_layout->addStretch();
+    overlay_v_layout->addWidget(loading_label_);
+    overlay_v_layout->addStretch();
+    loading_overlay_->hide();
+    file_page_->installEventFilter(this);
+}
+
+void Widget::setup_connections()
+{
+    connect(btn_file_page_, &QPushButton::clicked, this, &Widget::show_file_page);
+    connect(btn_upload_page_, &QPushButton::clicked, this, &Widget::show_upload_page);
+
+    connect(new_folder_btn_, &QPushButton::clicked, this, &Widget::on_new_folder);
+    connect(upload_file_btn_, &QPushButton::clicked, this, &Widget::on_upload_file);
+
+    connect(view_, &QListView::doubleClicked, this, [this](const QModelIndex &index) { view_dobule_clicked(index); });
+    connect(view_, &QListView::customContextMenuRequested, this, [this](const QPoint &pos) { view_custom_context_menu_requested(pos); });
+}
+void Widget::view_dobule_clicked(const QModelIndex &index)
+{
+    if (!index.isValid())
     {
-        btn->setCheckable(true);
-        btn->setAutoRaise(true);
-        btn->setToolButtonStyle(Qt::ToolButtonTextOnly);
-        btn->setIconSize(QSize(64, 64));
+        return;
+    }
+    auto item = model_->item_at(index.row());
+    if (!item)
+    {
+        return;
     }
 
-    btn_group_ = new QButtonGroup(this);
-    btn_group_->setExclusive(true);
-    btn_group_->addButton(finish_btn_);
-    btn_group_->addButton(progress_btn_);
-    btn_group_->addButton(upload_btn_);
-    btn_group_->addButton(files_btn_);
-    btn_group_->addButton(style_btn_);
-
-    style_list_ = QStyleFactory::keys();
-    finish_list_widget_ = new leaf::file_table_widget(this);
-    stacked_widget_ = new QStackedWidget(this);
-    files_widget_ = new leaf::files_widget(this);
-    upload_list_index_ = stacked_widget_->addWidget(table_view_);
-    finish_list_index_ = stacked_widget_->addWidget(finish_list_widget_);
-    files_list_index_ = stacked_widget_->addWidget(files_widget_);
-
-    finish_list_widget_->setSelectionBehavior(QAbstractItemView::SelectRows);     // 设置选中模式为选中行
-    finish_list_widget_->setSelectionMode(QAbstractItemView::SingleSelection);    // 设置选中单个
-    finish_list_widget_->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    finish_list_widget_->setShowGrid(false);
-    finish_list_widget_->verticalHeader()->setHidden(true);
-    finish_list_widget_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    connect(files_widget_, &leaf::files_widget::notify_event_signal, this, &Widget::on_notify_event_slot);
-    // clang-format off
-    connect(upload_btn_, &QPushButton::clicked, this, &Widget::on_new_file_clicked);
-    connect(finish_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(finish_list_index_); });
-    connect(progress_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(upload_list_index_); });
-    connect(files_btn_, &QPushButton::clicked, this, [this]() { stacked_widget_->setCurrentIndex(files_list_index_); });
-    connect(style_btn_, &QPushButton::clicked, [this]() { on_style_btn_clicked(); });
-    // clang-format on
-
-    stacked_widget_->setCurrentIndex(files_list_index_);
-    auto *side_layout = new QVBoxLayout();
-    side_layout->addWidget(upload_btn_);
-    side_layout->addWidget(style_btn_);
-    side_layout->addWidget(files_btn_);
-    side_layout->addWidget(progress_btn_);
-    side_layout->addWidget(finish_btn_);
-
-    auto *title_bar = new TitleBar(this);
-    connect(title_bar, &TitleBar::minimizeClicked, this, &QWidget::showMinimized);
-    connect(title_bar, &TitleBar::closeClicked, this, &QWidget::close);
-
-    auto *content_layout = new QHBoxLayout();
-    content_layout->addLayout(side_layout);
-    content_layout->addWidget(stacked_widget_);
-    content_layout->setSpacing(8);
-    content_layout->setContentsMargins(0, 0, 0, 0);
-
-    auto *main_layout = new QVBoxLayout(this);
-    main_layout->addWidget(title_bar);
-    main_layout->addLayout(user_layout);
-    main_layout->addLayout(content_layout);
-    main_layout->setContentsMargins(8, 0, 0, 0);
-
-    theme_names_ = QStyleFactory::keys();
-    // 设置主题名称列表
-    current_theme_index_ = 0;
-
-    // 修改样式按钮的文本
-    style_btn_->setText("切换主题");
-
-    // 修改主题切换函数
-    connect(style_btn_,
-            &QPushButton::clicked,
-            this,
-            [this]()
-            {
-                current_theme_index_ = (current_theme_index_ + 1) % theme_names_.size();
-                QString theme_name = theme_names_.at(current_theme_index_);
-                QApplication::setStyle(QStyleFactory::create(theme_name));
-            });
-
-    progress_timer_ = new QTimer(this);
-    progress_timer_->start(600);
-    connect(progress_timer_, &QTimer::timeout, this, &Widget::update_progress_btn_icon);
-    connect(this, &Widget::progress_slot, this, &Widget::on_progress_slot);
-    connect(this, &Widget::notify_event_slot, this, &Widget::on_notify_event_slot);
-    connect(this, &Widget::error_occurred, this, &Widget::on_error_occurred);
-
-    resize(800, 600);
+    if (item->type_ == file_item_type::Folder)
+    {
+        current_dir_ = item;
+        model_->set_current_dir(current_dir_);
+        update_breadcrumb();
+    }
 }
+
+void Widget::view_custom_context_menu_requested(const QPoint &pos)
+{
+    QModelIndex index = view_->indexAt(pos);
+    if (!index.isValid())
+    {
+        return;
+    }
+
+    std::shared_ptr<file_item> item = model_->item_at(index.row());
+    if (!item)
+    {
+        return;
+    }
+
+    QMenu context_menu(view_);
+    QAction *rename_action = context_menu.addAction("✏️ 重命名");
+    QAction *delete_action = context_menu.addAction("🗑️ 删除");
+    context_menu.addSeparator();
+    QAction *properties_action = context_menu.addAction("ℹ️ 属性");
+
+    QAction *selected_action = context_menu.exec(view_->viewport()->mapToGlobal(pos));
+
+    if (selected_action == rename_action)
+    {
+        view_->edit(index);    // 直接进入编辑模式
+    }
+    else if (selected_action == delete_action)
+    {
+        if (QMessageBox::question(this,
+                                  "确认删除",
+                                  QString("确定要删除 \"%1\"吗？此操作不可恢复。").arg(item->display_name_),
+                                  QMessageBox::Yes | QMessageBox::No,
+                                  QMessageBox::No) == QMessageBox::Yes)
+        {
+            QMessageBox::information(this, "删除", "删除：" + item->display_name_);
+        }
+    }
+    else if (selected_action == properties_action)
+    {
+        QMessageBox::information(this,
+                                 "属性",
+                                 QString("名称: %1\n类型: %2\n大小: %3\n最后修改: %4\n存储名 (Base64): %5")
+                                     .arg(item->display_name_)
+                                     .arg(item->type_ == file_item_type::Folder ? "文件夹" : "文件")
+                                     .arg(item->file_size_)    // 复用格式化函数
+                                     .arg(item->last_modified_.toString("yyyy-MM-dd hh:mm:ss"))
+                                     .arg(item->get_storage_name()));
+    }
+}
+bool Widget::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == file_page_ && event->type() == QEvent::Resize)
+    {
+        if (loading_overlay_->isVisible())
+        {
+            loading_overlay_->setGeometry(0, 0, file_page_->width(), file_page_->height());
+        }
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
+void Widget::show_file_page()
+{
+    stack_->setCurrentWidget(file_page_);
+    btn_file_page_->setChecked(true);
+    btn_upload_page_->setChecked(false);
+    new_folder_btn_->setEnabled(true);
+    upload_file_btn_->setEnabled(true);
+}
+
+void Widget::show_upload_page()
+{
+    btn_file_page_->setChecked(false);
+    btn_upload_page_->setChecked(true);
+}
+
+void Widget::on_upload_file()
+{
+    QStringList files = QFileDialog::getOpenFileNames(this, "选择要上传的文件", QDir::homePath());
+    if (files.isEmpty())
+    {
+        return;
+    }
+
+    show_upload_page();    // 上传后自动切换到上传列表页面
+}
+
+void Widget::on_new_folder()
+{
+    QString folder_name_base = "新建文件夹";
+    QString unique_name = folder_name_base;
+    int count = 1;
+    // 确保 displayName 唯一 (不区分大小写)
+    while (model_->name_exists(unique_name, file_item_type::Folder))
+    {
+        unique_name = QString("%1 (%2)").arg(folder_name_base).arg(count++);
+    }
+
+    std::shared_ptr<file_item> new_folder_item;
+    if (model_->add_folder(unique_name, new_folder_item))
+    {
+        // 选中新创建的文件夹并进入编辑模式
+        int row_count = model_->rowCount();
+        if (row_count > 0)
+        {
+            QModelIndex new_index = model_->index(row_count - 1, 0);    // 假设新项在最后
+            // 遍历查找实际的索引，因为add_folder后顺序可能因排序而变（如果未来有排序）
+            for (int i = 0; i < row_count; ++i)
+            {
+                if (model_->item_at(i) == new_folder_item)
+                {
+                    new_index = model_->index(i, 0);
+                    break;
+                }
+            }
+            if (new_index.isValid())
+            {
+                view_->setCurrentIndex(new_index);
+                view_->edit(new_index);    // 使其可编辑
+            }
+        }
+    }
+    else
+    {
+        QMessageBox::warning(this, "创建失败", "无法创建文件夹，可能名称不合法或已存在。");
+    }
+}
+
+void Widget::on_breadcrumb_clicked()
+{
+    QObject *sender_obj = sender();
+    if (sender_obj == nullptr)
+    {
+        return;
+    }
+
+    bool ok;
+    int idx = sender_obj->property("crumbIndex").toInt(&ok);
+
+    if (ok && idx >= 0 && idx < breadcrumb_list_.size())
+    {
+        current_dir_ = breadcrumb_list_[idx];
+        model_->set_current_dir(current_dir_);
+        update_breadcrumb();
+    }
+}
+
+void Widget::update_breadcrumb()
+{
+    clear_breadcrumb_layout();
+
+    build_breadcrumb_path();
+
+    if (breadcrumb_list_.isEmpty())
+    {
+        breadcrumb_layout_->addStretch();
+        return;
+    }
+
+    const int MAX_VISIBLE = 5;
+    const int START_COUNT = 1;
+    const int END_COUNT = 2;
+    bool truncate = breadcrumb_list_.size() > MAX_VISIBLE;
+
+    QList<QWidget *> widgets;
+
+    for (int i = 0; i < breadcrumb_list_.size(); ++i)
+    {
+        if (truncate && i >= START_COUNT && i < breadcrumb_list_.size() - END_COUNT)
+        {
+            if (i == START_COUNT)
+            {
+                widgets.append(create_ellipsis_button(i));
+            }
+            continue;
+        }
+        widgets.append(create_breadcrumb_button(i));
+    }
+
+    for (int i = 0; i < widgets.size(); ++i)
+    {
+        breadcrumb_layout_->addWidget(widgets[i]);
+        if (i < widgets.size() - 1)
+        {
+            auto *btn = qobject_cast<QToolButton *>(widgets[i]);
+            if ((nullptr != btn) && btn->isEnabled())
+            {
+                auto *sep = new QLabel("❯", breadcrumb_widget_);
+                sep->setStyleSheet("QLabel { margin: 0 3px; color: #757575; }");
+                breadcrumb_layout_->addWidget(sep);
+            }
+        }
+    }
+
+    breadcrumb_layout_->addStretch();
+}
+void Widget::clear_breadcrumb_layout()
+{
+    QLayoutItem *child;
+    while ((child = breadcrumb_layout_->takeAt(0)) != nullptr)
+    {
+        if (child->widget() != nullptr)
+        {
+            child->widget()->deleteLater();
+        }
+        delete child;
+    }
+    breadcrumb_list_.clear();
+}
+
+void Widget::build_breadcrumb_path()
+{
+    std::shared_ptr<file_item> dir = current_dir_;
+    while (dir)
+    {
+        breadcrumb_list_.prepend(dir);
+        dir = dir->parent_.lock();
+    }
+}
+
+QToolButton *Widget::create_breadcrumb_button(int index)
+{
+    auto *btn = new QToolButton(breadcrumb_widget_);
+    auto &item = breadcrumb_list_[index];
+    QString text = (index == 0 && item->display_name_ == "根目录") ? "🏠 " + item->display_name_ : item->display_name_;
+
+    btn->setText(text);
+    btn->setToolTip(item->display_name_);
+    btn->setProperty("crumbIndex", index);
+    btn->setAutoRaise(true);
+    btn->setCursor(Qt::PointingHandCursor);
+
+    if (index == breadcrumb_list_.size() - 1)
+    {
+        btn->setEnabled(false);
+        QFont font = btn->font();
+        font.setBold(true);
+        btn->setFont(font);
+        btn->setStyleSheet("QToolButton:disabled { color: black; }");
+    }
+    else
+    {
+        connect(btn, &QToolButton::clicked, this, &Widget::on_breadcrumb_clicked);
+    }
+
+    return btn;
+}
+
+QToolButton *Widget::create_ellipsis_button(int start_index)
+{
+    auto *btn = new QToolButton(breadcrumb_widget_);
+    btn->setText("...");
+    btn->setToolTip("更多路径");
+    btn->setAutoRaise(true);
+    btn->setCursor(Qt::PointingHandCursor);
+
+    auto *menu = new QMenu(btn);
+    menu->setStyleSheet(R"(
+    QMenu {
+        background-color: white;
+        border: 1px solid #cccccc;
+        padding: 2px;
+        margin: 2px;
+        border-radius: 4px;
+    }
+
+    QMenu::item {
+        background-color: transparent;
+        color: #333333;
+        padding: 6px 24px;
+        border: 1px solid transparent;
+        font-size: 14px;
+    }
+
+    QMenu::item:selected {
+        background-color: #f0f0f0;
+        color: black;
+        border: 1px solid #aaaaaa;
+        border-radius: 3px;
+    }
+
+    QMenu::item:disabled {
+        color: #999999;
+        background-color: transparent;
+    }
+
+    QMenu::separator {
+        height: 1px;
+        background: #e0e0e0;
+        margin: 4px 10px;
+    }
+
+    QScrollBar:vertical {
+        border: none;
+        background: #f0f0f0;
+        width: 10px;
+        margin: 0px 0px 0px 0px;
+        border-radius: 5px;
+    }
+
+    QScrollBar::handle:vertical {
+        background: #cccccc;
+        min-height: 20px;
+        border-radius: 5px;
+    }
+
+    QScrollBar::add-line:vertical,
+    QScrollBar::sub-line:vertical {
+        height: 0px;
+    }
+
+    QScrollBar::add-page:vertical,
+    QScrollBar::sub-page:vertical {
+        background: none;
+    }
+)");
+
+    int end_index = breadcrumb_list_.size() - 2;
+    for (int j = start_index; j <= end_index; ++j)
+    {
+        QAction *action = menu->addAction(breadcrumb_list_[j]->display_name_);
+        action->setData(j);
+        connect(action,
+                &QAction::triggered,
+                this,
+                [this, action]()
+                {
+                    bool ok;
+                    int idx = action->data().toInt(&ok);
+                    if (ok && idx >= 0 && idx < breadcrumb_list_.size())
+                    {
+                        current_dir_ = breadcrumb_list_[idx];
+                        model_->set_current_dir(current_dir_);
+                        update_breadcrumb();
+                    }
+                });
+    }
+
+    btn->setMenu(menu);
+    btn->setPopupMode(QToolButton::InstantPopup);
+    return btn;
+}
+
 void Widget::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton)
     {
-        click_pos_ = e->globalPosition().toPoint() - frameGeometry().topLeft();
+        last_click_pos_ = e->globalPosition().toPoint() - frameGeometry().topLeft();
         e->accept();
     }
 }
@@ -241,7 +660,7 @@ void Widget::mouseMoveEvent(QMouseEvent *e)
 {
     if ((e->buttons() & Qt::LeftButton) != 0U)
     {
-        move(e->globalPosition().toPoint() - click_pos_);
+        move(e->globalPosition().toPoint() - last_click_pos_);
         e->accept();
     }
 }
@@ -252,12 +671,6 @@ void Widget::mouseDoubleClickEvent(QMouseEvent *e)
         hide();
     }
     QWidget::mouseDoubleClickEvent(e);
-}
-void Widget::update_progress_btn_icon()
-{
-    QIcon icon = emoji_to_icon(hourglass_frames_[static_cast<int>(progress_frame_index_)], 64);
-    progress_btn_->setIcon(icon);
-    progress_frame_index_ = (progress_frame_index_ + 1) % hourglass_frames_.size();
 }
 void Widget::on_login_btn_clicked()
 {
@@ -291,26 +704,13 @@ void Widget::on_login_btn_clicked()
     file_client_->startup();
 }
 
-void Widget::on_style_btn_clicked()
-{
-    if (style_index_ >= style_list_.size())
-    {
-        style_index_ = 0;
-    }
-    qApp->setStyle(QStyleFactory::create(style_list_.at(style_index_)));
-    style_index_++;
-}
 void Widget::on_progress_slot(const leaf::task &e)
 {
     LOG_INFO("{} progress {} {} {}", e.op, e.filename, e.process_size, e.file_size);
     if (e.process_size == e.file_size && e.file_size != 0)
     {
-        model_->delete_task(e);
-        append_task_to_wiget(finish_list_widget_, e, QTime::currentTime());
         return;
     }
-
-    model_->add_or_update_task(e);
 }
 
 void Widget::download_progress(const leaf::download_event &e)
@@ -335,21 +735,16 @@ void Widget::on_error_occurred(const QString &error_msg)
 {
     LOG_ERROR("error {}", error_msg.toStdString());
 
-    // 显示错误消息给用户
     QMessageBox::critical(this, "错误", error_msg);
 
-    // 执行清理操作
     if (file_client_)
     {
         file_client_->shutdown();
         file_client_.reset();
     }
-
-    // 重置 UI 状态
-    reset_ui_state();
 }
 
-void Widget::reset_ui_state()
+void Widget::reset_login_state()
 {
     login_btn_->setText("登录");
     login_btn_->setEnabled(true);
@@ -359,30 +754,25 @@ void Widget::reset_ui_state()
     key_edit_->clear();
 }
 
-static void files_to_gfiles(const std::vector<leaf::file_node> &files, int dep, std::vector<leaf::gfile> &gfiles)
-{
-    if (dep > 3)
-    {
-        return;
-    }
-    for (const auto &f : files)
-    {
-        leaf::gfile gf;
-        gf.filename = f.name;
-        gf.parent = f.parent;
-        gf.type = f.type;
-        gfiles.push_back(gf);
-        LOG_DEBUG("on_files_response file {} type {} parent {}", f.name, f.type, f.parent);
-    }
-}
-
 void Widget::on_files(const std::vector<leaf::file_node> &files)
 {
-    std::vector<leaf::gfile> gfiles;
-    files_to_gfiles(files, 0, gfiles);
-    for (const auto &f : gfiles)
+    auto find_parent = [this](const std::string &file) -> std::shared_ptr<file_item>
     {
-        files_widget_->add_or_update_file(f);
+        auto it = item_map_.find(file);
+        if (it == item_map_.end())
+        {
+            return root_;
+        }
+        return it->second;
+    };
+    for (const auto &f : files)
+    {
+        LOG_DEBUG("on file file {} type {} parent {}", f.name, f.type, f.parent);
+        auto type = f.type == "dir " ? file_item_type::Folder : file_item_type::File;
+        auto item = std::make_shared<file_item>(QString::fromStdString(f.name), type);
+        auto parent_item = find_parent(f.parent);
+        item->parent_ = parent_item;
+        parent_item->children_.push_back(item);
     }
 }
 
@@ -453,7 +843,7 @@ void Widget::login_notify(const leaf::notify_event &e)
         login_btn_->setEnabled(true);
     }
 }
-void Widget::logout_notify(const leaf::notify_event &e)
+void Widget::logout_notify(const leaf::notify_event & /*e*/)
 {
     login_btn_->setText("登录");
     user_edit_->setEnabled(true);
