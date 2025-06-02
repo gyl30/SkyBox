@@ -118,13 +118,15 @@ void Widget::setup_demo_data()
 
 void Widget::setup_side_ui()
 {
-    side_layout_ = new QVBoxLayout(this);
+    side_layout_ = new QVBoxLayout();
     btn_file_page_ = new QPushButton("📁 我的文件");
+    btn_file_page_->setFlat(true);
     btn_file_page_->setCheckable(true);
     btn_file_page_->setChecked(true);
     btn_file_page_->setFixedHeight(30);
 
     btn_upload_page_ = new QPushButton("⏳ 上传任务");
+    btn_upload_page_->setFlat(true);
     btn_upload_page_->setCheckable(true);
     btn_upload_page_->setFixedHeight(30);
 
@@ -134,7 +136,7 @@ void Widget::setup_side_ui()
 
 void Widget::setup_login_ui()
 {
-    login_layout_ = new QHBoxLayout(this);
+    login_layout_ = new QHBoxLayout();
     user_label_ = new QLabel("用户名:");
     user_edit_ = new QLineEdit();
     user_edit_->setPlaceholderText("请输入用户名");
@@ -170,7 +172,7 @@ void Widget::setup_login_ui()
 
 void Widget::setup_files_ui()
 {
-    new_folder_btn_ = new QPushButton("📂 新建文件夹");
+    new_folder_btn_ = new QPushButton("📁 新建文件夹");
     new_folder_btn_->setFixedHeight(30);
     upload_file_btn_ = new QPushButton("⏫ 上传文件");
     upload_file_btn_->setFixedHeight(30);
@@ -179,22 +181,22 @@ void Widget::setup_files_ui()
     file_page_layout->setContentsMargins(0, 0, 0, 0);
     file_page_layout->setSpacing(0);
 
-    auto *breadcrumb_container = new QWidget(file_page_);    // 面包屑的容器，用于背景色和边框
+    auto *breadcrumb_container = new QWidget(file_page_);
     breadcrumb_container->setFixedHeight(40);
     breadcrumb_container->setStyleSheet("QWidget { background-color: #fafafa; border-bottom: 1px solid #e0e0e0; }");
     auto *breadcrumb_container_layout = new QHBoxLayout(breadcrumb_container);
     breadcrumb_container_layout->setContentsMargins(10, 0, 10, 0);
-    breadcrumb_widget_ = new QWidget(breadcrumb_container);    // breadcrumb_widget_ 实际放按钮
+    breadcrumb_widget_ = new QWidget(breadcrumb_container);
     breadcrumb_layout_ = new QHBoxLayout(breadcrumb_widget_);
     breadcrumb_layout_->setContentsMargins(0, 0, 10, 0);
-    breadcrumb_layout_->setSpacing(0);    // 面包屑按钮间无间距
+    breadcrumb_layout_->setSpacing(0);
     breadcrumb_container_layout->addWidget(breadcrumb_widget_);
     breadcrumb_container_layout->addStretch();
     breadcrumb_container_layout->addWidget(new_folder_btn_);
-    breadcrumb_container_layout->setSpacing(5);    // 面包屑按钮间无间距
+    breadcrumb_container_layout->setSpacing(5);
     breadcrumb_container_layout->addWidget(upload_file_btn_);
     file_page_layout->addWidget(breadcrumb_container);
-    // 文件列表视图
+
     view_ = new QListView(file_page_);
     view_->setViewMode(QListView::IconMode);
     view_->setIconSize(QSize(56, 56));
@@ -221,16 +223,15 @@ void Widget::setup_files_ui()
         "    text-align: center;"
         "}"
         "QListView::item:selected {"
-        "    background-color: #e3f2fd; /* 浅蓝 Material Design Blue 50 */"
-        "    color: #0d47a1;       /* 深蓝 Material Design Blue 900 */"
+        "    background-color: #e3f2fd;"
+        "    color: #0d47a1;"
         "}"
         "QListView::item:hover {"
-        "    background-color: #f5f5f5; /* 浅灰 Material Design Grey 100 */"
+        "    background-color: #f5f5f5;"
         "}"
         "QListView::item:selected:hover {"
-        "    background-color: #bbdefb; /* 稍深选中蓝 Material Design Blue 100 */"
+        "    background-color: #bbdefb;"
         "}"
-        // 隐藏滚动条
         "QListView QScrollBar:vertical { border: none; background: transparent; width: 0px; margin: 0px; }"
         "QListView QScrollBar::handle:vertical { background: transparent; min-height: 0px; }"
         "QListView QScrollBar::add-line:vertical, QListView QScrollBar::sub-line:vertical { border: none; background: "
@@ -247,7 +248,7 @@ void Widget::setup_files_ui()
         "QListView QScrollBar::add-page:horizontal, QListView QScrollBar::sub-page:horizontal { background: "
         "transparent; }");
     view_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    view_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);    // IconMode通常不需要水平滚动
+    view_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
     model_ = new file_model(this);
     view_->setModel(model_);
@@ -329,7 +330,7 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
 
     if (selected_action == rename_action)
     {
-        view_->edit(index);    // 直接进入编辑模式
+        view_->edit(index);
     }
     else if (selected_action == delete_action)
     {
@@ -349,7 +350,7 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
                                  QString("名称: %1\n类型: %2\n大小: %3\n最后修改: %4\n存储名 (Base64): %5")
                                      .arg(item->display_name_)
                                      .arg(item->type_ == file_item_type::Folder ? "文件夹" : "文件")
-                                     .arg(item->file_size_)    // 复用格式化函数
+                                     .arg(item->file_size_)
                                      .arg(item->last_modified_.toString("yyyy-MM-dd hh:mm:ss"))
                                      .arg(item->get_storage_name()));
     }
@@ -388,8 +389,6 @@ void Widget::on_upload_file()
     {
         return;
     }
-
-    show_upload_page();    // 上传后自动切换到上传列表页面
 }
 
 void Widget::on_new_folder()
@@ -397,7 +396,6 @@ void Widget::on_new_folder()
     QString folder_name_base = "新建文件夹";
     QString unique_name = folder_name_base;
     int count = 1;
-    // 确保 displayName 唯一 (不区分大小写)
     while (model_->name_exists(unique_name, file_item_type::Folder))
     {
         unique_name = QString("%1 (%2)").arg(folder_name_base).arg(count++);
@@ -406,30 +404,26 @@ void Widget::on_new_folder()
     std::shared_ptr<file_item> new_folder_item;
     if (model_->add_folder(unique_name, new_folder_item))
     {
-        // 选中新创建的文件夹并进入编辑模式
-        int row_count = model_->rowCount();
-        if (row_count > 0)
+        QMessageBox::warning(this, "创建失败", "无法创建文件夹，可能名称不合法或已存在。");
+        return;
+    }
+    int row_count = model_->rowCount(QModelIndex());
+    if (row_count > 0)
+    {
+        QModelIndex new_index = model_->index(row_count - 1, 0);
+        for (int i = 0; i < row_count; ++i)
         {
-            QModelIndex new_index = model_->index(row_count - 1, 0);    // 假设新项在最后
-            // 遍历查找实际的索引，因为add_folder后顺序可能因排序而变（如果未来有排序）
-            for (int i = 0; i < row_count; ++i)
+            if (model_->item_at(i) == new_folder_item)
             {
-                if (model_->item_at(i) == new_folder_item)
-                {
-                    new_index = model_->index(i, 0);
-                    break;
-                }
-            }
-            if (new_index.isValid())
-            {
-                view_->setCurrentIndex(new_index);
-                view_->edit(new_index);    // 使其可编辑
+                new_index = model_->index(i, 0);
+                break;
             }
         }
-    }
-    else
-    {
-        QMessageBox::warning(this, "创建失败", "无法创建文件夹，可能名称不合法或已存在。");
+        if (new_index.isValid())
+        {
+            view_->setCurrentIndex(new_index);
+            view_->edit(new_index);
+        }
     }
 }
 
@@ -570,7 +564,6 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
         margin: 2px;
         border-radius: 4px;
     }
-
     QMenu::item {
         background-color: transparent;
         color: #333333;
@@ -578,25 +571,21 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
         border: 1px solid transparent;
         font-size: 14px;
     }
-
     QMenu::item:selected {
         background-color: #f0f0f0;
         color: black;
         border: 1px solid #aaaaaa;
         border-radius: 3px;
     }
-
     QMenu::item:disabled {
         color: #999999;
         background-color: transparent;
     }
-
     QMenu::separator {
         height: 1px;
         background: #e0e0e0;
         margin: 4px 10px;
     }
-
     QScrollBar:vertical {
         border: none;
         background: #f0f0f0;
@@ -604,25 +593,21 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
         margin: 0px 0px 0px 0px;
         border-radius: 5px;
     }
-
     QScrollBar::handle:vertical {
         background: #cccccc;
         min-height: 20px;
         border-radius: 5px;
     }
-
     QScrollBar::add-line:vertical,
     QScrollBar::sub-line:vertical {
         height: 0px;
     }
-
     QScrollBar::add-page:vertical,
     QScrollBar::sub-page:vertical {
         background: none;
-    }
-)");
+    })");
 
-    int end_index = breadcrumb_list_.size() - 2;
+    int end_index = static_cast<int>(breadcrumb_list_.size()) - 2;
     for (int j = start_index; j <= end_index; ++j)
     {
         QAction *action = menu->addAction(breadcrumb_list_[j]->display_name_);
@@ -645,6 +630,12 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
 
     btn->setMenu(menu);
     btn->setPopupMode(QToolButton::InstantPopup);
+    btn->setStyleSheet(R"(
+    QToolButton::menu-indicator {
+        image: none;
+        width: 0px;
+        height: 0px;
+    })");
     return btn;
 }
 

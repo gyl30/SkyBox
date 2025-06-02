@@ -12,8 +12,8 @@ class file_model : public QAbstractListModel
    public:
     explicit file_model(QObject *parent = nullptr);
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
+    [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     Qt::ItemFlags flags(const QModelIndex &index) const override;
     bool setData(const QModelIndex &index, const QVariant &value, int role) override;
 
@@ -21,11 +21,10 @@ class file_model : public QAbstractListModel
     std::shared_ptr<file_item> item_at(int row) const;
     bool add_folder(const QString &name, std::shared_ptr<file_item> &folder);
     bool name_exists(const QString &name, file_item_type type) const;
-    bool add_file_from_path(const QString &file_path);    // <--- 新增声明
+    bool add_file_from_path(const QString &file_path);
 
    private:
     std::shared_ptr<file_item> current_dir_;
 };
 
 #endif    // FILE_MODEL_H
-
