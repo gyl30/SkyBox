@@ -80,40 +80,62 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 }
 void Widget::setup_demo_data()
 {
-    root_ = std::make_shared<file_item>("根目录", file_item_type::Folder);
-    auto folder_a = std::make_shared<file_item>("文档", file_item_type::Folder);
-    folder_a->parent_ = root_;
-    folder_a->last_modified_ = QDateTime::currentDateTime().addDays(-5);
+    root_ = std::make_shared<file_item>();
+    root_->storage_name = "root";
+    root_->last_modified = QDateTime::currentDateTime();
+    root_->display_name = "根目录";
+    root_->type = file_item_type::Folder;
+    auto folder_a = std::make_shared<file_item>();
+    folder_a->storage_name = "文档";
+    folder_a->display_name = "文档";
+    folder_a->type = file_item_type::Folder;
+    folder_a->parent = root_;
+    folder_a->last_modified = QDateTime::currentDateTime().addDays(-5);
 
-    auto file_a1 = std::make_shared<file_item>("产品需求文档.docx", file_item_type::File);
-    file_a1->parent_ = folder_a;
-    file_a1->file_size_ = 1024L * 350;                                           // 350KB
-    file_a1->last_modified_ = QDateTime::currentDateTime().addSecs(360L * 2);    // 2小时前
+    auto file_a1 = std::make_shared<file_item>();
+    file_a1->display_name = "产品需求文档.docx";
+    file_a1->storage_name = "产品需求文档.docx";
+    file_a1->type = file_item_type::File;
+    file_a1->parent = folder_a;
+    file_a1->file_size = 1024L * 350;                                           // 350KB
+    file_a1->last_modified = QDateTime::currentDateTime().addSecs(360L * 2);    // 2小时前
 
-    auto file_a2 = std::make_shared<file_item>("会议纪要.txt", file_item_type::File);
-    file_a2->parent_ = folder_a;
-    file_a2->file_size_ = 1024L * 2;    // 2KB
-    file_a2->last_modified_ = QDateTime::currentDateTime().addDays(-1);
+    auto file_a2 = std::make_shared<file_item>();
+    file_a2->display_name = "会议纪要.txt";
+    file_a2->storage_name = "会议纪要.txt";
+    file_a2->type = file_item_type::File;
+    file_a2->parent = folder_a;
+    file_a2->file_size = 1024L * 2;    // 2KB
+    file_a2->last_modified = QDateTime::currentDateTime().addDays(-1);
 
-    folder_a->children_ = {file_a1, file_a2};
+    folder_a->children = {file_a1, file_a2};
 
-    auto folder_b = std::make_shared<file_item>("图片收藏", file_item_type::Folder);
-    folder_b->parent_ = root_;
-    folder_b->last_modified_ = QDateTime::currentDateTime().addDays(-2);
+    auto folder_b = std::make_shared<file_item>();
+    folder_b->display_name = "图片收藏";
+    folder_b->storage_name = "图片收藏";
+    folder_b->type = file_item_type::Folder;
+    folder_b->parent = root_;
+    folder_b->last_modified = QDateTime::currentDateTime().addDays(-2);
 
-    auto file_b1 = std::make_shared<file_item>("风景照 (1).jpg", file_item_type::File);
-    file_b1->parent_ = folder_b;
-    file_b1->file_size_ = 1024L * 1024 * 2;    // 2MB
-    file_b1->last_modified_ = QDateTime::currentDateTime().addSecs(-30);
+    auto file_b1 = std::make_shared<file_item>();
+    file_b1->display_name = "风景照 (1).jpg";
+    file_b1->storage_name = "风景照 (1).jpg";
+    file_b1->type = file_item_type::File;
+    file_b1->parent = folder_b;
+    file_b1->file_size = 1024L * 1024 * 2;    // 2MB
+    file_b1->last_modified = QDateTime::currentDateTime().addSecs(-30);
 
-    folder_b->children_ = {file_b1};
+    folder_b->children = {file_b1};
 
-    auto file_c = std::make_shared<file_item>("项目计划.pdf", file_item_type::File);
-    file_c->parent_ = root_;
-    file_c->file_size_ = 1024L * 780;    // 780KB
-    file_c->last_modified_ = QDateTime::currentDateTime().addDays(-10);
+    auto file_c = std::make_shared<file_item>();
+    file_c->storage_name = "项目计划.pdf";
+    file_c->display_name = "项目计划.pdf";
+    file_c->type = file_item_type::File;
+    file_c->parent = root_;
+    file_c->file_size = 1024L * 780;    // 780KB
+    file_c->last_modified = QDateTime::currentDateTime().addDays(-10);
 
-    root_->children_ = {folder_a, folder_b, file_c};
+    root_->children = {folder_a, folder_b, file_c};
 }
 
 void Widget::setup_side_ui()
@@ -298,7 +320,7 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
         return;
     }
 
-    if (item->type_ == file_item_type::Folder)
+    if (item->type == file_item_type::Folder)
     {
         current_dir_ = item;
         model_->set_current_dir(current_dir_);
@@ -336,11 +358,11 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
     {
         if (QMessageBox::question(this,
                                   "确认删除",
-                                  QString("确定要删除 \"%1\"吗？此操作不可恢复。").arg(item->display_name_),
+                                  QString("确定要删除 \"%1\"吗？此操作不可恢复。").arg(item->display_name),
                                   QMessageBox::Yes | QMessageBox::No,
                                   QMessageBox::No) == QMessageBox::Yes)
         {
-            QMessageBox::information(this, "删除", "删除：" + item->display_name_);
+            QMessageBox::information(this, "删除", "删除：" + item->display_name);
         }
     }
     else if (selected_action == properties_action)
@@ -348,11 +370,11 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
         QMessageBox::information(this,
                                  "属性",
                                  QString("名称: %1\n类型: %2\n大小: %3\n最后修改: %4\n存储名 (Base64): %5")
-                                     .arg(item->display_name_)
-                                     .arg(item->type_ == file_item_type::Folder ? "文件夹" : "文件")
-                                     .arg(item->file_size_)
-                                     .arg(item->last_modified_.toString("yyyy-MM-dd hh:mm:ss"))
-                                     .arg(item->get_storage_name()));
+                                     .arg(item->display_name)
+                                     .arg(item->type == file_item_type::Folder ? "文件夹" : "文件")
+                                     .arg(item->file_size)
+                                     .arg(item->last_modified.toString("yyyy-MM-dd hh:mm:ss"))
+                                     .arg(item->storage_name));
     }
 }
 bool Widget::eventFilter(QObject *watched, QEvent *event)
@@ -402,7 +424,7 @@ void Widget::on_new_folder()
     }
 
     std::shared_ptr<file_item> new_folder_item;
-    if (model_->add_folder(unique_name, new_folder_item))
+    if (!model_->add_folder(unique_name, new_folder_item))
     {
         QMessageBox::warning(this, "创建失败", "无法创建文件夹，可能名称不合法或已存在。");
         return;
@@ -515,7 +537,7 @@ void Widget::build_breadcrumb_path()
     while (dir)
     {
         breadcrumb_list_.prepend(dir);
-        dir = dir->parent_.lock();
+        dir = dir->parent.lock();
     }
 }
 
@@ -523,10 +545,10 @@ QToolButton *Widget::create_breadcrumb_button(int index)
 {
     auto *btn = new QToolButton(breadcrumb_widget_);
     auto &item = breadcrumb_list_[index];
-    QString text = (index == 0 && item->display_name_ == "根目录") ? "🏠 " + item->display_name_ : item->display_name_;
+    QString text = (index == 0 && item->display_name == "根目录") ? "🏠 " + item->display_name : item->display_name;
 
     btn->setText(text);
-    btn->setToolTip(item->display_name_);
+    btn->setToolTip(item->display_name);
     btn->setProperty("crumbIndex", index);
     btn->setAutoRaise(true);
     btn->setCursor(Qt::PointingHandCursor);
@@ -610,7 +632,7 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
     int end_index = static_cast<int>(breadcrumb_list_.size()) - 2;
     for (int j = start_index; j <= end_index; ++j)
     {
-        QAction *action = menu->addAction(breadcrumb_list_[j]->display_name_);
+        QAction *action = menu->addAction(breadcrumb_list_[j]->display_name);
         action->setData(j);
         connect(action,
                 &QAction::triggered,
@@ -760,10 +782,14 @@ void Widget::on_files(const std::vector<leaf::file_node> &files)
     {
         LOG_DEBUG("on file file {} type {} parent {}", f.name, f.type, f.parent);
         auto type = f.type == "dir " ? file_item_type::Folder : file_item_type::File;
-        auto item = std::make_shared<file_item>(QString::fromStdString(f.name), type);
+        auto item = std::make_shared<file_item>();
+        item->display_name = QString::fromStdString(f.name);
+        item->storage_name = item->display_name;
+        item->type = type;
+        item->last_modified = QDateTime::currentDateTime();
         auto parent_item = find_parent(f.parent);
-        item->parent_ = parent_item;
-        parent_item->children_.push_back(item);
+        item->parent = parent_item;
+        parent_item->children.push_back(item);
     }
 }
 
