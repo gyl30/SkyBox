@@ -82,7 +82,7 @@ void Widget::setup_demo_data()
 {
     root_ = std::make_shared<file_item>();
     root_->storage_name = "root";
-    root_->last_modified = QDateTime::currentDateTime();
+    root_->last_modified = QDateTime::currentSecsSinceEpoch();
     root_->display_name = "根目录";
     root_->type = file_item_type::Folder;
     auto folder_a = std::make_shared<file_item>();
@@ -90,23 +90,24 @@ void Widget::setup_demo_data()
     folder_a->display_name = "文档";
     folder_a->type = file_item_type::Folder;
     folder_a->parent = root_;
-    folder_a->last_modified = QDateTime::currentDateTime().addDays(-5);
+    folder_a->last_modified = QDateTime::currentSecsSinceEpoch();
+    ;
 
     auto file_a1 = std::make_shared<file_item>();
     file_a1->display_name = "产品需求文档.docx";
     file_a1->storage_name = "产品需求文档.docx";
     file_a1->type = file_item_type::File;
     file_a1->parent = folder_a;
-    file_a1->file_size = 1024L * 350;                                           // 350KB
-    file_a1->last_modified = QDateTime::currentDateTime().addSecs(360L * 2);    // 2小时前
+    file_a1->file_size = 1024L * 350;
+    file_a1->last_modified = QDateTime::currentSecsSinceEpoch();
 
     auto file_a2 = std::make_shared<file_item>();
     file_a2->display_name = "会议纪要.txt";
     file_a2->storage_name = "会议纪要.txt";
     file_a2->type = file_item_type::File;
     file_a2->parent = folder_a;
-    file_a2->file_size = 1024L * 2;    // 2KB
-    file_a2->last_modified = QDateTime::currentDateTime().addDays(-1);
+    file_a2->file_size = 1024L * 2;
+    file_a2->last_modified = QDateTime::currentSecsSinceEpoch();
 
     folder_a->children = {file_a1, file_a2};
 
@@ -115,15 +116,15 @@ void Widget::setup_demo_data()
     folder_b->storage_name = "图片收藏";
     folder_b->type = file_item_type::Folder;
     folder_b->parent = root_;
-    folder_b->last_modified = QDateTime::currentDateTime().addDays(-2);
+    folder_b->last_modified = QDateTime::currentSecsSinceEpoch();
 
     auto file_b1 = std::make_shared<file_item>();
     file_b1->display_name = "风景照 (1).jpg";
     file_b1->storage_name = "风景照 (1).jpg";
     file_b1->type = file_item_type::File;
     file_b1->parent = folder_b;
-    file_b1->file_size = 1024L * 1024 * 2;    // 2MB
-    file_b1->last_modified = QDateTime::currentDateTime().addSecs(-30);
+    file_b1->file_size = 1024L * 1024 * 2;
+    file_b1->last_modified = QDateTime::currentSecsSinceEpoch();
 
     folder_b->children = {file_b1};
 
@@ -132,8 +133,8 @@ void Widget::setup_demo_data()
     file_c->display_name = "项目计划.pdf";
     file_c->type = file_item_type::File;
     file_c->parent = root_;
-    file_c->file_size = 1024L * 780;    // 780KB
-    file_c->last_modified = QDateTime::currentDateTime().addDays(-10);
+    file_c->file_size = 1024L * 780;
+    file_c->last_modified = QDateTime::currentSecsSinceEpoch();
 
     root_->children = {folder_a, folder_b, file_c};
 }
@@ -358,23 +359,24 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
     {
         if (QMessageBox::question(this,
                                   "确认删除",
-                                  QString("确定要删除 \"%1\"吗？此操作不可恢复。").arg(item->display_name),
+                                  QString("确定要删除 \"%1\"吗？此操作不可恢复。").arg(QString::fromStdString(item->display_name)),
                                   QMessageBox::Yes | QMessageBox::No,
                                   QMessageBox::No) == QMessageBox::Yes)
         {
-            QMessageBox::information(this, "删除", "删除：" + item->display_name);
+            QMessageBox::information(this, "删除", "删除：" + QString::fromStdString(item->display_name));
         }
     }
     else if (selected_action == properties_action)
     {
+        auto last_modified = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(item->last_modified)).toString("yyyy-MM-dd hh:mm:ss");
         QMessageBox::information(this,
                                  "属性",
-                                 QString("名称: %1\n类型: %2\n大小: %3\n最后修改: %4\n存储名 (Base64): %5")
-                                     .arg(item->display_name)
+                                 QString("名称: %1\n类型: %2\n大小: %3\n最后修改: %4\n存储名 : %5")
+                                     .arg(QString::fromStdString(item->display_name))
                                      .arg(item->type == file_item_type::Folder ? "文件夹" : "文件")
                                      .arg(item->file_size)
-                                     .arg(item->last_modified.toString("yyyy-MM-dd hh:mm:ss"))
-                                     .arg(item->storage_name));
+                                     .arg(last_modified)
+                                     .arg(QString::fromStdString(item->display_name)));
     }
 }
 bool Widget::eventFilter(QObject *watched, QEvent *event)
@@ -545,10 +547,10 @@ QToolButton *Widget::create_breadcrumb_button(int index)
 {
     auto *btn = new QToolButton(breadcrumb_widget_);
     auto &item = breadcrumb_list_[index];
-    QString text = (index == 0 && item->display_name == "根目录") ? "🏠 " + item->display_name : item->display_name;
+    auto text = (index == 0 && item->display_name == "根目录") ? "🏠 " + item->display_name : item->display_name;
 
-    btn->setText(text);
-    btn->setToolTip(item->display_name);
+    btn->setText(QString::fromStdString(text));
+    btn->setToolTip(QString::fromStdString(item->display_name));
     btn->setProperty("crumbIndex", index);
     btn->setAutoRaise(true);
     btn->setCursor(Qt::PointingHandCursor);
@@ -632,7 +634,7 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
     int end_index = static_cast<int>(breadcrumb_list_.size()) - 2;
     for (int j = start_index; j <= end_index; ++j)
     {
-        QAction *action = menu->addAction(breadcrumb_list_[j]->display_name);
+        QAction *action = menu->addAction(QString::fromStdString(breadcrumb_list_[j]->display_name));
         action->setData(j);
         connect(action,
                 &QAction::triggered,
@@ -783,10 +785,10 @@ void Widget::on_files(const std::vector<leaf::file_node> &files)
         LOG_DEBUG("on file file {} type {} parent {}", f.name, f.type, f.parent);
         auto type = f.type == "dir " ? file_item_type::Folder : file_item_type::File;
         auto item = std::make_shared<file_item>();
-        item->display_name = QString::fromStdString(f.name);
+        item->display_name = f.name;
         item->storage_name = item->display_name;
         item->type = type;
-        item->last_modified = QDateTime::currentDateTime();
+        item->last_modified = QDateTime::currentSecsSinceEpoch();
         auto parent_item = find_parent(f.parent);
         item->parent = parent_item;
         parent_item->children.push_back(item);

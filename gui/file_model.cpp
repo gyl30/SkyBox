@@ -1,4 +1,3 @@
-#include "file_model.h"
 #include <QPainter>
 #include <QPixmap>
 #include <QIcon>
@@ -6,13 +5,14 @@
 #include <QMessageBox>
 #include <QFileInfo>
 #include <string>
+#include "file_model.h"
 
 static QIcon emoji_to_icon(const QString &emoji)
 {
     QPixmap pix(64, 64);
     pix.fill(Qt::transparent);
     QPainter p(&pix);
-    QFont font("Noto Color Emoji");    // 确保这个字体存在
+    QFont font("Noto Color Emoji");
     font.setPointSize(32);
     p.setFont(font);
     p.drawText(pix.rect(), Qt::AlignCenter, emoji);
@@ -57,7 +57,8 @@ int file_model::rowCount(const QModelIndex &parent) const
 
 QVariant file_model::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || !current_dir_ || index.row() >= current_dir_->children.size())
+    int child_count = current_dir_ ? static_cast<int>(current_dir_->children.size()) : 0;
+    if (!index.isValid() || !current_dir_ || index.row() >= child_count)
     {
         return {};
     }
@@ -65,7 +66,7 @@ QVariant file_model::data(const QModelIndex &index, int role) const
 
     if (role == Qt::DisplayRole)
     {
-        return item->display_name;
+        return QString::fromStdString(item->display_name);
     }
     if (role == Qt::DecorationRole)
     {
@@ -81,10 +82,11 @@ QVariant file_model::data(const QModelIndex &index, int role) const
         {
             return QString("文件夹\n包含 %1 个项目").arg(item->children.size());
         }
+        auto last_modified = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(item->last_modified));
         return QString("文件: %1\n大小: %2\n修改日期: %3")
-            .arg(item->display_name)
+            .arg(QString::fromStdString(item->display_name))
             .arg(QString::fromStdString(format_file_size(item->file_size)))
-            .arg(item->last_modified.toString("yyyy-MM-dd hh:mm:ss"));
+            .arg(last_modified.toString("yyyy-MM-dd hh:mm:ss"));
     }
     return {};
 }
@@ -100,7 +102,8 @@ Qt::ItemFlags file_model::flags(const QModelIndex &index) const
 
 bool file_model::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if (!index.isValid() || role != Qt::EditRole || !current_dir_ || index.row() >= current_dir_->children.size())
+    int child_count = current_dir_ ? static_cast<int>(current_dir_->children.size()) : 0;
+    if (!index.isValid() || role != Qt::EditRole || !current_dir_ || index.row() >= child_count)
     {
         return false;
     }
@@ -113,14 +116,15 @@ bool file_model::setData(const QModelIndex &index, const QVariant &value, int ro
     const auto &item_being_edited = current_dir_->children[index.row()];
     for (const auto &child : current_dir_->children)
     {
-        if (child != item_being_edited && child->display_name.compare(new_name, Qt::CaseInsensitive) == 0)
+        auto display_name = QString::fromStdString(child->display_name);
+        if (child != item_being_edited && display_name.compare(new_name, Qt::CaseInsensitive) == 0)
         {
             QMessageBox::warning(nullptr, "重命名失败", "名称已存在！");
             return false;
         }
     }
 
-    current_dir_->children[index.row()]->display_name = new_name;
+    current_dir_->children[index.row()]->display_name = new_name.toStdString();
     emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole, Qt::ToolTipRole});
     return true;
 }
@@ -134,7 +138,8 @@ void file_model::set_current_dir(const std::shared_ptr<file_item> &dir)
 
 std::shared_ptr<file_item> file_model::item_at(int row) const
 {
-    if (!current_dir_ || row < 0 || row >= current_dir_->children.size())
+    int child_count = current_dir_ ? static_cast<int>(current_dir_->children.size()) : 0;
+    if (!current_dir_ || row < 0 || row >= child_count)
     {
         return nullptr;
     }
@@ -148,11 +153,11 @@ bool file_model::add_folder(const QString &displayName, std::shared_ptr<file_ite
         return false;
     }
     folder_out = std::make_shared<file_item>();
-    folder_out->display_name = displayName;
-    folder_out->storage_name = displayName;
+    folder_out->display_name = displayName.toStdString();
+    folder_out->storage_name = displayName.toStdString();
     folder_out->type = file_item_type::Folder;
     folder_out->parent = current_dir_;
-    folder_out->last_modified = QDateTime::currentDateTime();
+    folder_out->last_modified = QDateTime::currentSecsSinceEpoch();
 
     beginInsertRows(QModelIndex(), static_cast<int>(current_dir_->children.size()), static_cast<int>(current_dir_->children.size()));
     current_dir_->children.push_back(folder_out);
@@ -172,7 +177,8 @@ bool file_model::name_exists(const QString &displayName, file_item_type type) co
         {
             continue;
         }
-        if (child->display_name.compare(displayName, Qt::CaseInsensitive) != 0)
+        auto display_name = QString::fromStdString(child->display_name);
+        if (display_name.compare(displayName, Qt::CaseInsensitive) != 0)
         {
             continue;
         }
@@ -197,11 +203,11 @@ bool file_model::add_file_from_path(const QString &file_path)
     }
 
     auto new_item = std::make_shared<file_item>();
-    new_item->display_name = displayName;
+    new_item->display_name = displayName.toStdString();
     new_item->type = file_item_type::File;
-    new_item->storage_name = displayName;
+    new_item->storage_name = displayName.toStdString();
     new_item->file_size = fileInfo.size();
-    new_item->last_modified = fileInfo.lastModified();
+    new_item->last_modified = fileInfo.lastModified().toSecsSinceEpoch();
     new_item->parent = current_dir_;
 
     beginInsertRows(QModelIndex(), static_cast<int>(current_dir_->children.size()), static_cast<int>(current_dir_->children.size()));
