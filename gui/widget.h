@@ -13,7 +13,6 @@
 #include <QHBoxLayout>
 #include <QListView>
 #include <QTimer>
-#include "gui/task.h"
 #include "file/event.h"
 #include "gui/file_model.h"
 #include "file/file_transfer_client.h"
@@ -30,12 +29,10 @@ class Widget : public QWidget
     void on_new_file_clicked();
 
    Q_SIGNALS:
-    void progress_slot(const leaf::task& e);
     void notify_event_slot(const leaf::notify_event& e);
     void error_occurred(const QString& error_msg);
 
    private Q_SLOTS:
-    void on_progress_slot(const leaf::task& e);
     void on_notify_event_slot(const leaf::notify_event& e);
     void on_error_occurred(const QString& error_msg);
     void reset_login_state();
@@ -102,7 +99,7 @@ class Widget : public QWidget
     QPushButton* new_folder_btn_;
     QPushButton* upload_file_btn_;
     QListView* view_ = nullptr;
-    file_model* model_ = nullptr;
+    leaf::file_model* model_ = nullptr;
 
     QWidget* loading_overlay_;
     QLabel* loading_label_;
@@ -110,10 +107,10 @@ class Widget : public QWidget
     QVBoxLayout* side_layout_ = nullptr;
     QVBoxLayout* main_layout = nullptr;
     QHBoxLayout* content_layout_ = nullptr;
-    std::shared_ptr<file_item> root_;
-    std::shared_ptr<file_item> current_dir_;
-    QVector<std::shared_ptr<file_item>> breadcrumb_list_;
+    std::shared_ptr<leaf::file_item> root_;
+    std::shared_ptr<leaf::file_item> current_dir_;
+    QVector<std::shared_ptr<leaf::file_item>> breadcrumb_list_;
     std::shared_ptr<leaf::file_transfer_client> file_client_ = nullptr;
-    std::unordered_map<std::string, std::shared_ptr<file_item>> item_map_;
+    std::unordered_map<std::string, std::shared_ptr<leaf::file_item>> item_map_;
 };
 #endif

@@ -21,7 +21,6 @@
 
 #include <memory>
 #include "log/log.h"
-#include "gui/task.h"
 #include "gui/widget.h"
 #include "gui/titlebar.h"
 #include "file/file_item.h"
@@ -31,7 +30,6 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     resize(800, 600);
     QFont font("EmojiOne");
     QApplication::setFont(font);
-    qRegisterMetaType<leaf::task>("leaf::task");
     qRegisterMetaType<leaf::notify_event>("leaf::notify_event");
     setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
 
@@ -52,9 +50,9 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 
     setup_connections();
 
-    auto *title_bar = new TitleBar(this);
-    connect(title_bar, &TitleBar::minimizeClicked, this, &QWidget::showMinimized);
-    connect(title_bar, &TitleBar::closeClicked, this, &QWidget::close);
+    auto *title_bar = new leaf::title_bar(this);
+    connect(title_bar, &leaf::title_bar::minimizeClicked, this, &QWidget::showMinimized);
+    connect(title_bar, &leaf::title_bar::closeClicked, this, &QWidget::close);
 
     content_layout_ = new QHBoxLayout();
     content_layout_->addLayout(side_layout_);
@@ -67,7 +65,6 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     main_layout->addLayout(content_layout_);
     main_layout->setContentsMargins(8, 0, 0, 0);
 
-    connect(this, &Widget::progress_slot, this, &Widget::on_progress_slot);
     connect(this, &Widget::notify_event_slot, this, &Widget::on_notify_event_slot);
     connect(this, &Widget::error_occurred, this, &Widget::on_error_occurred);
 
@@ -80,58 +77,58 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 }
 void Widget::setup_demo_data()
 {
-    root_ = std::make_shared<file_item>();
+    root_ = std::make_shared<leaf::file_item>();
     root_->storage_name = "root";
     root_->last_modified = QDateTime::currentSecsSinceEpoch();
     root_->display_name = "根目录";
-    root_->type = file_item_type::Folder;
-    auto folder_a = std::make_shared<file_item>();
+    root_->type = leaf::file_item_type::Folder;
+    auto folder_a = std::make_shared<leaf::file_item>();
     folder_a->storage_name = "文档";
     folder_a->display_name = "文档";
-    folder_a->type = file_item_type::Folder;
+    folder_a->type = leaf::file_item_type::Folder;
     folder_a->parent = root_;
     folder_a->last_modified = QDateTime::currentSecsSinceEpoch();
     ;
 
-    auto file_a1 = std::make_shared<file_item>();
+    auto file_a1 = std::make_shared<leaf::file_item>();
     file_a1->display_name = "产品需求文档.docx";
     file_a1->storage_name = "产品需求文档.docx";
-    file_a1->type = file_item_type::File;
+    file_a1->type = leaf::file_item_type::File;
     file_a1->parent = folder_a;
     file_a1->file_size = 1024L * 350;
     file_a1->last_modified = QDateTime::currentSecsSinceEpoch();
 
-    auto file_a2 = std::make_shared<file_item>();
+    auto file_a2 = std::make_shared<leaf::file_item>();
     file_a2->display_name = "会议纪要.txt";
     file_a2->storage_name = "会议纪要.txt";
-    file_a2->type = file_item_type::File;
+    file_a2->type = leaf::file_item_type::File;
     file_a2->parent = folder_a;
     file_a2->file_size = 1024L * 2;
     file_a2->last_modified = QDateTime::currentSecsSinceEpoch();
 
     folder_a->children = {file_a1, file_a2};
 
-    auto folder_b = std::make_shared<file_item>();
+    auto folder_b = std::make_shared<leaf::file_item>();
     folder_b->display_name = "图片收藏";
     folder_b->storage_name = "图片收藏";
-    folder_b->type = file_item_type::Folder;
+    folder_b->type = leaf::file_item_type::Folder;
     folder_b->parent = root_;
     folder_b->last_modified = QDateTime::currentSecsSinceEpoch();
 
-    auto file_b1 = std::make_shared<file_item>();
+    auto file_b1 = std::make_shared<leaf::file_item>();
     file_b1->display_name = "风景照 (1).jpg";
     file_b1->storage_name = "风景照 (1).jpg";
-    file_b1->type = file_item_type::File;
+    file_b1->type = leaf::file_item_type::File;
     file_b1->parent = folder_b;
     file_b1->file_size = 1024L * 1024 * 2;
     file_b1->last_modified = QDateTime::currentSecsSinceEpoch();
 
     folder_b->children = {file_b1};
 
-    auto file_c = std::make_shared<file_item>();
+    auto file_c = std::make_shared<leaf::file_item>();
     file_c->storage_name = "项目计划.pdf";
     file_c->display_name = "项目计划.pdf";
-    file_c->type = file_item_type::File;
+    file_c->type = leaf::file_item_type::File;
     file_c->parent = root_;
     file_c->file_size = 1024L * 780;
     file_c->last_modified = QDateTime::currentSecsSinceEpoch();
@@ -273,7 +270,7 @@ void Widget::setup_files_ui()
     view_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     view_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
-    model_ = new file_model(this);
+    model_ = new leaf::file_model(this);
     view_->setModel(model_);
     file_page_layout->addWidget(view_, 1);
     loading_overlay_ = new QWidget(file_page_);
@@ -321,7 +318,7 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
         return;
     }
 
-    if (item->type == file_item_type::Folder)
+    if (item->type == leaf::file_item_type::Folder)
     {
         current_dir_ = item;
         model_->set_current_dir(current_dir_);
@@ -337,7 +334,7 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
         return;
     }
 
-    std::shared_ptr<file_item> item = model_->item_at(index.row());
+    std::shared_ptr<leaf::file_item> item = model_->item_at(index.row());
     if (!item)
     {
         return;
@@ -373,7 +370,7 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
                                  "属性",
                                  QString("名称: %1\n类型: %2\n大小: %3\n最后修改: %4\n存储名 : %5")
                                      .arg(QString::fromStdString(item->display_name))
-                                     .arg(item->type == file_item_type::Folder ? "文件夹" : "文件")
+                                     .arg(item->type == leaf::file_item_type::Folder ? "文件夹" : "文件")
                                      .arg(item->file_size)
                                      .arg(last_modified)
                                      .arg(QString::fromStdString(item->display_name)));
@@ -420,12 +417,12 @@ void Widget::on_new_folder()
     QString folder_name_base = "新建文件夹";
     QString unique_name = folder_name_base;
     int count = 1;
-    while (model_->name_exists(unique_name, file_item_type::Folder))
+    while (model_->name_exists(unique_name, leaf::file_item_type::Folder))
     {
         unique_name = QString("%1 (%2)").arg(folder_name_base).arg(count++);
     }
 
-    std::shared_ptr<file_item> new_folder_item;
+    std::shared_ptr<leaf::file_item> new_folder_item;
     if (!model_->add_folder(unique_name, new_folder_item))
     {
         QMessageBox::warning(this, "创建失败", "无法创建文件夹，可能名称不合法或已存在。");
@@ -535,7 +532,7 @@ void Widget::clear_breadcrumb_layout()
 
 void Widget::build_breadcrumb_path()
 {
-    std::shared_ptr<file_item> dir = current_dir_;
+    std::shared_ptr<leaf::file_item> dir = current_dir_;
     while (dir)
     {
         breadcrumb_list_.prepend(dir);
@@ -719,24 +716,7 @@ void Widget::on_login_btn_clicked()
     file_client_->startup();
 }
 
-void Widget::on_progress_slot(const leaf::task &e)
-{
-    LOG_INFO("{} progress {} {} {}", e.op, e.filename, e.process_size, e.file_size);
-    if (e.process_size == e.file_size && e.file_size != 0)
-    {
-        return;
-    }
-}
-
-void Widget::download_progress(const leaf::download_event &e)
-{
-    leaf::task t;
-    t.file_size = e.file_size;
-    t.filename = e.filename;
-    t.process_size = e.download_size;
-    t.op = "download";
-    emit progress_slot(t);
-}
+void Widget::download_progress(const leaf::download_event &e) {}
 
 void Widget::notify_progress(const leaf::notify_event &e) { emit notify_event_slot(e); }
 
@@ -771,7 +751,7 @@ void Widget::reset_login_state()
 
 void Widget::on_files(const std::vector<leaf::file_node> &files)
 {
-    auto find_parent = [this](const std::string &file) -> std::shared_ptr<file_item>
+    auto find_parent = [this](const std::string &file) -> std::shared_ptr<leaf::file_item>
     {
         auto it = item_map_.find(file);
         if (it == item_map_.end())
@@ -783,8 +763,8 @@ void Widget::on_files(const std::vector<leaf::file_node> &files)
     for (const auto &f : files)
     {
         LOG_DEBUG("on file file {} type {} parent {}", f.name, f.type, f.parent);
-        auto type = f.type == "dir " ? file_item_type::Folder : file_item_type::File;
-        auto item = std::make_shared<file_item>();
+        auto type = f.type == "dir " ? leaf::file_item_type::Folder : leaf::file_item_type::File;
+        auto item = std::make_shared<leaf::file_item>();
         item->display_name = f.name;
         item->storage_name = item->display_name;
         item->type = type;
@@ -870,15 +850,7 @@ void Widget::logout_notify(const leaf::notify_event & /*e*/)
     login_btn_->setEnabled(true);
 }
 
-void Widget::upload_progress(const leaf::upload_event &e)
-{
-    leaf::task t;
-    t.file_size = e.file_size;
-    t.filename = e.filename;
-    t.process_size = e.upload_size;
-    t.op = "upload";
-    emit progress_slot(t);
-}
+void Widget::upload_progress(const leaf::upload_event &e) {}
 
 Widget::~Widget()
 {

@@ -16,8 +16,10 @@ static QIcon emoji_to_icon(const QString &emoji, int size)
     painter.end();
     return pixmap;
 }
+namespace leaf
+{
 
-TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
+title_bar::title_bar(QWidget *parent) : QWidget(parent)
 {
     setFixedHeight(40);
     setObjectName("TitleBar");
@@ -73,11 +75,11 @@ TitleBar::TitleBar(QWidget *parent) : QWidget(parent)
     min_btn_->setIconSize(QSize(24, 24));
     close_btn_->setIconSize(QSize(24, 24));
 
-    connect(min_btn_, &QPushButton::clicked, this, &TitleBar::minimizeClicked);
-    connect(close_btn_, &QPushButton::clicked, this, &TitleBar::closeClicked);
+    connect(min_btn_, &QPushButton::clicked, this, &title_bar::minimizeClicked);
+    connect(close_btn_, &QPushButton::clicked, this, &title_bar::closeClicked);
 }
 
-void TitleBar::mousePressEvent(QMouseEvent *event)
+void title_bar::mousePressEvent(QMouseEvent *event)
 {
     if ((event->buttons() & Qt::LeftButton) != 0U)
     {
@@ -86,7 +88,7 @@ void TitleBar::mousePressEvent(QMouseEvent *event)
     }
 }
 
-void TitleBar::mouseMoveEvent(QMouseEvent *event)
+void title_bar::mouseMoveEvent(QMouseEvent *event)
 {
     if ((event->buttons() & Qt::LeftButton) != 0U)
     {
@@ -94,3 +96,4 @@ void TitleBar::mouseMoveEvent(QMouseEvent *event)
         event->accept();
     }
 }
+}    // namespace leaf

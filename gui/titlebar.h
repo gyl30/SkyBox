@@ -7,12 +7,14 @@
 #include <QLabel>
 #include <QHBoxLayout>
 
-class TitleBar : public QWidget
+namespace leaf
+{
+class title_bar : public QWidget
 {
     Q_OBJECT
 
    public:
-    explicit TitleBar(QWidget *parent = nullptr);
+    explicit title_bar(QWidget *parent = nullptr);
 
    signals:
     void minimizeClicked();
@@ -28,5 +30,6 @@ class TitleBar : public QWidget
     QPushButton *min_btn_;
     QPushButton *close_btn_;
 };
+}    // namespace leaf
 
 #endif

@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+namespace leaf
+{
 enum class file_item_type : uint8_t
 {
     Folder,
@@ -22,4 +24,5 @@ struct file_item
     std::vector<std::shared_ptr<file_item>> children;
 };
 
+}    // namespace leaf
 #endif

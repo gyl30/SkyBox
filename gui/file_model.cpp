@@ -5,7 +5,7 @@
 #include <QMessageBox>
 #include <QFileInfo>
 #include <string>
-#include "file_model.h"
+#include "gui/file_model.h"
 
 static QIcon emoji_to_icon(const QString &emoji)
 {
@@ -44,6 +44,8 @@ static std::string format_file_size(int64_t bytes)
     return std::to_string(gb) + " GB";
 }
 
+namespace leaf
+{
 file_model::file_model(QObject *parent) : QAbstractListModel(parent) {}
 
 int file_model::rowCount(const QModelIndex &parent) const
@@ -62,7 +64,7 @@ QVariant file_model::data(const QModelIndex &index, int role) const
     {
         return {};
     }
-    const std::shared_ptr<file_item> &item = current_dir_->children[index.row()];
+    const std::shared_ptr<leaf::file_item> &item = current_dir_->children[index.row()];
 
     if (role == Qt::DisplayRole)
     {
@@ -129,14 +131,14 @@ bool file_model::setData(const QModelIndex &index, const QVariant &value, int ro
     return true;
 }
 
-void file_model::set_current_dir(const std::shared_ptr<file_item> &dir)
+void file_model::set_current_dir(const std::shared_ptr<leaf::file_item> &dir)
 {
     beginResetModel();
     current_dir_ = dir;
     endResetModel();
 }
 
-std::shared_ptr<file_item> file_model::item_at(int row) const
+std::shared_ptr<leaf::file_item> file_model::item_at(int row) const
 {
     int child_count = current_dir_ ? static_cast<int>(current_dir_->children.size()) : 0;
     if (!current_dir_ || row < 0 || row >= child_count)
@@ -146,13 +148,13 @@ std::shared_ptr<file_item> file_model::item_at(int row) const
     return current_dir_->children[row];
 }
 
-bool file_model::add_folder(const QString &displayName, std::shared_ptr<file_item> &folder_out)
+bool file_model::add_folder(const QString &displayName, std::shared_ptr<leaf::file_item> &folder_out)
 {
     if (!current_dir_ || name_exists(displayName, file_item_type::Folder))
     {
         return false;
     }
-    folder_out = std::make_shared<file_item>();
+    folder_out = std::make_shared<leaf::file_item>();
     folder_out->display_name = displayName.toStdString();
     folder_out->storage_name = displayName.toStdString();
     folder_out->type = file_item_type::Folder;
@@ -202,7 +204,7 @@ bool file_model::add_file_from_path(const QString &file_path)
         return false;
     }
 
-    auto new_item = std::make_shared<file_item>();
+    auto new_item = std::make_shared<leaf::file_item>();
     new_item->display_name = displayName.toStdString();
     new_item->type = file_item_type::File;
     new_item->storage_name = displayName.toStdString();
@@ -216,3 +218,4 @@ bool file_model::add_file_from_path(const QString &file_path)
 
     return true;
 }
+}    // namespace leaf
