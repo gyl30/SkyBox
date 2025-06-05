@@ -24,7 +24,7 @@
 #include "gui/task.h"
 #include "gui/widget.h"
 #include "gui/titlebar.h"
-#include "gui/file_item.h"
+#include "file/file_item.h"
 
 Widget::Widget(QWidget *parent) : QWidget(parent)
 {

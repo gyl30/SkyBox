@@ -1,9 +1,9 @@
-#ifndef FILE_MODEL_H
-#define FILE_MODEL_H
+#ifndef LEAF_FILE_MODEL_H
+#define LEAF_FILE_MODEL_H
 
 #include <QAbstractListModel>
 #include <memory>
-#include "file_item.h"
+#include "file/file_item.h"
 
 class file_model : public QAbstractListModel
 {
@@ -27,4 +27,4 @@ class file_model : public QAbstractListModel
     std::shared_ptr<file_item> current_dir_;
 };
 
-#endif    // FILE_MODEL_H
+#endif
