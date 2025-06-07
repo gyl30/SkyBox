@@ -1,21 +1,8 @@
 #include <QPainter>
-#include "gui/titlebar.h"
 #include <QStyleOption>
+#include "gui/util.h"
+#include "gui/titlebar.h"
 
-static QIcon emoji_to_icon(const QString &emoji, int size)
-{
-    QPixmap pixmap(size, size);
-    pixmap.fill(Qt::transparent);
-
-    QPainter painter(&pixmap);
-    QFont font("EmojiOne");
-    font.setPointSizeF(size * 0.65);
-    painter.setFont(font);
-    painter.setPen(Qt::black);
-    painter.drawText(pixmap.rect(), Qt::AlignCenter, emoji);
-    painter.end();
-    return pixmap;
-}
 namespace leaf
 {
 
@@ -68,8 +55,8 @@ title_bar::title_bar(QWidget *parent) : QWidget(parent)
     )");
 
     // 设置按钮图标
-    min_btn_->setIcon(emoji_to_icon("➖", 24));
-    close_btn_->setIcon(emoji_to_icon("❌", 24));
+    min_btn_->setIcon(leaf::emoji_to_icon("➖", 24));
+    close_btn_->setIcon(leaf::emoji_to_icon("❌", 24));
     min_btn_->setFixedSize(36, 36);
     close_btn_->setFixedSize(36, 36);
     min_btn_->setIconSize(QSize(24, 24));

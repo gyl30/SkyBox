@@ -1,5 +1,5 @@
-#ifndef LEAF_FILE_ITEM_H
-#define LEAF_FILE_ITEM_H
+#ifndef LEAF_FILE_FILE_ITEM_H
+#define LEAF_FILE_FILE_ITEM_H
 
 #include <memory>
 #include <string>

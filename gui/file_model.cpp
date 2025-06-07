@@ -5,20 +5,8 @@
 #include <QMessageBox>
 #include <QFileInfo>
 #include <string>
+#include "gui/util.h"
 #include "gui/file_model.h"
-
-static QIcon emoji_to_icon(const QString &emoji)
-{
-    QPixmap pix(64, 64);
-    pix.fill(Qt::transparent);
-    QPainter p(&pix);
-    QFont font("Noto Color Emoji");
-    font.setPointSize(32);
-    p.setFont(font);
-    p.drawText(pix.rect(), Qt::AlignCenter, emoji);
-    QIcon icon(pix);
-    return icon;
-}
 
 static std::string format_file_size(int64_t bytes)
 {
@@ -74,9 +62,9 @@ QVariant file_model::data(const QModelIndex &index, int role) const
     {
         if (item->type == file_item_type::Folder)
         {
-            return emoji_to_icon("📁");
+            return leaf::emoji_to_icon("📁", 64);
         }
-        return emoji_to_icon("📄");
+        return leaf::emoji_to_icon("📄", 64);
     }
     if (role == Qt::ToolTipRole)
     {
