@@ -3,15 +3,14 @@
 #include <filesystem>
 #include "log/log.h"
 #include "file/file.h"
-#include "config/config.h"
 #include "protocol/codec.h"
+#include "file/event_manager.h"
 #include "file/download_session.h"
 
 namespace leaf
 {
-download_session::download_session(
-    std::string id, std::string host, std::string port, std::string token, leaf::download_handle handler, boost::asio::io_context& io)
-    : id_(std::move(id)), host_(std::move(host)), port_(std::move(port)), token_(std::move(token)), io_(io), progress_cb_(std::move(handler))
+download_session::download_session(std::string id, std::string host, std::string port, std::string token, boost::asio::io_context& io)
+    : id_(std::move(id)), host_(std::move(host)), port_(std::move(port)), token_(std::move(token)), io_(io)
 {
     LOG_INFO("{} startup", id_);
 }
@@ -271,7 +270,7 @@ boost::asio::awaitable<leaf::download_session::download_context> download_sessio
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return ctx;
     }
-    leaf::download_file_response response = download_response.value();
+    const leaf::download_file_response& response = download_response.value();
     auto file_path = std::filesystem::path(response.filename).string();
     bool exists = std::filesystem::exists(file_path, ec);
     if (ec)
@@ -394,7 +393,7 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
         d.filename = ctx.file->filename;
         d.download_size = writer->size();
         d.file_size = ctx.file->file_size;
-        emit_event(d);
+        leaf::event_manager::instance().post("download", d);
         if (ctx.file->file_size == writer->size())
         {
             LOG_INFO("{} download file {} size {} done", id_, ctx.file->file_path, d.file_size);
@@ -427,13 +426,6 @@ boost::asio::awaitable<void> download_session::wait_file_done(boost::beast::erro
     if (!data.has_value())
     {
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
-    }
-}
-void download_session::emit_event(const leaf::download_event& e) const
-{
-    if (progress_cb_.download)
-    {
-        progress_cb_.download(e);
     }
 }
 

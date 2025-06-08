@@ -24,6 +24,7 @@
 #include "gui/widget.h"
 #include "gui/titlebar.h"
 #include "file/file_item.h"
+#include "file/event_manager.h"
 
 Widget::Widget(QWidget *parent) : QWidget(parent)
 {
@@ -702,27 +703,38 @@ void Widget::on_login_btn_clicked()
     user_edit_->setEnabled(false);
     key_edit_->setEnabled(false);
 
-    leaf::progress_handler handler;
-    handler.u.upload = [this](const leaf::upload_event &e) { upload_progress(e); };
-    handler.d.download = [this](const leaf::download_event &e) { download_progress(e); };
-    handler.u.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
-    handler.d.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
-    handler.c.notify = [this](const leaf::notify_event &e) { notify_progress(e); };
-    handler.u.error = [this](const boost::system::error_code &ec) { error_progress(ec); };
-    handler.d.error = [this](const boost::system::error_code &ec) { error_progress(ec); };
-    handler.c.error = [this](const boost::system::error_code &ec) { error_progress(ec); };
+    leaf::event_manager::instance().subscribe("error", [this](const std::any &data) { error_progress(data); });
+    leaf::event_manager::instance().subscribe("notify", [this](const std::any &data) { notify_progress(data); });
+    leaf::event_manager::instance().subscribe("upload", [this](const std::any &data) { upload_progress(data); });
+    leaf::event_manager::instance().subscribe("cotrol", [this](const std::any &data) { cotrol_progress(data); });
+    leaf::event_manager::instance().subscribe("download", [this](const std::any &data) { download_progress(data); });
 
-    file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user.toStdString(), key.toStdString(), handler);
+    file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user.toStdString(), key.toStdString());
     file_client_->startup();
 }
-
-void Widget::download_progress(const leaf::download_event &e) {}
-
-void Widget::notify_progress(const leaf::notify_event &e) { emit notify_event_slot(e); }
-
-void Widget::error_progress(const boost::system::error_code &ec)
+void Widget::cotrol_progress(const std::any &data)
 {
-    QString error_msg = QString::fromStdString(ec.message());
+    //
+    auto e = std::any_cast<leaf::cotrol_event>(data);
+    LOG_INFO("^^^ cotrol progress {}", e.token);
+}
+
+void Widget::download_progress(const std::any &data)
+{
+    auto e = std::any_cast<leaf::download_event>(data);
+    LOG_DEBUG("--> download progress {} {} {}", e.filename, e.download_size, e.file_size);
+}
+
+void Widget::notify_progress(const std::any &data)
+{
+    auto e = std::any_cast<leaf::notify_event>(data);
+    emit notify_event_slot(e);
+}
+
+void Widget::error_progress(const std::any &data)
+{
+    auto e = std::any_cast<leaf::error_event>(data);
+    QString error_msg = QString::fromStdString(e.message);
     emit error_occurred(error_msg);
 }
 
@@ -850,7 +862,11 @@ void Widget::logout_notify(const leaf::notify_event & /*e*/)
     login_btn_->setEnabled(true);
 }
 
-void Widget::upload_progress(const leaf::upload_event &e) {}
+void Widget::upload_progress(const std::any &data)
+{
+    auto e = std::any_cast<leaf::upload_event>(data);
+    LOG_DEBUG("upload progress: file {}, progress {}", e.filename, e.upload_size);
+}
 
 Widget::~Widget()
 {

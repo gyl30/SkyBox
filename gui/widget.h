@@ -48,12 +48,13 @@ class Widget : public QWidget
     void new_directory_notify(const leaf::notify_event& e);
     void change_directory_notify(const leaf::notify_event& e);
     void rename_notify(const leaf::notify_event& e);
-    void notify_progress(const leaf::notify_event& e);
-    void upload_progress(const leaf::upload_event& e);
-    void download_progress(const leaf::download_event& e);
+    void notify_progress(const std::any& data);
+    void upload_progress(const std::any& data);
+    void cotrol_progress(const std::any& data);
+    void download_progress(const std::any& data);
     void on_login_btn_clicked();
     void on_files(const std::vector<leaf::file_node>& files);
-    void error_progress(const boost::system::error_code& ec);
+    void error_progress(const std::any& data);
     void update_breadcrumb();
 
    public:

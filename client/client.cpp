@@ -3,19 +3,31 @@
 #include "log/log.h"
 #include "file/event.h"
 #include "net/scoped_exit.hpp"
+#include "file/event_manager.h"
 #include "file/file_transfer_client.h"
 
-static void download_progress(const leaf::download_event &e) { LOG_INFO("--> download progress {} {} {}", e.filename, e.download_size, e.file_size); }
+static void download_progress(const std::any &data)
+{
+    auto e = std::any_cast<leaf::download_event>(data);
+    LOG_INFO("--> download progress {} {} {}", e.filename, e.download_size, e.file_size);
+}
 
-static void upload_progress(const leaf::upload_event &e) { LOG_INFO("<-- upload progress {} {} {}", e.filename, e.upload_size, e.file_size); }
-static void cotrol_progress(const leaf::cotrol_event &e)
+static void upload_progress(const std::any &data)
+{
+    auto e = std::any_cast<leaf::upload_event>(data);
+    LOG_INFO("<-- upload progress {} {} {}", e.filename, e.upload_size, e.file_size);
+}
+
+static void cotrol_progress(const std::any &data)
 {
     //
+    auto e = std::any_cast<leaf::cotrol_event>(data);
     LOG_INFO("^^^ cotrol progress {}", e.token);
 }
 
-static void notify_progress(const leaf::notify_event &e)
+static void notify_progress(const std::any &data)
 {
+    auto e = std::any_cast<leaf::notify_event>(data);
     if (e.method == "file_not_exist")
     {
         auto filename = std::any_cast<std::string>(e.data);
@@ -34,7 +46,11 @@ static void notify_progress(const leaf::notify_event &e)
 
     LOG_INFO("||| notify {}", e.method);
 }
-static void error_progress(const boost::system::error_code &ec) { LOG_ERROR("^^^ error {}", ec.message()); }
+static void error_progress(const std::any &data)
+{
+    auto e = std::any_cast<leaf::error_event>(data);
+    LOG_ERROR("!!! error {} {}", e.action, e.message);
+}
 
 struct command_args
 {
@@ -100,23 +116,18 @@ int main(int argc, char *argv[])
     LOG_INFO("command args {}", to_string(args.value()));
 
     leaf::set_log_level(args->level);
-    leaf::progress_handler handler;
-    handler.d.download = download_progress;
-    handler.d.notify = notify_progress;
-    handler.u.upload = upload_progress;
-    handler.u.notify = notify_progress;
-    handler.c.cotrol = cotrol_progress;
-    handler.c.notify = notify_progress;
 
-    auto fm = std::make_shared<leaf::file_transfer_client>(args->ip, args->port, args->username, args->password, handler);
-    auto error = [&fm](const boost::system::error_code &ec)
-    {
-        error_progress(ec);
-        fm->shutdown();
-    };
-    handler.d.error = error;
-    handler.u.error = error;
-    handler.c.error = error;
+    leaf::event_manager::instance().startup();
+
+    DEFER(leaf::event_manager::instance().shutdown());
+
+    leaf::event_manager::instance().subscribe("error", [](const std::any &data) { error_progress(data); });
+    leaf::event_manager::instance().subscribe("notify", [](const std::any &data) { notify_progress(data); });
+    leaf::event_manager::instance().subscribe("upload", [](const std::any &data) { upload_progress(data); });
+    leaf::event_manager::instance().subscribe("cotrol", [](const std::any &data) { cotrol_progress(data); });
+    leaf::event_manager::instance().subscribe("download", [](const std::any &data) { download_progress(data); });
+
+    auto fm = std::make_shared<leaf::file_transfer_client>(args->ip, args->port, args->username, args->password);
 
     fm->startup();
 

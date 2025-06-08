@@ -6,13 +6,13 @@
 #include "log/log.h"
 #include "protocol/codec.h"
 #include "protocol/message.h"
+#include "file/event_manager.h"
 #include "file/cotrol_session.h"
 
 namespace leaf
 {
-cotrol_session::cotrol_session(
-    std::string id, std::string host, std::string port, std::string token, leaf::cotrol_handle handler, boost::asio::io_context& io)
-    : id_(std::move(id)), host_(std::move(host)), port_(std::move(port)), token_(std::move(token)), handler_(std::move(handler)), io_(io)
+cotrol_session::cotrol_session(std::string id, std::string host, std::string port, std::string token, boost::asio::io_context& io)
+    : id_(std::move(id)), host_(std::move(host)), port_(std::move(port)), token_(std::move(token)), io_(io)
 {
     LOG_INFO("{} created", id_);
 }
@@ -92,7 +92,7 @@ boost::asio::awaitable<void> cotrol_session::wait_files_response(boost::beast::e
     leaf::notify_event e;
     e.method = "files";
     e.data = files->files;
-    handler_.notify(e);
+    leaf::event_manager::instance().post("notify", e);
     buffer.consume(buffer.size());
 }
 boost::asio::awaitable<void> cotrol_session::login(boost::beast::error_code& ec)

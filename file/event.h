@@ -27,6 +27,12 @@ struct download_event
     std::string filename;
 };
 
+struct error_event
+{
+    std::string action;
+    std::string message;
+};
+
 struct cotrol_event
 {
     std::string token;

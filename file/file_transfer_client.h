@@ -13,7 +13,7 @@ namespace leaf
 class file_transfer_client : public std::enable_shared_from_this<file_transfer_client>
 {
    public:
-    file_transfer_client(std::string ip, uint16_t port, std::string username, std::string password, leaf::progress_handler handler);
+    file_transfer_client(std::string ip, uint16_t port, std::string username, std::string password);
 
     ~file_transfer_client();
 
@@ -44,7 +44,6 @@ class file_transfer_client : public std::enable_shared_from_this<file_transfer_c
     leaf::executors executors{4};
     std::once_flag shutdown_flag_;
     leaf::executors::executor *ex_;
-    leaf::progress_handler handler_;
     std::shared_ptr<leaf::cotrol_session> cotrol_;
     std::shared_ptr<leaf::upload_session> upload_;
     std::shared_ptr<leaf::download_session> download_;

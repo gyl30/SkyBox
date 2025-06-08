@@ -4,13 +4,13 @@
 #include "file/file.h"
 #include "config/config.h"
 #include "protocol/codec.h"
+#include "file/event_manager.h"
 #include "file/upload_session.h"
 
 namespace leaf
 {
-upload_session::upload_session(
-    std::string id, std::string host, std::string port, std::string token, leaf::upload_handle handler, boost::asio::io_context& io)
-    : id_(std::move(id)), host_(std::move(host)), port_(std::move(port)), token_(std::move(token)), io_(io), handler_(std::move(handler))
+upload_session::upload_session(std::string id, std::string host, std::string port, std::string token, boost::asio::io_context& io)
+    : id_(std::move(id)), host_(std::move(host)), port_(std::move(port)), token_(std::move(token)), io_(io)
 {
 }
 
@@ -335,7 +335,7 @@ boost::asio::awaitable<void> upload_session::send_file_data(leaf::upload_session
         u.upload_size = reader->size();
         u.file_size = ctx.file->file_size;
         u.filename = ctx.file->filename;
-        emit_event(u);
+        leaf::event_manager::instance().post("upload", u);
 
         if (!fd.data.empty())
         {
@@ -384,14 +384,6 @@ boost::asio::awaitable<void> upload_session::send_file_done(boost::beast::error_
     co_await channel_.async_send(ec, leaf::serialize_done(d), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
-void upload_session::emit_event(const leaf::upload_event& e) const
-{
-    if (handler_.upload)
-    {
-        handler_.upload(e);
-    }
-}
-
 void upload_session::padding_file_event()
 {
     for (const auto& filename : padding_files_)
@@ -399,7 +391,7 @@ void upload_session::padding_file_event()
         upload_event e;
         e.filename = filename;
         LOG_DEBUG("padding files {}", e.filename);
-        emit_event(e);
+        leaf::event_manager::instance().post("upload", e);
     }
 }
 boost::asio::awaitable<void> upload_session::send_keepalive(boost::beast::error_code& ec)

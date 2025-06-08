@@ -22,14 +22,14 @@ class event_manager
    public:
     void startup();
     void shutdown();
-    void subscribe(const std::string& event_name, std::function<void(std::any)> cb);
+    void subscribe(const std::string& event_name, std::function<void(const std::any&)> cb);
     void unsubscribe(const std::string& event_name);
-    void emit(const std::string& event_name, std::any data);
+    void post(const std::string& event_name, const std::any& data);
 
    private:
-    std::map<std::string, std::function<void(std::any)>> cbs_;
     std::thread thread_;
     leaf::executors executors_{1};
+    std::map<std::string, std::function<void(std::any)>> cbs_;
 };
 }    // namespace leaf
 

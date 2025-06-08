@@ -15,7 +15,7 @@ namespace leaf
 class cotrol_session : public std::enable_shared_from_this<cotrol_session>
 {
    public:
-    cotrol_session(std::string id, std::string host, std::string port, std::string token, leaf::cotrol_handle handler, boost::asio::io_context &io);
+    cotrol_session(std::string id, std::string host, std::string port, std::string token, boost::asio::io_context &io);
     ~cotrol_session();
 
    public:
@@ -40,7 +40,6 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     std::string port_;
     std::string token_;
     std::string current_dir_;
-    leaf::cotrol_handle handler_;
     boost::asio::io_context &io_;
     std::shared_ptr<boost::asio::steady_timer> timer_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;

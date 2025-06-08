@@ -22,8 +22,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     };
 
    public:
-    download_session(
-        std::string id, std::string host, std::string port, std::string token, leaf::download_handle handler, boost::asio::io_context &io);
+    download_session(std::string id, std::string host, std::string port, std::string token, boost::asio::io_context &io);
 
     ~download_session();
 
@@ -51,7 +50,6 @@ class download_session : public std::enable_shared_from_this<download_session>
    private:
     void safe_add_file(const std::string &filename);
     void safe_add_files(const std::vector<std::string> &files);
-    void emit_event(const leaf::download_event &) const;
 
    private:
     uint32_t seq_ = 0;
@@ -60,7 +58,6 @@ class download_session : public std::enable_shared_from_this<download_session>
     std::string port_;
     std::string token_;
     boost::asio::io_context &io_;
-    leaf::download_handle progress_cb_;
     std::queue<std::string> padding_files_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
     boost::asio::experimental::channel<void(boost::system::error_code, std::vector<uint8_t>)> channel_{io_, 1024};

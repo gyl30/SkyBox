@@ -12,13 +12,8 @@
 namespace leaf
 {
 
-file_transfer_client::file_transfer_client(std::string ip, uint16_t port, std::string username, std::string password, leaf::progress_handler handler)
-    : id_(leaf::random_string(8)),
-      host_(std::move(ip)),
-      port_(std::to_string(port)),
-      user_(std::move(username)),
-      pass_(std::move(password)),
-      handler_(std::move(handler))
+file_transfer_client::file_transfer_client(std::string ip, uint16_t port, std::string username, std::string password)
+    : id_(leaf::random_string(8)), host_(std::move(ip)), port_(std::to_string(port)), user_(std::move(username)), pass_(std::move(password))
 {
     LOG_INFO("{} created", id_);
 }
@@ -93,9 +88,9 @@ boost::asio::awaitable<void> file_transfer_client::start_coro()
         co_return;
     }
     LOG_INFO("{} login success token {}", id_, token_);
-    cotrol_ = std::make_shared<leaf::cotrol_session>(id_, host_, port_, token_, handler_.c, executors.get_executor());
-    upload_ = std::make_shared<leaf::upload_session>(id_, host_, port_, token_, handler_.u, executors.get_executor());
-    download_ = std::make_shared<leaf::download_session>(id_, host_, port_, token_, handler_.d, executors.get_executor());
+    cotrol_ = std::make_shared<leaf::cotrol_session>(id_, host_, port_, token_, executors.get_executor());
+    upload_ = std::make_shared<leaf::upload_session>(id_, host_, port_, token_, executors.get_executor());
+    download_ = std::make_shared<leaf::download_session>(id_, host_, port_, token_, executors.get_executor());
     cotrol_->startup();
     upload_->startup();
     download_->startup();
