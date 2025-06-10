@@ -12,7 +12,7 @@ class upload_list_widget : public QWidget
    public:
     explicit upload_list_widget(QWidget *parent = nullptr);
 
-   private slots:
+   public:
     void add_task_to_view(const leaf::upload_event &e);
     void remove_task_from_view(const leaf::upload_event &e);
 

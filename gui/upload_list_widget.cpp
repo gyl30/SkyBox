@@ -1,6 +1,7 @@
 #include <QVBoxLayout>
 #include <QListWidgetItem>
-#include "upload_list_widget.h"
+#include "gui/upload_list_widget.h"
+#include "gui/upload_item_widget.h"
 
 upload_list_widget::upload_list_widget(QWidget *parent) : QWidget(parent)
 {
@@ -18,18 +19,25 @@ void upload_list_widget::add_task_to_view(const leaf::upload_event &e)
     for (int i = 0; i < list_widget_->count(); ++i)
     {
         QListWidgetItem *item = list_widget_->item(i);
-        auto event_item = item->data(Qt::UserRole).value<leaf::upload_event>();
-        if (event_item.filename != e.filename || event_item.file_size != e.file_size)
+        auto *widget = qobject_cast<upload_item_widget *>(list_widget_->itemWidget(item));
+        if (widget == nullptr)
         {
-            return;
+            continue;
         }
-        item->setData(Qt::UserRole, QVariant::fromValue<leaf::upload_event>(e));
+        if (widget->ev().filename != e.filename)
+        {
+            continue;
+        }
+        widget->update(e);
+        return;
     }
 
-    auto *list_item = new QListWidgetItem();
-    list_item->setData(Qt::UserRole, QVariant::fromValue<leaf::upload_event>(e));
+    auto *list_item = new QListWidgetItem(list_widget_);
+    auto *item_widget = new upload_item_widget(e);
+    list_item->setSizeHint(item_widget->minimumSizeHint());
     auto index = list_widget_->count();
     list_widget_->insertItem(index, list_item);
+    list_widget_->setItemWidget(list_item, item_widget);
 }
 
 void upload_list_widget::remove_task_from_view(const leaf::upload_event &e)

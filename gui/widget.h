@@ -15,6 +15,7 @@
 #include <QTimer>
 #include "file/event.h"
 #include "gui/file_model.h"
+#include "gui/upload_list_widget.h"
 #include "file/file_transfer_client.h"
 
 class Widget : public QWidget
@@ -29,18 +30,24 @@ class Widget : public QWidget
     void on_new_file_clicked();
 
    Q_SIGNALS:
-    void notify_event_slot(const leaf::notify_event& e);
-    void error_occurred(const QString& error_msg);
-
+    void notify_event_signal(const leaf::notify_event& e);
+    void upload_notify_signal(const leaf::upload_event& e);
+    void download_notify_signal(const leaf::download_event& e);
+    void cotrol_notify_signal(const leaf::cotrol_event& e);
+ 
    private Q_SLOTS:
-    void on_notify_event_slot(const leaf::notify_event& e);
+    void on_notify_event(const leaf::notify_event& e);
     void on_error_occurred(const QString& error_msg);
+    void on_upload_notify(const leaf::upload_event& e);
+    void on_download_notify(const leaf::download_event& e);
+    void on_cotrol_notify(const leaf::cotrol_event& e);
     void reset_login_state();
     void show_file_page();
     void show_upload_page();
     void on_upload_file();
     void on_new_folder();
     void on_breadcrumb_clicked();
+    void on_login_btn_clicked();
 
    private:
     void login_notify(const leaf::notify_event& e);
@@ -48,14 +55,14 @@ class Widget : public QWidget
     void new_directory_notify(const leaf::notify_event& e);
     void change_directory_notify(const leaf::notify_event& e);
     void rename_notify(const leaf::notify_event& e);
+    void update_breadcrumb();
+
     void notify_progress(const std::any& data);
     void upload_progress(const std::any& data);
     void cotrol_progress(const std::any& data);
     void download_progress(const std::any& data);
-    void on_login_btn_clicked();
     void on_files(const std::vector<leaf::file_node>& files);
     void error_progress(const std::any& data);
-    void update_breadcrumb();
 
    public:
     void mousePressEvent(QMouseEvent* e) override;
@@ -65,6 +72,7 @@ class Widget : public QWidget
 
    public:
     void setup_files_ui();
+    void setup_upload_ui();
     void setup_login_ui();
     void setup_side_ui();
     void setup_connections();
@@ -92,7 +100,6 @@ class Widget : public QWidget
     QPoint last_click_pos_;
     //
     QWidget* file_page_ = nullptr;
-    QWidget* upload_page_ = nullptr;
     QWidget* breadcrumb_widget_ = nullptr;
     QHBoxLayout* breadcrumb_layout_ = nullptr;
     QPushButton* btn_file_page_;
@@ -110,6 +117,7 @@ class Widget : public QWidget
     QHBoxLayout* content_layout_ = nullptr;
     std::shared_ptr<leaf::file_item> root_;
     std::shared_ptr<leaf::file_item> current_dir_;
+    upload_list_widget* upload_list_widget_ = nullptr;
     QVector<std::shared_ptr<leaf::file_item>> breadcrumb_list_;
     std::shared_ptr<leaf::file_transfer_client> file_client_ = nullptr;
     std::unordered_map<std::string, std::shared_ptr<leaf::file_item>> item_map_;

@@ -18,6 +18,7 @@ class upload_item_widget : public QWidget
     void update(const leaf::upload_event &e);
     void pause();
     void cacnel();
+    [[nodiscard]] leaf::upload_event ev() const { return event_; };
 
    private:
     void setup_ui();

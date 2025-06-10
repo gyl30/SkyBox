@@ -334,7 +334,7 @@ boost::asio::awaitable<void> upload_session::send_file_data(leaf::upload_session
         upload_event u;
         u.upload_size = reader->size();
         u.file_size = ctx.file->file_size;
-        u.filename = ctx.file->filename;
+        u.filename = ctx.file->file_path;
         leaf::event_manager::instance().post("upload", u);
 
         if (!fd.data.empty())

@@ -17,9 +17,6 @@ upload_item_widget::upload_item_widget(leaf::upload_event e, QWidget *parent) : 
 void upload_item_widget::setup_ui()
 {
     auto *main_layout = new QHBoxLayout(this);
-    main_layout->setContentsMargins(5, 3, 5, 3);
-    main_layout->setSpacing(8);
-
     progress_bar_ = new QProgressBar();
     progress_bar_->setFixedHeight(12);
     progress_bar_->setTextVisible(true);
@@ -55,10 +52,12 @@ void upload_item_widget::setup_ui()
     action_button_->setIcon(leaf::emoji_to_icon("⏸️", 64));
     action_button_->setToolTip("暂停");
     cancel_button_->setIcon(leaf::emoji_to_icon("❌", 64));
+    setMaximumHeight(32);
 }
 
 void upload_item_widget::update(const leaf::upload_event &e)
 {
+    event_ = e;
     int percentage = (e.file_size > 0) ? static_cast<int>((e.upload_size * 100) / e.file_size) : 0;
     progress_bar_->setValue(percentage);
     progress_bar_->setFormat(QString("%1 %2%").arg(QString::fromStdString(e.filename)).arg(percentage));

@@ -34,13 +34,15 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     qRegisterMetaType<leaf::notify_event>("leaf::notify_event");
     setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
 
+    leaf::event_manager::instance().startup();
+
     main_layout = new QVBoxLayout(this);
 
     stack_ = new QStackedWidget(this);
     file_page_ = new QWidget(stack_);
-    upload_page_ = new QWidget(stack_);
+    upload_list_widget_ = new upload_list_widget(stack_);
     stack_->addWidget(file_page_);
-    stack_->addWidget(upload_page_);
+    stack_->addWidget(upload_list_widget_);
     stack_->setCurrentWidget(file_page_);
 
     setup_login_ui();
@@ -65,9 +67,6 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     main_layout->addLayout(login_layout_);
     main_layout->addLayout(content_layout_);
     main_layout->setContentsMargins(8, 0, 0, 0);
-
-    connect(this, &Widget::notify_event_slot, this, &Widget::on_notify_event_slot);
-    connect(this, &Widget::error_occurred, this, &Widget::on_error_occurred);
 
     setup_demo_data();
 
@@ -296,6 +295,7 @@ void Widget::setup_files_ui()
     file_page_->installEventFilter(this);
 }
 
+void Widget::setup_upload_ui() {}
 void Widget::setup_connections()
 {
     connect(btn_file_page_, &QPushButton::clicked, this, &Widget::show_file_page);
@@ -400,6 +400,7 @@ void Widget::show_file_page()
 
 void Widget::show_upload_page()
 {
+    stack_->setCurrentWidget(upload_list_widget_);
     btn_file_page_->setChecked(false);
     btn_upload_page_->setChecked(true);
 }
@@ -411,6 +412,12 @@ void Widget::on_upload_file()
     {
         return;
     }
+    std::vector<std::string> ff;
+    for (const auto &f : files)
+    {
+        ff.push_back(f.toStdString());
+    }
+    file_client_->add_upload_files(ff);
 }
 
 void Widget::on_new_folder()
@@ -709,34 +716,52 @@ void Widget::on_login_btn_clicked()
     leaf::event_manager::instance().subscribe("cotrol", [this](const std::any &data) { cotrol_progress(data); });
     leaf::event_manager::instance().subscribe("download", [this](const std::any &data) { download_progress(data); });
 
+    connect(this, &Widget::upload_notify_signal, this, &Widget::on_upload_notify);
+    connect(this, &Widget::download_notify_signal, this, &Widget::on_download_notify);
+    connect(this, &Widget::cotrol_notify_signal, this, &Widget::on_cotrol_notify);
+    connect(this, &Widget::notify_event_signal, this, &Widget::on_notify_event);
+
     file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user.toStdString(), key.toStdString());
     file_client_->startup();
+}
+
+void Widget::error_progress(const std::any &data)
+{
+    auto e = std::any_cast<leaf::error_event>(data);
+    LOG_ERROR("error {}", e.message);
 }
 void Widget::cotrol_progress(const std::any &data)
 {
     //
     auto e = std::any_cast<leaf::cotrol_event>(data);
+    emit cotrol_notify_signal(e);
     LOG_INFO("^^^ cotrol progress {}", e.token);
 }
 
 void Widget::download_progress(const std::any &data)
 {
     auto e = std::any_cast<leaf::download_event>(data);
+    emit download_notify_signal(e);
     LOG_DEBUG("--> download progress {} {} {}", e.filename, e.download_size, e.file_size);
 }
 
 void Widget::notify_progress(const std::any &data)
 {
     auto e = std::any_cast<leaf::notify_event>(data);
-    emit notify_event_slot(e);
+    emit notify_event_signal(e);
 }
 
-void Widget::error_progress(const std::any &data)
+void Widget::upload_progress(const std::any &data)
 {
-    auto e = std::any_cast<leaf::error_event>(data);
-    QString error_msg = QString::fromStdString(e.message);
-    emit error_occurred(error_msg);
+    auto e = std::any_cast<leaf::upload_event>(data);
+    LOG_DEBUG("upload progress: file {}, progress {}", e.filename, e.upload_size);
+    emit upload_notify_signal(e);
 }
+void Widget::on_upload_notify(const leaf::upload_event &e) { upload_list_widget_->add_task_to_view(e); }
+
+void Widget::on_download_notify(const leaf::download_event &e) {}
+
+void Widget::on_cotrol_notify(const leaf::cotrol_event &e) {}
 
 void Widget::on_error_occurred(const QString &error_msg)
 {
@@ -787,7 +812,7 @@ void Widget::on_files(const std::vector<leaf::file_node> &files)
     }
 }
 
-void Widget::on_notify_event_slot(const leaf::notify_event &e)
+void Widget::on_notify_event(const leaf::notify_event &e)
 {
     if (e.method == "files")
     {
@@ -862,12 +887,6 @@ void Widget::logout_notify(const leaf::notify_event & /*e*/)
     login_btn_->setEnabled(true);
 }
 
-void Widget::upload_progress(const std::any &data)
-{
-    auto e = std::any_cast<leaf::upload_event>(data);
-    LOG_DEBUG("upload progress: file {}, progress {}", e.filename, e.upload_size);
-}
-
 Widget::~Widget()
 {
     if (file_client_ != nullptr)
@@ -875,6 +894,8 @@ Widget::~Widget()
         file_client_->shutdown();
         file_client_.reset();
     }
+
+    leaf::event_manager::instance().shutdown();
 }
 
 void Widget::on_new_file_clicked()
