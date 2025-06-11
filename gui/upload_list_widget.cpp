@@ -36,6 +36,7 @@ void upload_list_widget::add_task_to_view(const leaf::upload_event &e)
     auto *item_widget = new upload_item_widget(e);
     list_item->setSizeHint(item_widget->minimumSizeHint());
     auto index = list_widget_->count();
+    list_item->setSizeHint(item_widget->sizeHint());
     list_widget_->insertItem(index, list_item);
     list_widget_->setItemWidget(list_item, item_widget);
 }

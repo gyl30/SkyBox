@@ -20,6 +20,8 @@ class upload_item_widget : public QWidget
     void cacnel();
     [[nodiscard]] leaf::upload_event ev() const { return event_; };
 
+    QSize sizeHint() const override;
+
    private:
     void setup_ui();
 
@@ -29,7 +31,8 @@ class upload_item_widget : public QWidget
 
    private:
     leaf::upload_event event_;
-    QWidget *buttons_container_ = nullptr;
+
+    QLabel *filename_label_ = nullptr;
     QProgressBar *progress_bar_ = nullptr;
     QPushButton *action_button_ = nullptr;
     QPushButton *cancel_button_ = nullptr;
