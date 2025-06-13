@@ -2,10 +2,12 @@
 #define LEAF_GUI_UPLOAD_LIST_WIDGET_H
 
 #include <QWidget>
-#include <QListView>
 #include "file/event.h"
-#include "gui/upload_task_model.h"
-#include "gui/upload_item_delegate.h"
+
+class QListView;
+class upload_task_model;
+class upload_item_delegate;
+
 
 class upload_list_widget : public QWidget
 {
@@ -20,7 +22,7 @@ class upload_list_widget : public QWidget
     void remove_task_from_view(const leaf::upload_event &e);
 
    private slots:
-    void on_action_button_clicked(const QModelIndex &index);
+    void on_pause_button_clicked(const QModelIndex &index);
     void on_cancel_button_clicked(const QModelIndex &index);
 
    private:

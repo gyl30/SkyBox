@@ -1,5 +1,6 @@
 #include <QFileInfo>
 #include "gui/util.h"
+#include "file/event.h"
 #include "gui/upload_task_model.h"
 
 upload_task_model::upload_task_model(QObject *parent) : QAbstractListModel(parent) {}
@@ -22,15 +23,16 @@ QVariant upload_task_model::data(const QModelIndex &index, int role) const
 
     const leaf::upload_event &task = tasks_[index.row()];
 
+    if (role == static_cast<int>(leaf::task_role::kFullEventRole))
+    {
+        return QVariant::fromValue(task);
+    }
+
     if (role == Qt::DisplayRole)
     {
         return QFileInfo(QString::fromStdString(task.filename)).fileName();
     }
 
-    if (static_cast<leaf::task_role>(role) == leaf::task_role::kFullEventRole)
-    {
-        return QVariant::fromValue(task);
-    }
     return {};
 }
 
@@ -67,7 +69,7 @@ void upload_task_model::update_task(const leaf::upload_event &e)
     {
         tasks_[index] = e;
         QModelIndex model_index = this->index(index, 0);
-        emit dataChanged(model_index, model_index, {Qt::DisplayRole, static_cast<int>(leaf::task_role::kFullEventRole)});
+        emit dataChanged(model_index, model_index, {static_cast<int>(leaf::task_role::kFullEventRole)});
     }
 }
 

@@ -17,7 +17,7 @@ class upload_item_delegate : public QStyledItemDelegate
     bool editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index) override;
 
    signals:
-    void action_button_clicked(const QModelIndex &index);
+    void pause_button_clicked(const QModelIndex &index);
     void cancel_button_clicked(const QModelIndex &index);
 };
 
