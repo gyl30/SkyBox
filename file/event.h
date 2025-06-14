@@ -13,6 +13,8 @@ struct upload_event
 {
     uint64_t file_size = 0;
     uint64_t upload_size = 0;
+    double speed_mbps = 0.0;
+    int remaining_time_sec = 0;
     std::string filename;
 };
 struct notify_event

@@ -28,11 +28,9 @@
 
 Widget::Widget(QWidget *parent) : QWidget(parent)
 {
-    resize(800, 600);
-    QFont font("EmojiOne");
-    QApplication::setFont(font);
+    resize(1200, 800);
     qRegisterMetaType<leaf::notify_event>("leaf::notify_event");
-    setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+    // setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
 
     leaf::event_manager::instance().startup();
 

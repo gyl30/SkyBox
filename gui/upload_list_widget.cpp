@@ -24,6 +24,7 @@ upload_list_widget::upload_list_widget(QWidget *parent) : QWidget(parent)
     list_view_->setUniformItemSizes(true);
     list_view_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     list_view_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    list_view_->setFocusPolicy(Qt::ClickFocus);
 
     layout->addWidget(list_view_);
     setLayout(layout);

@@ -18,4 +18,20 @@ QIcon emoji_to_icon(const QString &emoji, int size)
     painter.end();
     return pixmap;
 }
+QString format_time(int total_seconds)
+{
+    if (total_seconds < 0)
+    {
+        return "--:--";
+    }
+    int hours = total_seconds / 3600;
+    int minutes = (total_seconds % 3600) / 60;
+    int seconds = total_seconds % 60;
+    if (hours > 0)
+    {
+        return QString("%1:%2:%3").arg(hours, 2, 10, QChar('0')).arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0'));
+    }
+
+    return QString("%1:%2").arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0'));
+}
 }    // namespace leaf

@@ -12,6 +12,7 @@ enum class task_role
 };
 
 QIcon emoji_to_icon(const QString &emoji, int size);
+QString format_time(int total_seconds);
 }    // namespace leaf
 
 #endif
