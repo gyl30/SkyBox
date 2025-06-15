@@ -26,7 +26,6 @@ class upload_item_widget : public QWidget
     QLabel *file_name_label_;
     QLabel *size_label_;
     QProgressBar *progress_bar_;
-    QLabel *percent_label_;
     QLabel *time_label_;
     QLabel *speed_label_;
     QPushButton *action_button_;

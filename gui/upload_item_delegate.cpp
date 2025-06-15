@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QStyleOption>
 #include <QApplication>
+#include <QProgressBar>
 #include <QAbstractItemView>
 #include "gui/util.h"
 #include "file/event.h"
@@ -32,60 +33,39 @@ void upload_item_delegate::paint(QPainter *painter, const QStyleOptionViewItem &
     QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
 
+    QColor background = ((opt.features & QStyleOptionViewItem::Alternate) != 0U) ? opt.palette.alternateBase().color() : opt.palette.base().color();
+    painter->fillRect(opt.rect, background);
+
     if ((opt.state & QStyle::State_Selected) != 0U)
     {
-        painter->fillRect(opt.rect, opt.palette.highlight().color());
-        painter->fillRect(opt.rect, QColor(0, 0, 0, 30));
+        QColor selection_overlay = opt.palette.highlight().color();
+        selection_overlay.setAlpha(40);
+        painter->fillRect(opt.rect, selection_overlay);
     }
-    else
-    {
-        QColor background =
-            ((opt.features & QStyleOptionViewItem::Alternate) != 0U) ? opt.palette.alternateBase().color() : opt.palette.base().color();
-        painter->fillRect(opt.rect, background);
-    }
+
     if ((opt.state & QStyle::State_Sunken) != 0U)
     {
-        painter->fillRect(opt.rect, QColor(0, 0, 0, 60));
+        QColor sunken_overlay = opt.palette.highlight().color();
+        sunken_overlay.setAlpha(60);
+        painter->fillRect(opt.rect, sunken_overlay);
     }
 
     auto task = index.data(static_cast<int>(leaf::task_role::kFullEventRole)).value<leaf::upload_event>();
     item_widget_.set_data(task);
 
-    QPalette p = item_widget_.palette();
-    QColor icon_color;
-    if ((opt.state & QStyle::State_Selected) != 0U)
-    {
-        QColor selected_text_color = opt.palette.highlightedText().color();
-        p.setColor(QPalette::WindowText, selected_text_color);
-
-        QColor secondary_selected_color = selected_text_color;
-        secondary_selected_color.setAlpha(200);
-        p.setColor(QPalette::Text, secondary_selected_color);
-        icon_color = selected_text_color;
-    }
-    else
-    {
-        p.setColor(QPalette::WindowText, opt.palette.text().color());
-        p.setColor(QPalette::Text, opt.palette.mid().color());
-        icon_color = QColor("#5094f3");
-    }
-    item_widget_.setPalette(p);
-
     item_widget_.get_action_button()->setIcon(leaf::emoji_to_icon("⏸️", 64));
     item_widget_.get_cancel_button()->setIcon(leaf::emoji_to_icon("❌", 64));
 
+    auto *progress_bar = item_widget_.findChild<QProgressBar *>();
+    if (progress_bar != nullptr)
+    {
+        progress_bar->setStyleSheet(
+            "QProgressBar { border: none; background-color: #e9eef8; color: white; text-align: center; }"
+            "QProgressBar::chunk { background-color: #5094f3; }");
+    }
     item_widget_.resize(opt.rect.size());
     painter->translate(opt.rect.topLeft());
     item_widget_.render(painter, QPoint(), QRegion(), QWidget::RenderFlags(QWidget::DrawChildren));
-    painter->translate(-opt.rect.topLeft());
-
-    if ((opt.state & QStyle::State_HasFocus) != 0U)
-    {
-        QStyleOptionFocusRect focus_rect_option;
-        focus_rect_option.rect = opt.rect;
-        QApplication::style()->drawPrimitive(QStyle::PE_FrameFocusRect, &focus_rect_option, painter);
-    }
-
     painter->restore();
 }
 
@@ -97,7 +77,6 @@ bool upload_item_delegate::editorEvent(QEvent *event, QAbstractItemModel *model,
         if (mouse_event->button() == Qt::LeftButton)
         {
             item_widget_.resize(option.rect.size());
-
             QPoint local_pos = mouse_event->pos() - option.rect.topLeft();
 
             if (item_widget_.get_action_button()->geometry().contains(local_pos))

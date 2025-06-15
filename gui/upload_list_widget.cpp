@@ -47,7 +47,7 @@ void upload_list_widget::on_pause_button_clicked(const QModelIndex &index)
 
     auto task = index.data(static_cast<int>(leaf::task_role::kFullEventRole)).value<leaf::upload_event>();
 
-    LOG_INFO("action button clicked for file: {}", task.filename);
+    LOG_INFO("pause button clicked for file: {}", task.filename);
 }
 
 void upload_list_widget::on_cancel_button_clicked(const QModelIndex &index)
