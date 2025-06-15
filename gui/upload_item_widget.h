@@ -4,7 +4,6 @@
 #include <QWidget>
 #include "file/event.h"
 
-// 前向声明
 class QLabel;
 class QProgressBar;
 class QPushButton;

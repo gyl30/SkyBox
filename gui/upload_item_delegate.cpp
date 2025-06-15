@@ -10,15 +10,72 @@
 #include <QAbstractItemView>
 #include "gui/util.h"
 #include "file/event.h"
+#include "gui/upload_item_widget.h"
 #include "gui/upload_item_delegate.h"
 
-upload_item_delegate::upload_item_delegate(QObject *parent) : QStyledItemDelegate(parent)
-{
-    item_widget_.setVisible(false);
-    item_widget_.setAttribute(Qt::WA_TranslucentBackground);
-}
+upload_item_delegate::upload_item_delegate(QObject *parent) : QStyledItemDelegate(parent) {}
 
 QSize upload_item_delegate::sizeHint(const QStyleOptionViewItem & /*option*/, const QModelIndex & /*index*/) const { return {800, 60}; }
+
+QWidget *upload_item_delegate::createEditor(QWidget *parent, const QStyleOptionViewItem & /*option*/, const QModelIndex & /*index*/) const
+{
+    auto *editor = new upload_item_widget(parent);
+
+    connect(editor->get_action_button(),
+            &QPushButton::clicked,
+            [this, editor]()
+            {
+                auto editorIndex = editor->property("model_index").value<QModelIndex>();
+                if (editorIndex.isValid())
+                {
+                    emit pause_button_clicked(editorIndex);
+                }
+            });
+
+    connect(editor->get_cancel_button(),
+            &QPushButton::clicked,
+            [this, editor]()
+            {
+                auto editorIndex = editor->property("model_index").value<QModelIndex>();
+                if (editorIndex.isValid())
+                {
+                    emit cancel_button_clicked(editorIndex);
+                }
+            });
+
+    return editor;
+}
+
+void upload_item_delegate::setEditorData(QWidget *editor, const QModelIndex &index) const
+{
+    auto *item_widget = qobject_cast<upload_item_widget *>(editor);
+    if (item_widget == nullptr)
+    {
+        return;
+    }
+
+    item_widget->setProperty("model_index", QVariant::fromValue(index));
+
+    auto task = index.data(static_cast<int>(leaf::task_role::kFullEventRole)).value<leaf::upload_event>();
+
+    item_widget->set_data(task);
+
+    item_widget->get_action_button()->setIcon(leaf::emoji_to_icon("⏸️", 64));
+    item_widget->get_cancel_button()->setIcon(leaf::emoji_to_icon("❌", 64));
+
+    auto *progress_bar = item_widget->findChild<QProgressBar *>();
+    if (progress_bar != nullptr)
+    {
+        progress_bar->setStyleSheet(
+            "QProgressBar { border: none; background-color: #e9eef8; color: white; text-align: center; }"
+            "QProgressBar::chunk { background-color: #5094f3; }");
+    }
+}
+
+void upload_item_delegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex & /*index*/) const
+{
+    editor->setGeometry(option.rect);
+}
 
 void upload_item_delegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
@@ -28,7 +85,6 @@ void upload_item_delegate::paint(QPainter *painter, const QStyleOptionViewItem &
     }
 
     painter->save();
-    painter->setRenderHint(QPainter::Antialiasing);
 
     QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
@@ -43,54 +99,5 @@ void upload_item_delegate::paint(QPainter *painter, const QStyleOptionViewItem &
         painter->fillRect(opt.rect, selection_overlay);
     }
 
-    if ((opt.state & QStyle::State_Sunken) != 0U)
-    {
-        QColor sunken_overlay = opt.palette.highlight().color();
-        sunken_overlay.setAlpha(60);
-        painter->fillRect(opt.rect, sunken_overlay);
-    }
-
-    auto task = index.data(static_cast<int>(leaf::task_role::kFullEventRole)).value<leaf::upload_event>();
-    item_widget_.set_data(task);
-
-    item_widget_.get_action_button()->setIcon(leaf::emoji_to_icon("⏸️", 64));
-    item_widget_.get_cancel_button()->setIcon(leaf::emoji_to_icon("❌", 64));
-
-    auto *progress_bar = item_widget_.findChild<QProgressBar *>();
-    if (progress_bar != nullptr)
-    {
-        progress_bar->setStyleSheet(
-            "QProgressBar { border: none; background-color: #e9eef8; color: white; text-align: center; }"
-            "QProgressBar::chunk { background-color: #5094f3; }");
-    }
-    item_widget_.resize(opt.rect.size());
-    painter->translate(opt.rect.topLeft());
-    item_widget_.render(painter, QPoint(), QRegion(), QWidget::RenderFlags(QWidget::DrawChildren));
     painter->restore();
-}
-
-bool upload_item_delegate::editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index)
-{
-    if (event->type() == QEvent::MouseButtonRelease)
-    {
-        auto *mouse_event = static_cast<QMouseEvent *>(event);
-        if (mouse_event->button() == Qt::LeftButton)
-        {
-            item_widget_.resize(option.rect.size());
-            QPoint local_pos = mouse_event->pos() - option.rect.topLeft();
-
-            if (item_widget_.get_action_button()->geometry().contains(local_pos))
-            {
-                emit pause_button_clicked(index);
-                return true;
-            }
-            if (item_widget_.get_cancel_button()->geometry().contains(local_pos))
-            {
-                emit cancel_button_clicked(index);
-                return true;
-            }
-        }
-    }
-
-    return QStyledItemDelegate::editorEvent(event, model, option, index);
 }

@@ -31,6 +31,21 @@ upload_list_widget::upload_list_widget(QWidget *parent) : QWidget(parent)
 
     connect(delegate_, &upload_item_delegate::pause_button_clicked, this, &upload_list_widget::on_pause_button_clicked);
     connect(delegate_, &upload_item_delegate::cancel_button_clicked, this, &upload_list_widget::on_cancel_button_clicked);
+
+    connect(model_,
+            &QAbstractItemModel::rowsInserted,
+            this,
+            [this](const QModelIndex &parent, int first, int last)
+            {
+                for (int i = first; i <= last; ++i)
+                {
+                    QModelIndex index = model_->index(i, 0, parent);
+                    if (index.isValid())
+                    {
+                        list_view_->openPersistentEditor(index);
+                    }
+                }
+            });
 }
 
 void upload_list_widget::add_task_to_view(const leaf::upload_event &e) { model_->add_task(e); }
@@ -39,7 +54,6 @@ void upload_list_widget::remove_task_from_view(const leaf::upload_event &e) { mo
 
 void upload_list_widget::on_pause_button_clicked(const QModelIndex &index)
 {
-    (void)this;
     if (!index.isValid())
     {
         return;
@@ -58,8 +72,6 @@ void upload_list_widget::on_cancel_button_clicked(const QModelIndex &index)
     }
 
     auto task = index.data(static_cast<int>(leaf::task_role::kFullEventRole)).value<leaf::upload_event>();
-
-    model_->remove_task(task);
 
     LOG_INFO("cancel button clicked for file: {}", task.filename);
 }

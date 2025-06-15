@@ -1,8 +1,8 @@
 #ifndef LEAF_GUI_UPLOAD_ITEM_DELEGATE_H
 #define LEAF_GUI_UPLOAD_ITEM_DELEGATE_H
 
+#include <QModelIndex>
 #include <QStyledItemDelegate>
-#include "gui/upload_item_widget.h"
 
 class upload_item_delegate : public QStyledItemDelegate
 {
@@ -10,15 +10,18 @@ class upload_item_delegate : public QStyledItemDelegate
 
    public:
     explicit upload_item_delegate(QObject *parent = nullptr);
+
+    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    void setEditorData(QWidget *editor, const QModelIndex &index) const override;
+    void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+
     void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-    bool editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index) override;
 
    signals:
-    void pause_button_clicked(const QModelIndex &index);
-    void cancel_button_clicked(const QModelIndex &index);
-
-   private:
-    mutable upload_item_widget item_widget_;
+    void pause_button_clicked(const QModelIndex &index) const;
+    void cancel_button_clicked(const QModelIndex &index) const;
 };
+
 #endif
