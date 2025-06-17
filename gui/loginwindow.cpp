@@ -5,10 +5,15 @@
 #include <QMessageBox>
 #include <QScreen>
 #include <QGuiApplication>
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
 
-#include "loginwindow.h"
+#include "log/log.h"
+#include "protocol/codec.h"
+#include "gui/loginwindow.h"
+#include "protocol/message.h"
 
-LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent)
+login_widget::login_widget(QWidget *parent) : QWidget(parent)
 {
     auto *layout = new QVBoxLayout();
     auto *form = new QFormLayout();
@@ -20,23 +25,53 @@ LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent)
     form->addRow("用户名:", user_);
     form->addRow("密码:", pass_);
 
-    auto *loginBtn = new QPushButton("登录", this);
+    auto *login_btn = new QPushButton("登录", this);
+
+    network_ = new QNetworkAccessManager(this);
+    connect(network_, &QNetworkAccessManager::finished, this, &login_widget::request_finished);
 
     layout->addLayout(form);
-    layout->addWidget(loginBtn);
+    layout->addWidget(login_btn);
     setLayout(layout);
-    connect(loginBtn, &QPushButton::clicked, this, &LoginWidget::handleLoginClicked);
+    connect(login_btn, &QPushButton::clicked, this, &login_widget::login_clicked);
     const QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
     this->move((screenGeometry.width() - this->width()) / 2, (screenGeometry.height() - this->height()) / 2);
     resize(240, 180);
 }
 
-void LoginWidget::handleLoginClicked()
+void login_widget::request_finished(QNetworkReply *reply)
+{
+    if (reply->error() == QNetworkReply::NoError)
+    {
+        QByteArray bytes = reply->readAll();
+        std::string token = QString::fromUtf8(bytes).toStdString();
+        LOG_INFO("token {}", token);
+        this->hide();
+    }
+    else
+    {
+        auto error_str = "登录失败" + reply->errorString();
+        QMessageBox::warning(this, "提示", error_str);
+    }
+    reply->deleteLater();
+}
+
+void login_widget::login_clicked()
 {
     if (user_->text().isEmpty() || pass_->text().isEmpty())
     {
         QMessageBox::warning(this, "提示", "用户名和密码不能为空");
         return;
     }
-    this->hide();
+    leaf::login_request login_request;
+    login_request.username = user_->text().toStdString();
+    login_request.password = pass_->text().toStdString();
+    auto data = leaf::serialize_login_request(login_request);
+    QString bytes = QString::fromStdString(std::string(data.begin(), data.end()));
+    req_ = bytes.toUtf8();
+    QString url = "http://127.0.0.1:8080/leaf/login";
+    LOG_INFO("request url {} content {}", url.toStdString(), std::string(data.begin(), data.end()));
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json; charset=utf-8");
+    network_->post(request, req_);
 }
