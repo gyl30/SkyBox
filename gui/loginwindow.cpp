@@ -46,7 +46,13 @@ void login_widget::request_finished(QNetworkReply *reply)
         QByteArray bytes = reply->readAll();
         std::string token = QString::fromUtf8(bytes).toStdString();
         LOG_INFO("token {}", token);
+        if (widget == nullptr)
+        {
+            widget = new Widget();
+        }
+        widget->set_token(token);
         this->hide();
+        widget->show();
     }
     else
     {

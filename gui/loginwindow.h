@@ -6,6 +6,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkAccessManager>
+#include "gui/widget.h"
 
 class QLineEdit;
 
@@ -27,6 +28,7 @@ class login_widget : public QWidget
     QLineEdit *pass_ = nullptr;
     QByteArray req_;
     QNetworkAccessManager *network_ = nullptr;
+    Widget *widget = nullptr;
 };
 
 #endif

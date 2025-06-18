@@ -13,7 +13,7 @@ namespace leaf
 class file_transfer_client : public std::enable_shared_from_this<file_transfer_client>
 {
    public:
-    file_transfer_client(std::string ip, uint16_t port, std::string username, std::string password);
+    file_transfer_client(std::string ip, uint16_t port, std::string username, std::string password, std::string token);
 
     ~file_transfer_client();
 
@@ -30,8 +30,6 @@ class file_transfer_client : public std::enable_shared_from_this<file_transfer_c
     void change_current_dir(const std::string &dir);
 
    private:
-    boost::asio::awaitable<void> start_coro();
-    boost::asio::awaitable<void> login(boost::system::error_code &ec);
     boost::asio::awaitable<void> shutdown_coro();
 
    private:

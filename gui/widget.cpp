@@ -73,6 +73,9 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 
     update_breadcrumb();
 }
+
+void Widget::set_token(const std::string &token) { token_ = token; }
+
 void Widget::setup_demo_data()
 {
     root_ = std::make_shared<leaf::file_item>();
@@ -719,7 +722,7 @@ void Widget::on_login_btn_clicked()
     connect(this, &Widget::cotrol_notify_signal, this, &Widget::on_cotrol_notify);
     connect(this, &Widget::notify_event_signal, this, &Widget::on_notify_event);
 
-    file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user.toStdString(), key.toStdString());
+    file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user.toStdString(), key.toStdString(), token_);
     file_client_->startup();
 }
 

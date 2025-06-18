@@ -26,6 +26,9 @@ class Widget : public QWidget
     explicit Widget(QWidget* parent = nullptr);
     ~Widget() override;
 
+   public:
+    void set_token(const std::string& token);
+
    private:
     void on_new_file_clicked();
 
@@ -34,7 +37,7 @@ class Widget : public QWidget
     void upload_notify_signal(const leaf::upload_event& e);
     void download_notify_signal(const leaf::download_event& e);
     void cotrol_notify_signal(const leaf::cotrol_event& e);
- 
+
    private Q_SLOTS:
     void on_notify_event(const leaf::notify_event& e);
     void on_error_occurred(const QString& error_msg);
@@ -85,6 +88,7 @@ class Widget : public QWidget
     void clear_breadcrumb_layout();
 
    private:
+    std::string token_;
     QToolButton* files_btn_ = nullptr;
     QButtonGroup* btn_group_ = nullptr;
 
