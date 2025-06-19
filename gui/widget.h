@@ -23,11 +23,11 @@ class Widget : public QWidget
     Q_OBJECT
 
    public:
-    explicit Widget(QWidget* parent = nullptr);
+    Widget(std::string user, std::string password, std::string token, QWidget* parent = nullptr);
     ~Widget() override;
 
    public:
-    void set_token(const std::string& token);
+    void startup();
 
    private:
     void on_new_file_clicked();
@@ -44,13 +44,11 @@ class Widget : public QWidget
     void on_upload_notify(const leaf::upload_event& e);
     void on_download_notify(const leaf::download_event& e);
     void on_cotrol_notify(const leaf::cotrol_event& e);
-    void reset_login_state();
     void show_file_page();
     void show_upload_page();
     void on_upload_file();
     void on_new_folder();
     void on_breadcrumb_clicked();
-    void on_login_btn_clicked();
 
    private:
     void login_notify(const leaf::notify_event& e);
@@ -89,16 +87,10 @@ class Widget : public QWidget
 
    private:
     std::string token_;
+    std::string user_;
+    std::string password_;
     QToolButton* files_btn_ = nullptr;
     QButtonGroup* btn_group_ = nullptr;
-
-    //
-    QLabel* user_label_ = nullptr;
-    QLineEdit* user_edit_ = nullptr;
-    QLabel* key_label_ = nullptr;
-    QLineEdit* key_edit_ = nullptr;
-    QToolButton* login_btn_ = nullptr;
-    //
 
     QStackedWidget* stack_ = nullptr;
     QPoint last_click_pos_;
@@ -115,7 +107,6 @@ class Widget : public QWidget
 
     QWidget* loading_overlay_;
     QLabel* loading_label_;
-    QHBoxLayout* login_layout_ = nullptr;
     QVBoxLayout* side_layout_ = nullptr;
     QVBoxLayout* main_layout = nullptr;
     QHBoxLayout* content_layout_ = nullptr;

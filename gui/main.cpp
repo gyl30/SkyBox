@@ -1,7 +1,7 @@
 #include <QApplication>
 
 #include "log/log.h"
-#include "gui/widget.h"
+#include "gui/loginwindow.h"
 #include "net/scoped_exit.hpp"
 
 int main(int argc, char *argv[])
@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     DEFER(leaf::shutdown_log());
 
     QApplication a(argc, argv);
-    Widget w;
+    login_widget w;
     w.show();
     return QApplication::exec();
 }

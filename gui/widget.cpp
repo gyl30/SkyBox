@@ -26,7 +26,8 @@
 #include "file/file_item.h"
 #include "file/event_manager.h"
 
-Widget::Widget(QWidget *parent) : QWidget(parent)
+Widget::Widget(std::string user, std::string password, std::string token, QWidget *parent)
+    : QWidget(parent), token_(std::move(token)), user_(std::move(user)), password_(std::move(password))
 {
     resize(1200, 800);
     qRegisterMetaType<leaf::notify_event>("leaf::notify_event");
@@ -42,8 +43,6 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     stack_->addWidget(file_page_);
     stack_->addWidget(upload_list_widget_);
     stack_->setCurrentWidget(file_page_);
-
-    setup_login_ui();
 
     setup_side_ui();
 
@@ -62,7 +61,6 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
     content_layout_->setContentsMargins(0, 0, 0, 0);
 
     main_layout->addWidget(title_bar);
-    main_layout->addLayout(login_layout_);
     main_layout->addLayout(content_layout_);
     main_layout->setContentsMargins(8, 0, 0, 0);
 
@@ -73,8 +71,6 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 
     update_breadcrumb();
 }
-
-void Widget::set_token(const std::string &token) { token_ = token; }
 
 void Widget::setup_demo_data()
 {
@@ -153,42 +149,6 @@ void Widget::setup_side_ui()
 
     side_layout_->addWidget(btn_file_page_);
     side_layout_->addWidget(btn_upload_page_);
-}
-
-void Widget::setup_login_ui()
-{
-    login_layout_ = new QHBoxLayout();
-    user_label_ = new QLabel("用户名:");
-    user_edit_ = new QLineEdit();
-    user_edit_->setPlaceholderText("请输入用户名");
-    user_edit_->setMinimumWidth(150);
-    user_edit_->setFixedWidth(150);
-    user_edit_->setMinimumHeight(30);
-
-    key_label_ = new QLabel("密码:");
-    key_edit_ = new QLineEdit();
-    key_edit_->setEchoMode(QLineEdit::Password);
-    key_edit_->setPlaceholderText("请输入密码");
-    key_edit_->setMinimumWidth(150);
-    key_edit_->setFixedWidth(150);
-    key_edit_->setMinimumHeight(30);
-
-    login_btn_ = new QToolButton();
-    login_btn_->setText("登录");
-    login_btn_->setMinimumWidth(80);
-    login_btn_->setMinimumHeight(30);
-    connect(login_btn_, &QToolButton::clicked, this, &Widget::on_login_btn_clicked);
-
-    login_layout_->setSpacing(10);
-    login_layout_->addStretch();
-    login_layout_->addWidget(user_label_);
-    login_layout_->addWidget(user_edit_);
-    login_layout_->addSpacing(20);
-    login_layout_->addWidget(key_label_);
-    login_layout_->addWidget(key_edit_);
-    login_layout_->addSpacing(20);
-    login_layout_->addWidget(login_btn_);
-    login_layout_->addStretch();
 }
 
 void Widget::setup_files_ui()
@@ -693,24 +653,8 @@ void Widget::mouseDoubleClickEvent(QMouseEvent *e)
     }
     QWidget::mouseDoubleClickEvent(e);
 }
-void Widget::on_login_btn_clicked()
+void Widget::startup()
 {
-    auto user = user_edit_->text();
-    auto key = key_edit_->text();
-    if (user.isEmpty() || key.isEmpty())
-    {
-        QMessageBox::warning(this, "警告", "用户名和密码不能为空");
-        return;
-    }
-    if (file_client_ != nullptr)
-    {
-        return;
-    }
-    login_btn_->setText("登录中...");
-    login_btn_->setEnabled(false);
-    user_edit_->setEnabled(false);
-    key_edit_->setEnabled(false);
-
     leaf::event_manager::instance().subscribe("error", [this](const std::any &data) { error_progress(data); });
     leaf::event_manager::instance().subscribe("notify", [this](const std::any &data) { notify_progress(data); });
     leaf::event_manager::instance().subscribe("upload", [this](const std::any &data) { upload_progress(data); });
@@ -722,7 +666,7 @@ void Widget::on_login_btn_clicked()
     connect(this, &Widget::cotrol_notify_signal, this, &Widget::on_cotrol_notify);
     connect(this, &Widget::notify_event_signal, this, &Widget::on_notify_event);
 
-    file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user.toStdString(), key.toStdString(), token_);
+    file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user_, password_, token_);
     file_client_->startup();
 }
 
@@ -731,6 +675,7 @@ void Widget::error_progress(const std::any &data)
     auto e = std::any_cast<leaf::error_event>(data);
     LOG_ERROR("error {}", e.message);
 }
+
 void Widget::cotrol_progress(const std::any &data)
 {
     //
@@ -777,16 +722,6 @@ void Widget::on_error_occurred(const QString &error_msg)
     }
 }
 
-void Widget::reset_login_state()
-{
-    login_btn_->setText("登录");
-    login_btn_->setEnabled(true);
-    user_edit_->setEnabled(true);
-    key_edit_->setEnabled(true);
-    user_edit_->clear();
-    key_edit_->clear();
-}
-
 void Widget::on_files(const std::vector<leaf::file_node> &files)
 {
     auto find_parent = [this](const std::string &file) -> std::shared_ptr<leaf::file_item>
@@ -831,14 +766,6 @@ void Widget::on_notify_event(const leaf::notify_event &e)
     {
         change_directory_notify(e);
     }
-    if (e.method == "login")
-    {
-        login_notify(e);
-    }
-    if (e.method == "logout")
-    {
-        logout_notify(e);
-    }
 }
 
 void Widget::change_directory_notify(const leaf::notify_event &e)
@@ -860,33 +787,6 @@ void Widget::new_directory_notify(const leaf::notify_event &e)
 }
 
 void Widget::rename_notify(const leaf::notify_event &e) {}
-
-void Widget::login_notify(const leaf::notify_event &e)
-{
-    bool login = std::any_cast<bool>(e.data);
-    if (login)
-    {
-        login_btn_->setText("已登录");
-        user_edit_->setEnabled(false);
-        key_edit_->setEnabled(false);
-        login_btn_->setEnabled(false);
-    }
-    else
-    {
-        login_btn_->setText("登录");
-        user_edit_->setEnabled(true);
-        key_edit_->setEnabled(true);
-
-        login_btn_->setEnabled(true);
-    }
-}
-void Widget::logout_notify(const leaf::notify_event & /*e*/)
-{
-    login_btn_->setText("登录");
-    user_edit_->setEnabled(true);
-    key_edit_->setEnabled(true);
-    login_btn_->setEnabled(true);
-}
 
 Widget::~Widget()
 {

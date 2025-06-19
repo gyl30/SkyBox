@@ -45,12 +45,14 @@ void login_widget::request_finished(QNetworkReply *reply)
     {
         QByteArray bytes = reply->readAll();
         std::string token = QString::fromUtf8(bytes).toStdString();
-        LOG_INFO("token {}", token);
+        auto username = user_->text().toStdString();
+        auto password = pass_->text().toStdString();
+        LOG_INFO("username {} password {} token {}", username, password, token);
         if (widget == nullptr)
         {
-            widget = new Widget();
+            widget = new Widget(username, password, token);
         }
-        widget->set_token(token);
+        widget->startup();
         this->hide();
         widget->show();
     }
