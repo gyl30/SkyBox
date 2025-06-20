@@ -53,8 +53,8 @@ void login_widget::request_finished(QNetworkReply *reply)
             widget = new Widget(username, password, token);
         }
         widget->startup();
-        this->hide();
         widget->show();
+        this->hide();
     }
     else
     {
