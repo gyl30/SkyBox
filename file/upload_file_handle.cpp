@@ -1,6 +1,7 @@
 #include <utility>
 #include <filesystem>
 #include "log/log.h"
+#include "file/file.h"
 #include "crypt/easy.h"
 #include "crypt/passwd.h"
 #include "config/config.h"
@@ -24,30 +25,12 @@ void upload_file_handle::startup()
 {
     LOG_INFO("startup {}", id_);
 
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await recv_coro(); }, boost::asio::detached);
-
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await write_coro(); }, boost::asio::detached);
+    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
 }
 
-boost::asio::awaitable<void> upload_file_handle ::write_coro()
+boost::asio::awaitable<void> upload_file_handle::write(const std::vector<uint8_t>& msg, boost::beast::error_code& ec)
 {
-    LOG_INFO("{} write startup", id_);
-    while (true)
-    {
-        boost::system::error_code ec;
-        auto bytes = co_await channel_.async_receive(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-        if (ec)
-        {
-            LOG_ERROR("{} write error {}", id_, ec.message());
-            co_return;
-        }
-        co_await session_->write(ec, bytes.data(), bytes.size());
-        if (ec)
-        {
-            LOG_ERROR("{} write error {}", id_, ec.message());
-        }
-    }
-    LOG_INFO("{} write shutdown", id_);
+    co_await session_->write(ec, msg.data(), msg.size());
 }
 
 void upload_file_handle ::shutdown()
@@ -60,14 +43,13 @@ boost::asio::awaitable<void> upload_file_handle::shutdown_coro()
 {
     if (session_)
     {
-        channel_.close();
         session_->close();
         session_.reset();
     }
     LOG_INFO("{} shutdown", id_);
     co_return;
 }
-boost::asio::awaitable<void> upload_file_handle::recv_coro()
+boost::asio::awaitable<void> upload_file_handle::loop()
 {
     LOG_INFO("{} recv startup", id_);
     boost::beast::error_code ec;
@@ -161,7 +143,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_login(boost::beast::error_
     }
 
     token_ = login->token;
-    co_await channel_.async_send(ec, leaf::serialize_login_token(login.value()), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_login_token(login.value()), ec);
 }
 
 boost::asio::awaitable<leaf::upload_file_handle::upload_context> upload_file_handle::wait_upload_file_request(boost::beast::error_code& ec)
@@ -214,7 +196,7 @@ boost::asio::awaitable<leaf::upload_file_handle::upload_context> upload_file_han
     leaf::upload_file_response ufr;
     ufr.id = req->id;
     ufr.filename = req->filename;
-    co_await channel_.async_send(ec, leaf::serialize_upload_file_response(ufr), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_upload_file_response(ufr), ec);
     co_return ctx;
 }
 
@@ -239,7 +221,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_ack(boost::beast::error_co
 boost::asio::awaitable<void> upload_file_handle::send_file_done(boost::beast::error_code& ec)
 {
     leaf::done d;
-    co_await channel_.async_send(ec, leaf::serialize_done(d), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_done(d), ec);
 }
 
 boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_file_handle::upload_context& ctx, boost::beast::error_code& ec)
@@ -357,7 +339,7 @@ boost::asio::awaitable<leaf::keepalive> upload_file_handle::wait_keepalive(boost
     k.server_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     LOG_DEBUG(
         "{} keepalive client {} server_timestamp {} client_timestamp {} token {}", id_, k.client_id, k.server_timestamp, k.client_timestamp, token_);
-    co_await channel_.async_send(ec, serialize_keepalive(k), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(serialize_keepalive(k), ec);
     co_return keepalive_request.value();
 }
 }    // namespace leaf

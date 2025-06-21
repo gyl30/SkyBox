@@ -2,8 +2,6 @@
 #define LEAF_FILE_UPLOAD_FILE_HANDLE_H
 
 #include <mutex>
-#include <boost/asio/experimental/channel.hpp>
-#include "file/file.h"
 #include "protocol/message.h"
 #include "crypt/blake2b.h"
 #include "file/file_context.h"
@@ -30,8 +28,8 @@ class upload_file_handle : public websocket_handle
     std::string type() const override { return "upload"; }
 
    private:
-    boost::asio::awaitable<void> recv_coro();
-    boost::asio::awaitable<void> write_coro();
+    boost::asio::awaitable<void> loop();
+    boost::asio::awaitable<void> write(const std::vector<uint8_t>& msg, boost::beast::error_code& ec);
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> wait_login(boost::beast::error_code& ec);
     boost::asio::awaitable<leaf::keepalive> wait_keepalive(boost::beast::error_code& ec);
@@ -48,7 +46,6 @@ class upload_file_handle : public websocket_handle
     std::once_flag shutdown_flag_;
     leaf::websocket_session::ptr session_;
     const boost::asio::any_io_executor& io_;
-    boost::asio::experimental::channel<void(boost::system::error_code, std::vector<uint8_t>)> channel_{io_, 1024};
 };
 
 }    // namespace leaf
