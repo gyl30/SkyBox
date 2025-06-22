@@ -31,8 +31,8 @@ class download_file_handle : public websocket_handle
     std::string type() const override { return "download"; }
 
    private:
-    boost::asio::awaitable<void> recv_coro();
-    boost::asio::awaitable<void> write_coro();
+    boost::asio::awaitable<void> loop();
+    boost::asio::awaitable<void> write(const std::vector<uint8_t>& msg, boost::beast::error_code& ec);
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> wait_login(boost::beast::error_code& ec);
     boost::asio::awaitable<leaf::keepalive> wait_keepalive(boost::beast::error_code& ec);
@@ -49,7 +49,6 @@ class download_file_handle : public websocket_handle
     leaf::websocket_session::ptr session_;
     const boost::asio::any_io_executor& io_;
     std::queue<leaf::file_info::ptr> padding_files_;
-    boost::asio::experimental::channel<void(boost::system::error_code, std::vector<uint8_t>)> channel_{io_, 1024};
 };
 
 }    // namespace leaf
