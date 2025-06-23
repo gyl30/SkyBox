@@ -24,14 +24,12 @@ void cotrol_session::startup()
     LOG_INFO("{} startup", id_);
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/cotrol", io_);
 
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await recv_coro(); }, boost::asio::detached);
-
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await write_coro(); }, boost::asio::detached);
+    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
 
     boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await timer_coro(); }, boost::asio::detached);
 }
 
-boost::asio::awaitable<void> cotrol_session::recv_coro()
+boost::asio::awaitable<void> cotrol_session::loop()
 {
     auto self = shared_from_this();
     LOG_INFO("{} recv startup", id_);
@@ -100,8 +98,7 @@ boost::asio::awaitable<void> cotrol_session::login(boost::beast::error_code& ec)
     leaf::login_token lt;
     lt.id = 0x01;
     lt.token = token_;
-    auto bytes = leaf::serialize_login_token(lt);
-    co_await channel_.async_send(boost::system::error_code{}, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_login_token(lt), ec);
     if (ec)
     {
         co_return;
@@ -114,7 +111,7 @@ boost::asio::awaitable<void> cotrol_session::login(boost::beast::error_code& ec)
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
     auto type = leaf::get_message_type(message);
-    bytes = std::vector<uint8_t>(message.begin(), message.end());
+    std::vector<uint8_t> bytes(message.begin(), message.end());
     if (type != leaf::message_type::login)
     {
         LOG_ERROR("{} login message type error {}", id_, leaf::message_type_to_string(type));
@@ -159,31 +156,12 @@ boost::asio::awaitable<void> cotrol_session::send_files_request(boost::beast::er
     leaf::files_request req;
     req.token = token_;
     req.dir = current_dir_;
-    auto bytes = leaf::serialize_files_request(req);
-    co_await channel_.async_send(ec, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_files_request(req), ec);
 }
 
-boost::asio::awaitable<void> cotrol_session::write_coro()
+boost::asio::awaitable<void> cotrol_session::write(const std::vector<uint8_t>& data, boost::beast::error_code& ec)
 {
-    auto self = shared_from_this();
-    LOG_INFO("{} write startup", id_);
-    while (true)
-    {
-        boost::system::error_code ec;
-        auto bytes = co_await channel_.async_receive(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-        if (ec)
-        {
-            LOG_ERROR("{} write error {}", id_, ec.message());
-            break;
-        }
-        co_await ws_client_->write(ec, bytes.data(), bytes.size());
-        if (ec)
-        {
-            LOG_ERROR("{} write error {}", id_, ec.message());
-            break;
-        }
-    }
-    LOG_INFO("{} write shutdown", id_);
+    co_await ws_client_->write(ec, data.data(), data.size());
 }
 
 void cotrol_session::shutdown()
@@ -202,7 +180,6 @@ boost::asio::awaitable<void> cotrol_session::shutdown_coro()
 
     if (ws_client_)
     {
-        channel_.close();
         ws_client_->close();
         ws_client_.reset();
     }
@@ -215,9 +192,20 @@ boost::asio::awaitable<void> cotrol_session::create_directory_coro(const std::st
     leaf::create_dir cd;
     cd.dir = dir;
     cd.token = token_;
-    auto bytes = leaf::serialize_create_dir(cd);
     boost::system::error_code ec;
-    co_await channel_.async_send(boost::system::error_code{}, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    leaf::notify_event e;
+    e.method = "create_directory";
+
+    co_await write(leaf::serialize_create_dir(cd), ec);
+    if (ec)
+    {
+        e.data = ec.message();
+    }
+    else
+    {
+        e.data = std::string("successful");
+    }
+    leaf::event_manager::instance().post("notify", e);
 }
 void cotrol_session::create_directory(const std::string& dir)
 {

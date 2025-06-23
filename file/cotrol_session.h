@@ -25,9 +25,9 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     void change_current_dir(const std::string &dir);
 
    private:
-    boost::asio::awaitable<void> recv_coro();
+    boost::asio::awaitable<void> loop();
     boost::asio::awaitable<void> timer_coro();
-    boost::asio::awaitable<void> write_coro();
+    boost::asio::awaitable<void> write(const std::vector<uint8_t> &data, boost::beast::error_code &);
     boost::asio::awaitable<void> create_directory_coro(const std::string &dir);
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> login(boost::beast::error_code &);
@@ -43,7 +43,6 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     boost::asio::io_context &io_;
     std::shared_ptr<boost::asio::steady_timer> timer_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
-    boost::asio::experimental::channel<void(boost::system::error_code, std::vector<uint8_t>)> channel_{io_, 1024};
 };
 
 }    // namespace leaf
