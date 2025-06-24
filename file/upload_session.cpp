@@ -20,10 +20,7 @@ void upload_session::startup()
 {
     LOG_INFO("{} startup", id_);
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/upload", io_);
-
-    boost::asio::co_spawn(
-        io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await upload_coro(); }, boost::asio::detached);
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await write_coro(); }, boost::asio::detached);
+    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
 }
 
 boost::asio::awaitable<void> upload_session::login(boost::beast::error_code& ec)
@@ -32,8 +29,7 @@ boost::asio::awaitable<void> upload_session::login(boost::beast::error_code& ec)
     leaf::login_token lt;
     lt.id = 0x01;
     lt.token = token_;
-    auto bytes = leaf::serialize_login_token(lt);
-    co_await channel_.async_send(boost::system::error_code{}, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_login_token(lt), ec);
     if (ec)
     {
         co_return;
@@ -48,7 +44,7 @@ boost::asio::awaitable<void> upload_session::login(boost::beast::error_code& ec)
 
     auto message = boost::beast::buffers_to_string(buffer.data());
     auto type = leaf::get_message_type(message);
-    bytes = std::vector<uint8_t>(message.begin(), message.end());
+    auto bytes = std::vector<uint8_t>(message.begin(), message.end());
     if (type != leaf::message_type::login)
     {
         LOG_ERROR("{} message type error login:{}", id_, leaf::message_type_to_string(type));
@@ -63,7 +59,7 @@ boost::asio::awaitable<void> upload_session::login(boost::beast::error_code& ec)
         co_return;
     }
 }
-boost::asio::awaitable<void> upload_session::upload_coro()
+boost::asio::awaitable<void> upload_session::loop()
 {
     LOG_INFO("{} startup", id_);
     boost::beast::error_code ec;
@@ -146,26 +142,9 @@ boost::asio::awaitable<void> upload_session::upload_coro()
     LOG_INFO("{} shutdown", id_);
 }
 
-boost::asio::awaitable<void> upload_session::write_coro()
+boost::asio::awaitable<void> upload_session::write(const std::vector<uint8_t>& data, boost::system::error_code& ec)
 {
-    LOG_INFO("{} write coro startup", id_);
-    while (true)
-    {
-        boost::system::error_code ec;
-        auto bytes = co_await channel_.async_receive(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-        if (ec)
-        {
-            LOG_ERROR("{} write coro error {}", id_, ec.message());
-            break;
-        }
-        co_await ws_client_->write(ec, bytes.data(), bytes.size());
-        if (ec)
-        {
-            LOG_ERROR("{} write coro error {}", id_, ec.message());
-            break;
-        }
-    }
-    LOG_INFO("{} write coro shutdown", id_);
+    co_await ws_client_->write(ec, data.data(), data.size());
 }
 
 boost::asio::awaitable<void> upload_session::delay(int second)
@@ -178,7 +157,6 @@ boost::asio::awaitable<void> upload_session::shutdown_coro()
 {
     if (ws_client_)
     {
-        channel_.close();
         ws_client_->close();
         ws_client_.reset();
     }
@@ -237,13 +215,13 @@ boost::asio::awaitable<void> upload_session::send_upload_file_request(leaf::uplo
     u.filename = std::filesystem::path(ctx.file->file_path).filename().string();
     u.filesize = ctx.file->file_size;
     LOG_DEBUG("{} upload request {} filename {} filesize {}", id_, u.id, ctx.file->file_path, ctx.file->file_size);
-    co_await channel_.async_send(ec, leaf::serialize_upload_file_request(u), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_upload_file_request(u), ec);
 }
 
 boost::asio::awaitable<void> upload_session::send_ack(boost::beast::error_code& ec)
 {
     leaf::ack a;
-    co_await channel_.async_send(ec, leaf::serialize_ack(a), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_ack(a), ec);
 }
 
 boost::asio::awaitable<void> upload_session::wait_upload_file_response(boost::beast::error_code& ec)
@@ -339,8 +317,9 @@ boost::asio::awaitable<void> upload_session::send_file_data(leaf::upload_session
 
         if (!fd.data.empty())
         {
-            co_await channel_.async_send(ec, leaf::serialize_file_data(fd), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-            if (ec)
+            boost::beast::error_code write_ec;
+            co_await write(leaf::serialize_file_data(fd), write_ec);
+            if (write_ec)
             {
                 break;
             }
@@ -381,7 +360,7 @@ boost::asio::awaitable<void> upload_session::wait_file_done(boost::beast::error_
 boost::asio::awaitable<void> upload_session::send_file_done(boost::beast::error_code& ec)
 {
     leaf::done d;
-    co_await channel_.async_send(ec, leaf::serialize_done(d), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_done(d), ec);
 }
 
 void upload_session::padding_file_event()
@@ -408,7 +387,7 @@ boost::asio::awaitable<void> upload_session::send_keepalive(boost::beast::error_
               k.client_timestamp,
               token_);
 
-    co_await channel_.async_send(ec, leaf::serialize_keepalive(k), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_keepalive(k), ec);
     boost::beast::flat_buffer buffer;
     co_await ws_client_->read(ec, buffer);
     if (ec)

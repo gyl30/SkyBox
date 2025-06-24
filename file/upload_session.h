@@ -30,8 +30,10 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     void shutdown();
     void add_file(const std::string &filename);
     void add_files(const std::vector<std::string> &files);
-    boost::asio::awaitable<void> upload_coro();
-    boost::asio::awaitable<void> write_coro();
+
+   private:
+    boost::asio::awaitable<void> loop();
+    boost::asio::awaitable<void> write(const std::vector<uint8_t> &data, boost::system::error_code &ec);
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> delay(int second);
     static leaf::upload_session::upload_context create_upload_context(const std::string &filename, boost::beast::error_code &ec);
@@ -58,7 +60,6 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     boost::asio::io_context &io_;
     std::deque<std::string> padding_files_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
-    boost::asio::experimental::channel<void(boost::system::error_code, std::vector<uint8_t>)> channel_{io_, 1024};
 };
 }    // namespace leaf
 
