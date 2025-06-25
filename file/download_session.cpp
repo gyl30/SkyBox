@@ -23,9 +23,7 @@ void download_session::startup()
 
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/download", io_);
 
-    boost::asio::co_spawn(
-        io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await download_coro(); }, boost::asio::detached);
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await write_coro(); }, boost::asio::detached);
+    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
 }
 
 boost::asio::awaitable<void> download_session::send_keepalive(boost::beast::error_code& ec)
@@ -35,11 +33,17 @@ boost::asio::awaitable<void> download_session::send_keepalive(boost::beast::erro
     k.client_id = reinterpret_cast<uintptr_t>(this);
     k.client_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     k.server_timestamp = padding_files_.size();
-    co_await channel_.async_send(ec, leaf::serialize_keepalive(k), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_keepalive(k), ec);
+    if (ec)
+    {
+        LOG_ERROR("{} send keepalive error {}", id_, ec.message());
+        co_return;
+    }
     boost::beast::flat_buffer buffer;
     co_await ws_client_->read(ec, buffer);
     if (ec)
     {
+        LOG_ERROR("{} read keepalive error {}", id_, ec.message());
         co_return;
     }
     auto message = boost::beast::buffers_to_string(buffer.data());
@@ -69,8 +73,7 @@ boost::asio::awaitable<void> download_session::login(boost::beast::error_code& e
     leaf::login_token lt;
     lt.id = 0x01;
     lt.token = token_;
-    auto bytes = leaf::serialize_login_token(lt);
-    co_await channel_.async_send(boost::system::error_code{}, bytes, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_login_token(lt), ec);
     if (ec)
     {
         co_return;
@@ -84,7 +87,7 @@ boost::asio::awaitable<void> download_session::login(boost::beast::error_code& e
 
     auto message = boost::beast::buffers_to_string(buffer.data());
     auto type = leaf::get_message_type(message);
-    bytes = std::vector<uint8_t>(message.begin(), message.end());
+    auto bytes = std::vector<uint8_t>(message.begin(), message.end());
     if (type != leaf::message_type::login)
     {
         LOG_ERROR("{} message type error login:{}", id_, leaf::message_type_to_string(type));
@@ -100,7 +103,7 @@ boost::asio::awaitable<void> download_session::login(boost::beast::error_code& e
     }
     LOG_INFO("{} login success token {}", id_, login->token);
 }
-boost::asio::awaitable<void> download_session::download_coro()
+boost::asio::awaitable<void> download_session::loop()
 {
     LOG_INFO("{} download coro startup", id_);
     boost::beast::error_code ec;
@@ -146,26 +149,9 @@ boost::asio::awaitable<void> download_session::delay(int second)
     co_await timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
-boost::asio::awaitable<void> download_session::write_coro()
+boost::asio::awaitable<void> download_session::write(const std::vector<uint8_t>& data, boost::system::error_code& ec)
 {
-    LOG_INFO("{} write startup", id_);
-    while (true)
-    {
-        boost::system::error_code ec;
-        auto bytes = co_await channel_.async_receive(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-        if (ec)
-        {
-            LOG_ERROR("{} write_coro error {}", id_, ec.message());
-            break;
-        }
-        co_await ws_client_->write(ec, bytes.data(), bytes.size());
-        if (ec)
-        {
-            LOG_ERROR("{} write_coro error {}", id_, ec.message());
-            break;
-        }
-    }
-    LOG_INFO("{} write shutdown", id_);
+    co_await ws_client_->write(ec, data.data(), data.size());
 }
 
 void download_session::shutdown()
@@ -178,7 +164,6 @@ boost::asio::awaitable<void> download_session::shutdown_coro()
 {
     if (ws_client_)
     {
-        channel_.close();
         ws_client_->close();
         ws_client_.reset();
     }
@@ -245,7 +230,7 @@ boost::asio::awaitable<void> download_session::send_download_file_request(const 
     leaf::download_file_request req;
     req.filename = filename;
     req.id = ++seq_;
-    co_await channel_.async_send(ec, leaf::serialize_download_file_request(req), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_download_file_request(req), ec);
 }
 
 boost::asio::awaitable<leaf::download_session::download_context> download_session::wait_download_file_response(boost::beast::error_code& ec)
