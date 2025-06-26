@@ -22,7 +22,7 @@ class cotrol_file_handle : public websocket_handle
 
    private:
     boost::asio::awaitable<void> recv_coro();
-    boost::asio::awaitable<void> write_coro();
+    boost::asio::awaitable<void> write(const std::vector<uint8_t>& data, boost::beast::error_code&);
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> wait_login(boost::beast::error_code& ec);
     boost::asio::awaitable<void> keepalive(boost::beast::error_code& ec);
@@ -37,7 +37,6 @@ class cotrol_file_handle : public websocket_handle
     std::once_flag shutdown_flag_;
     leaf::websocket_session::ptr session_;
     const boost::asio::any_io_executor& io_;
-    boost::asio::experimental::channel<void(boost::system::error_code, std::vector<uint8_t>)> channel_{io_, 1024};
 };
 
 }    // namespace leaf

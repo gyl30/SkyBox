@@ -24,29 +24,11 @@ void cotrol_file_handle ::startup()
     LOG_INFO("startup {}", id_);
 
     boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await recv_coro(); }, boost::asio::detached);
-
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await write_coro(); }, boost::asio::detached);
 }
-boost::asio::awaitable<void> cotrol_file_handle ::write_coro()
+
+boost::asio::awaitable<void> cotrol_file_handle ::write(const std::vector<uint8_t>& data, boost::beast::error_code& ec)
 {
-    LOG_INFO("{} write coro startup", id_);
-    while (true)
-    {
-        boost::system::error_code ec;
-        auto bytes = co_await channel_.async_receive(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-        if (ec)
-        {
-            LOG_ERROR("{} write_coro error {}", id_, ec.message());
-            break;
-        }
-        co_await session_->write(ec, bytes.data(), bytes.size());
-        if (ec)
-        {
-            LOG_ERROR("{} write_coro error {}", id_, ec.message());
-            break;
-        }
-    }
-    LOG_INFO("{} write coro shutdown", id_);
+    co_await session_->write(ec, data.data(), data.size());
 }
 
 void cotrol_file_handle ::shutdown()
@@ -59,7 +41,6 @@ boost::asio::awaitable<void> cotrol_file_handle::shutdown_coro()
 {
     if (session_)
     {
-        channel_.close();
         session_->close();
         session_.reset();
     }
@@ -138,7 +119,7 @@ boost::asio::awaitable<void> cotrol_file_handle::keepalive(boost::beast::error_c
               sk.server_timestamp,
               sk.client_timestamp,
               token_);
-    co_await channel_.async_send(ec, serialize_keepalive(sk), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(serialize_keepalive(sk), ec);
 }
 boost::asio::awaitable<void> cotrol_file_handle::wait_login(boost::beast::error_code& ec)
 {
@@ -172,7 +153,7 @@ boost::asio::awaitable<void> cotrol_file_handle::wait_login(boost::beast::error_
 
     token_ = login->token;
     LOG_INFO("{} login success token {}", id_, token_);
-    co_await channel_.async_send(ec, leaf::serialize_login_token(login.value()), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_login_token(login.value()), ec);
 }
 static std::vector<leaf::file_node> lookup_dir(const std::filesystem::path& dir)
 {
@@ -237,7 +218,7 @@ boost::asio::awaitable<void> cotrol_file_handle::on_files_request(const std::str
     }
     response.token = msg.token;
     response.files.swap(files);
-    co_await channel_.async_send(ec, leaf::serialize_files_response(response), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    co_await write(leaf::serialize_files_response(response), ec);
 }
 
 boost::asio::awaitable<void> cotrol_file_handle::on_create_dir(const std::string& message, boost::beast::error_code& ec)
