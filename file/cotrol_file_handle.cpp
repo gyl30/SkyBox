@@ -23,7 +23,7 @@ void cotrol_file_handle ::startup()
 {
     LOG_INFO("startup {}", id_);
 
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await recv_coro(); }, boost::asio::detached);
+    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
 }
 
 boost::asio::awaitable<void> cotrol_file_handle ::write(const std::vector<uint8_t>& data, boost::beast::error_code& ec)
@@ -47,7 +47,7 @@ boost::asio::awaitable<void> cotrol_file_handle::shutdown_coro()
     LOG_INFO("{} shutdown", id_);
     co_return;
 }
-boost::asio::awaitable<void> cotrol_file_handle::recv_coro()
+boost::asio::awaitable<void> cotrol_file_handle::loop()
 {
     LOG_INFO("{} recv coro startup", id_);
     boost::beast::error_code ec;

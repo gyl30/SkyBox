@@ -21,7 +21,7 @@ class cotrol_file_handle : public websocket_handle
     std::string type() const override { return "cotrol"; }
 
    private:
-    boost::asio::awaitable<void> recv_coro();
+    boost::asio::awaitable<void> loop();
     boost::asio::awaitable<void> write(const std::vector<uint8_t>& data, boost::beast::error_code&);
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> wait_login(boost::beast::error_code& ec);
