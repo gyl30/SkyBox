@@ -279,7 +279,7 @@ boost::asio::awaitable<leaf::download_session::download_context> download_sessio
     auto file = std::make_shared<leaf::file_info>();
     file->filename = response.filename;
     file->file_size = response.filesize;
-    file->file_path = file_path;
+    file->local_path = file_path;
     ctx.response = response;
     ctx.file = file;
     co_return ctx;
@@ -311,7 +311,7 @@ boost::asio::awaitable<void> download_session::wait_ack(boost::beast::error_code
 
 boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_session::download_context& ctx, boost::beast::error_code& ec)
 {
-    auto writer = std::make_shared<leaf::file_writer>(ctx.file->file_path);
+    auto writer = std::make_shared<leaf::file_writer>(ctx.file->local_path);
     ec = writer->open();
     if (ec)
     {
@@ -356,7 +356,7 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
         hash->update(data->data.data(), data->data.size());
         LOG_DEBUG("{} download file {} hash count {} hash {} data size {} write size {}",
                   id_,
-                  ctx.file->file_path,
+                  ctx.file->local_path,
                   ctx.file->hash_count,
                   data->hash.empty() ? "empty" : data->hash,
                   data->data.size(),
@@ -368,7 +368,7 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
             auto hex_str = hash->hex();
             if (hex_str != data->hash)
             {
-                LOG_ERROR("{} download file {} hash not match {} {}", id_, ctx.file->file_path, hex_str, data->hash);
+                LOG_ERROR("{} download file {} hash not match {} {}", id_, ctx.file->local_path, hex_str, data->hash);
                 break;
             }
             ctx.file->hash_count = 0;
@@ -381,7 +381,7 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
         leaf::event_manager::instance().post("download", d);
         if (ctx.file->file_size == writer->size())
         {
-            LOG_INFO("{} download file {} size {} done", id_, ctx.file->file_path, d.file_size);
+            LOG_INFO("{} download file {} size {} done", id_, ctx.file->local_path, d.file_size);
         }
     }
     ec = writer->close();

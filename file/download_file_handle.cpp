@@ -90,35 +90,35 @@ boost::asio::awaitable<void> download_file_handle::loop()
             break;
         }
 
-        LOG_INFO("{} download file request {} size {}", id_, ctx.file->file_path, ctx.file->file_size);
+        LOG_INFO("{} download file request {} size {}", id_, ctx.file->local_path, ctx.file->file_size);
         // setup 3 send ack
-        LOG_INFO("{} send ack {}", id_, ctx.file->file_path);
+        LOG_INFO("{} send ack {}", id_, ctx.file->local_path);
         co_await send_ack(ec);
         if (ec)
         {
-            LOG_ERROR("{} ack error {} {}", id_, ctx.file->file_path, ec.message());
+            LOG_ERROR("{} ack error {} {}", id_, ctx.file->local_path, ec.message());
             break;
         }
-        LOG_INFO("{} ack success {}", id_, ctx.file->file_path);
+        LOG_INFO("{} ack success {}", id_, ctx.file->local_path);
 
-        LOG_INFO("{} send file data {}", id_, ctx.file->file_path);
+        LOG_INFO("{} send file data {}", id_, ctx.file->local_path);
         // setup 4 send file data
         co_await send_file_data(ctx, ec);
         if (ec)
         {
-            LOG_ERROR("{} file data error {} {}", id_, ctx.file->file_path, ec.message());
+            LOG_ERROR("{} file data error {} {}", id_, ctx.file->local_path, ec.message());
             break;
         }
-        LOG_INFO("{} send file data {} complete", id_, ctx.file->file_path);
+        LOG_INFO("{} send file data {} complete", id_, ctx.file->local_path);
         // setup 5 send data done
-        LOG_INFO("{} send file done {}", id_, ctx.file->file_path);
+        LOG_INFO("{} send file done {}", id_, ctx.file->local_path);
         co_await send_file_done(ec);
         if (ec)
         {
-            LOG_ERROR("{} file done error {} {}", id_, ctx.file->file_path, ec.message());
+            LOG_ERROR("{} file done error {} {}", id_, ctx.file->local_path, ec.message());
             break;
         }
-        LOG_INFO("{} send file done {} complete", id_, ctx.file->file_path);
+        LOG_INFO("{} send file done {} complete", id_, ctx.file->local_path);
     }
     LOG_INFO("{} recv shutdown", id_);
 }
@@ -201,11 +201,11 @@ boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download
 {
     uint8_t buffer[kBlockSize] = {0};
     auto hash = std::make_shared<leaf::blake2b>();
-    auto reader = std::make_shared<leaf::file_reader>(ctx.file->file_path);
+    auto reader = std::make_shared<leaf::file_reader>(ctx.file->local_path);
     ec = reader->open();
     if (ec)
     {
-        LOG_ERROR("{} download file open file {} error {}", id_, ctx.file->file_path, ec.message());
+        LOG_ERROR("{} download file open file {} error {}", id_, ctx.file->local_path, ec.message());
         co_return;
     }
     while (true)
@@ -213,7 +213,7 @@ boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download
         auto read_size = reader->read_at(static_cast<int64_t>(reader->size()), buffer, kBlockSize, ec);
         if (ec && ec != boost::asio::error::eof)
         {
-            LOG_ERROR("{} download file read file {} error {}", id_, ctx.file->file_path, ec.message());
+            LOG_ERROR("{} download file read file {} error {}", id_, ctx.file->local_path, ec.message());
             break;
         }
         leaf::file_data fd;
@@ -231,7 +231,7 @@ boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download
             ctx.file->hash_count = 0;
             hash = std::make_shared<leaf::blake2b>();
         }
-        LOG_DEBUG("{} download file {} size {} hash {}", id_, ctx.file->file_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
+        LOG_DEBUG("{} download file {} size {} hash {}", id_, ctx.file->local_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
         boost::beast::error_code write_ec;
         if (!fd.data.empty())
         {
@@ -239,7 +239,7 @@ boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download
         }
         if (ec == boost::asio::error::eof || reader->size() == ctx.file->file_size)
         {
-            LOG_INFO("{} download file {} complete", id_, ctx.file->file_path);
+            LOG_INFO("{} download file {} complete", id_, ctx.file->local_path);
             break;
         }
         ec = write_ec;
@@ -251,7 +251,7 @@ boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download
     ec = reader->close();
     if (ec)
     {
-        LOG_ERROR("{} download file close file {} error {}", id_, ctx.file->file_path, ec.message());
+        LOG_ERROR("{} download file close file {} error {}", id_, ctx.file->local_path, ec.message());
     }
 }
 
@@ -306,7 +306,7 @@ boost::asio::awaitable<leaf::download_file_handle::download_context> download_fi
         co_return ctx;
     }
     auto file = std::make_shared<leaf::file_info>();
-    file->file_path = download_file_path;
+    file->local_path = download_file_path;
     file->file_size = file_size;
     file->filename = msg.filename;
     ctx.file = file;

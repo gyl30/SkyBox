@@ -109,11 +109,11 @@ boost::asio::awaitable<void> upload_file_handle::loop()
             LOG_ERROR("{} file data error {} {}", id_, ec.message(), ctx.file->filename);
             break;
         }
-        LOG_INFO("{} send file done {}", id_, ctx.file->file_path);
+        LOG_INFO("{} send file done {}", id_, ctx.file->local_path);
         co_await send_file_done(ec);
         if (ec)
         {
-            LOG_ERROR("{} send file done error {} {}", id_, ctx.file->file_path, ec.message());
+            LOG_ERROR("{} send file done error {} {}", id_, ctx.file->local_path, ec.message());
         }
     }
     LOG_INFO("{} recv shutdown", id_);
@@ -187,7 +187,7 @@ boost::asio::awaitable<leaf::upload_file_handle::upload_context> upload_file_han
     LOG_INFO("{} upload request file size {} name {} path {}", id_, req->filesize, req->filename, upload_file_path);
 
     auto file = std::make_shared<file_info>();
-    file->file_path = upload_file_path;
+    file->local_path = upload_file_path;
     file->filename = req->filename;
     file->file_size = req->filesize;
     file->hash_count = 0;
@@ -227,11 +227,11 @@ boost::asio::awaitable<void> upload_file_handle::send_file_done(boost::beast::er
 boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_file_handle::upload_context& ctx, boost::beast::error_code& ec)
 {
     auto hash = std::make_shared<leaf::blake2b>();
-    auto writer = std::make_shared<leaf::file_writer>(ctx.file->file_path);
+    auto writer = std::make_shared<leaf::file_writer>(ctx.file->local_path);
     ec = writer->open();
     if (ec)
     {
-        LOG_ERROR("{} open file {} error {}", id_, ctx.file->file_path, ec.message());
+        LOG_ERROR("{} open file {} error {}", id_, ctx.file->local_path, ec.message());
         co_return;
     }
     bool done = false;
@@ -294,15 +294,15 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
         }
         if (ctx.file->file_size == writer->size())
         {
-            auto filename = leaf::encode_leaf_filename(ctx.file->file_path);
-            leaf::rename(ctx.file->file_path, filename);
-            LOG_INFO("{} file {} to {} done", id_, ctx.file->file_path, filename);
+            auto filename = leaf::encode_leaf_filename(ctx.file->local_path);
+            leaf::rename(ctx.file->local_path, filename);
+            LOG_INFO("{} file {} to {} done", id_, ctx.file->local_path, filename);
         }
     }
     auto file_ec = writer->close();
     if (file_ec)
     {
-        LOG_ERROR("{} file close file {} error {}", id_, ctx.file->file_path, file_ec.message());
+        LOG_ERROR("{} file close file {} error {}", id_, ctx.file->local_path, file_ec.message());
     }
     if (!done)
     {
