@@ -1,5 +1,4 @@
 #include <utility>
-#include <filesystem>
 #include "log/log.h"
 #include "file/file.h"
 #include "config/config.h"
@@ -91,53 +90,47 @@ boost::asio::awaitable<void> upload_session::loop()
         }
         auto file = padding_files_.front();
         padding_files_.pop_front();
-        auto ctx = create_upload_context(file, ec);
-        if (ec)
-        {
-            LOG_ERROR("{} create upload context error {}", id_, ec.message());
-            break;
-        }
         // send upload file request
-        LOG_INFO("{} send upload file request {}", id_, ctx.file->local_path);
-        co_await send_upload_file_request(ctx, ec);
+        LOG_INFO("{} send upload file request {}", id_, file.local_path);
+        co_await send_upload_file_request(file, ec);
         if (ec)
         {
-            LOG_ERROR("{} send upload file request error {} {}", id_, ec.message(), ctx.file->local_path);
+            LOG_ERROR("{} send upload file request error {} {}", id_, ec.message(), file.local_path);
             break;
         }
         // wait upload file response
-        LOG_INFO("{} wait upload file response {}", id_, ctx.file->local_path);
+        LOG_INFO("{} wait upload file response {}", id_, file.local_path);
         co_await wait_upload_file_response(ec);
         if (ec)
         {
-            LOG_ERROR("{} wait upload file response error {} {}", id_, ec.message(), ctx.file->local_path);
+            LOG_ERROR("{} wait upload file response error {} {}", id_, ec.message(), file.local_path);
             break;
         }
         // send ack
-        LOG_INFO("{} send ack {}", id_, ctx.file->local_path);
+        LOG_INFO("{} send ack {}", id_, file.local_path);
         co_await send_ack(ec);
         if (ec)
         {
-            LOG_ERROR("{} send ack error {} {}", id_, ec.message(), ctx.file->local_path);
+            LOG_ERROR("{} send ack error {} {}", id_, ec.message(), file.local_path);
             break;
         }
         // send file data
-        LOG_INFO("{} send file data {}", id_, ctx.file->local_path);
-        co_await send_file_data(ctx, ec);
+        LOG_INFO("{} send file data {}", id_, file.local_path);
+        co_await send_file_data(file, ec);
         if (ec)
         {
-            LOG_ERROR("{} send file data error {} {}", id_, ec.message(), ctx.file->local_path);
+            LOG_ERROR("{} send file data error {} {}", id_, ec.message(), file.local_path);
             break;
         }
-        LOG_INFO("{} send file data complete {}", id_, ctx.file->local_path);
-        LOG_INFO("{} wait file done {}", id_, ctx.file->local_path);
+        LOG_INFO("{} send file data complete {}", id_, file.local_path);
+        LOG_INFO("{} wait file done {}", id_, file.local_path);
         co_await wait_file_done(ec);
         if (ec)
         {
-            LOG_ERROR("{} wait file done error {} {}", id_, ec.message(), ctx.file->local_path);
+            LOG_ERROR("{} wait file done error {} {}", id_, ec.message(), file.local_path);
             break;
         }
-        LOG_INFO("{} wait file done complete {}", id_, ctx.file->local_path);
+        LOG_INFO("{} wait file done complete {}", id_, file.local_path);
     }
     LOG_INFO("{} shutdown", id_);
 }
@@ -169,12 +162,12 @@ void upload_session::shutdown()
     boost::asio::co_spawn(
         io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); }, boost::asio::detached);
 }
-void upload_session::safe_add_file(const std::string& filename)
+void upload_session::safe_add_file(const file_info& file)
 {
-    LOG_INFO("{} add file {}", id_, filename);
-    padding_files_.push_back(filename);
+    LOG_INFO("{} add file {}", id_, file.filename);
+    padding_files_.push_back(file);
 }
-void upload_session::safe_add_files(const std::vector<std::string>& files)
+void upload_session::safe_add_files(const std::vector<file_info>& files)
 {
     for (const auto& filename : files)
     {
@@ -182,39 +175,24 @@ void upload_session::safe_add_files(const std::vector<std::string>& files)
     }
 }
 
-void upload_session::add_file(const std::string& filename)
+void upload_session::add_file(const file_info& file)
 {
-    boost::asio::post(io_, [this, filename, self = shared_from_this()]() { safe_add_file(filename); });
+    boost::asio::post(io_, [this, file, self = shared_from_this()]() { safe_add_file(file); });
 }
 
-void upload_session::add_files(const std::vector<std::string>& files)
+void upload_session::add_files(const std::vector<file_info>& files)
 {
     boost::asio::post(io_, [this, files, self = shared_from_this()]() { safe_add_files(files); });
 }
 
-leaf::upload_session::upload_context upload_session::create_upload_context(const std::string& filename, boost::beast::error_code& ec)
-{
-    auto file_size = std::filesystem::file_size(filename, ec);
-    if (ec)
-    {
-        return {};
-    }
-    auto file = std::make_shared<leaf::file_info>();
-    file->local_path = filename;
-    file->filename = std::filesystem::path(filename).filename().string();
-    file->file_size = file_size;
-    leaf::upload_session::upload_context ctx;
-    ctx.file = file;
-    return ctx;
-}
-
-boost::asio::awaitable<void> upload_session::send_upload_file_request(leaf::upload_session::upload_context& ctx, boost::beast::error_code& ec)
+boost::asio::awaitable<void> upload_session::send_upload_file_request(const file_info& file, boost::beast::error_code& ec)
 {
     leaf::upload_file_request u;
     u.id = seq_++;
-    u.filename = std::filesystem::path(ctx.file->local_path).filename().string();
-    u.filesize = ctx.file->file_size;
-    LOG_DEBUG("{} upload request {} filename {} filesize {}", id_, u.id, ctx.file->local_path, ctx.file->file_size);
+    u.dir = file.dir;
+    u.filename = file.filename;
+    u.filesize = file.file_size;
+    LOG_DEBUG("{} upload request {} filename {} filesize {}", id_, u.id, file.local_path, file.file_size);
     co_await write(leaf::serialize_upload_file_request(u), ec);
 }
 
@@ -248,9 +226,9 @@ boost::asio::awaitable<void> upload_session::wait_upload_file_response(boost::be
     }
     LOG_DEBUG("{} upload file response {} filename {}", id_, response->id, response->filename);
 }
-boost::asio::awaitable<void> upload_session::send_file_data(leaf::upload_session::upload_context& ctx, boost::beast::error_code& ec)
+boost::asio::awaitable<void> upload_session::send_file_data(const file_info& file, boost::beast::error_code& ec)
 {
-    auto reader = std::make_shared<leaf::file_reader>(ctx.file->local_path);
+    auto reader = std::make_shared<leaf::file_reader>(file.local_path);
     if (reader == nullptr)
     {
         ec = boost::system::errc::make_error_code(boost::system::errc::not_enough_memory);
@@ -265,54 +243,51 @@ boost::asio::awaitable<void> upload_session::send_file_data(leaf::upload_session
     auto hash = std::make_shared<leaf::blake2b>();
 
     uint8_t buffer[kBlockSize] = {0};
+    int64_t read_offset = 0;
     while (true)
     {
-        assert(reader->size() < ctx.file->file_size);
-        int64_t read_offset = ctx.file->offset;
-        LOG_DEBUG("{} read file {} size {} offset {} block size {}", id_, ctx.file->local_path, reader->size(), read_offset, kBlockSize);
+        assert(reader->size() < file.file_size);
+        LOG_DEBUG("{} read file {} size {} offset {} block size {}", id_, file.local_path, reader->size(), read_offset, kBlockSize);
         auto read_size = reader->read_at(read_offset, buffer, kBlockSize, ec);
         if (ec && ec != boost::asio::error::eof)
         {
             LOG_ERROR("{} read file {} size {} offset {} block size {} error {}",
                       id_,
-                      ctx.file->local_path,
+                      file.local_path,
                       reader->size(),
                       read_offset,
                       kBlockSize,
                       ec.message());
             break;
         }
+        read_offset += static_cast<int64_t>(read_size);
         leaf::file_data fd;
         fd.data.insert(fd.data.end(), buffer, buffer + read_size);
         if (read_size != 0)
         {
-            ctx.file->hash_count++;
-            ctx.file->offset += static_cast<int64_t>(read_size);
-            hash->update(fd.data.data(), read_size);
+            hash->update(buffer, read_size);
         }
-        uint64_t hash_count = ctx.file->hash_count;
         // block count hash or eof hash
-        if (ctx.file->file_size == reader->size() || hash_count == kHashBlockCount || ec == boost::asio::error::eof)
+        auto reader_size = reader->size();
+        if ((reader_size != 0 && read_size % kHashBlockSize == 0) || ec == boost::asio::error::eof)
         {
             hash->final();
             fd.hash = hash->hex();
-            ctx.file->hash_count = 0;
-            hash = std::make_shared<leaf::blake2b>();
+            hash->reset();
         }
-        LOG_DEBUG("{} read file {} size {} offset {} read size {} block size {} hash count {} hash {}",
+        LOG_DEBUG("{} read file {} size {} offset {} read size {} block size {} hash {}",
                   id_,
-                  ctx.file->local_path,
+                  file.local_path,
                   reader->size(),
                   read_offset,
-                  read_size,
+                  reader_size,
                   kBlockSize,
-                  hash_count,
                   fd.hash.empty() ? "empty" : fd.hash);
 
         upload_event u;
         u.upload_size = reader->size();
-        u.file_size = ctx.file->file_size;
-        u.filename = ctx.file->local_path;
+        u.file_size = file.file_size;
+        u.filename = file.local_path;
         leaf::event_manager::instance().post("upload", u);
 
         if (!fd.data.empty())
@@ -325,7 +300,7 @@ boost::asio::awaitable<void> upload_session::send_file_data(leaf::upload_session
             }
         }
 
-        if (ec == boost::asio::error::eof || reader->size() == ctx.file->file_size)
+        if (ec == boost::asio::error::eof || reader->size() == file.file_size)
         {
             ec = {};
             co_await send_file_done(ec);
@@ -335,10 +310,10 @@ boost::asio::awaitable<void> upload_session::send_file_data(leaf::upload_session
     auto close_ec = reader->close();
     if (close_ec)
     {
-        LOG_ERROR("{} reader close error {} {}", id_, close_ec.message(), ctx.file->local_path);
+        LOG_ERROR("{} reader close error {} {}", id_, close_ec.message(), file.local_path);
         co_return;
     }
-    LOG_DEBUG("{} reader close success {}", id_, ctx.file->local_path);
+    LOG_DEBUG("{} reader close success {}", id_, file.local_path);
 }
 
 boost::asio::awaitable<void> upload_session::wait_file_done(boost::beast::error_code& ec)
@@ -365,10 +340,12 @@ boost::asio::awaitable<void> upload_session::send_file_done(boost::beast::error_
 
 void upload_session::padding_file_event()
 {
-    for (const auto& filename : padding_files_)
+    for (const auto& file : padding_files_)
     {
         upload_event e;
-        e.filename = filename;
+        e.filename = file.local_path;
+        e.file_size = file.file_size;
+        e.upload_size = 0;
         LOG_DEBUG("padding files {}", e.filename);
         leaf::event_manager::instance().post("upload", e);
     }

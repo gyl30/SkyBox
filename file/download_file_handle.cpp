@@ -224,7 +224,7 @@ boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download
             ctx.file->hash_count++;
         }
         // block count hash or eof hash
-        if (ctx.file->hash_count == kHashBlockCount || ctx.file->file_size == reader->size() || ec == boost::asio::error::eof)
+        if (ctx.file->hash_count == kHashBlockSize || ctx.file->file_size == reader->size() || ec == boost::asio::error::eof)
         {
             hash->final();
             fd.hash = hash->hex();

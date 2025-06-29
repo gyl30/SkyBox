@@ -12,8 +12,6 @@ struct file_info
     using ptr = std::shared_ptr<file_info>;
 
     uint64_t file_size = 0;
-    uint64_t hash_count = 0;
-    int64_t offset = 0;
     std::string filename;
     std::string local_path;
     std::string dir;
