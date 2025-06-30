@@ -4,7 +4,7 @@
 namespace leaf
 {
 constexpr auto kBlockSize = 128 * 1024;
-constexpr auto kHashBlockCount = 10;
+constexpr auto kHashBlockSize = 10 * kBlockSize;
 constexpr auto kDefaultDir = "/tmp";
 constexpr auto kReadWsLimited = 2 * 1024 * 1024;
 constexpr auto kWriteWsLimited = 2 * 1024 * 1024;

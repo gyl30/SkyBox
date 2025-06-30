@@ -74,6 +74,7 @@ struct upload_file_request
 {
     uint32_t id = 0;
     uint64_t filesize = 0;
+    std::string dir;
     std::string filename;
 };
 struct upload_file_response
