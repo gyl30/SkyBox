@@ -221,15 +221,13 @@ boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download
         if (read_size != 0)
         {
             hash->update(fd.data.data(), read_size);
-            ctx.file->hash_count++;
         }
         // block count hash or eof hash
-        if (ctx.file->hash_count == kHashBlockSize || ctx.file->file_size == reader->size() || ec == boost::asio::error::eof)
+        if (reader->size() % kHashBlockSize == 0 || ec == boost::asio::error::eof)
         {
             hash->final();
             fd.hash = hash->hex();
-            ctx.file->hash_count = 0;
-            hash = std::make_shared<leaf::blake2b>();
+            hash.reset();
         }
         LOG_DEBUG("{} download file {} size {} hash {}", id_, ctx.file->local_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
         boost::beast::error_code write_ec;

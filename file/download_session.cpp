@@ -321,6 +321,7 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
 
     auto hash = std::make_shared<leaf::blake2b>();
 
+    int64_t write_offset = 0;
     while (true)
     {
         boost::beast::flat_buffer buffer;
@@ -345,19 +346,17 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
             break;
         }
 
-        writer->write_at(ctx.file->offset, data->data.data(), data->data.size(), ec);
+        writer->write_at(write_offset, data->data.data(), data->data.size(), ec);
         if (ec)
         {
             LOG_ERROR("{} wait file data writer write error {}", id_, ec.message());
             break;
         }
-        ctx.file->offset += static_cast<int64_t>(data->data.size());
-        ctx.file->hash_count++;
+        write_offset += static_cast<int64_t>(data->data.size());
         hash->update(data->data.data(), data->data.size());
-        LOG_DEBUG("{} download file {} hash count {} hash {} data size {} write size {}",
+        LOG_DEBUG("{} download file {} hash {} data size {} write size {}",
                   id_,
                   ctx.file->local_path,
-                  ctx.file->hash_count,
                   data->hash.empty() ? "empty" : data->hash,
                   data->data.size(),
                   writer->size());
@@ -371,8 +370,7 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
                 LOG_ERROR("{} download file {} hash not match {} {}", id_, ctx.file->local_path, hex_str, data->hash);
                 break;
             }
-            ctx.file->hash_count = 0;
-            hash = std::make_shared<leaf::blake2b>();
+            hash.reset();
         }
         download_event d;
         d.filename = ctx.file->filename;
