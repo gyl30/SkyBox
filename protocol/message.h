@@ -104,6 +104,7 @@ struct keepalive
 struct download_file_request
 {
     uint32_t id = 0;
+    std::string dir;
     std::string filename;    // 文件名称
 };
 

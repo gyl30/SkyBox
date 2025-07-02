@@ -1,8 +1,11 @@
 #include <utility>
 #include "log/log.h"
 #include "file/file.h"
+#include "file/event.h"
 #include "config/config.h"
+#include "crypt/blake2b.h"
 #include "protocol/codec.h"
+#include "protocol/message.h"
 #include "file/event_manager.h"
 #include "file/upload_session.h"
 

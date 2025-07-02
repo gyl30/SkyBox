@@ -2,11 +2,6 @@
 #define LEAF_FILE_UPLOAD_SESSION_H
 
 #include <deque>
-#include <boost/asio/experimental/channel.hpp>
-#include "file/file.h"
-#include "file/event.h"
-#include "crypt/blake2b.h"
-#include "protocol/message.h"
 #include "file/file_context.h"
 #include "net/plain_websocket_client.h"
 

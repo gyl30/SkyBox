@@ -22,10 +22,10 @@ class file_transfer_client : public std::enable_shared_from_this<file_transfer_c
     void shutdown();
 
    public:
-    void add_upload_file(const std::string &filename);
-    void add_download_file(const std::string &filename);
-    void add_upload_files(const std::vector<std::string> &files);
-    void add_download_files(const std::vector<std::string> &files);
+    void add_upload_file(leaf::file_info f);
+    void add_download_file(leaf::file_info f);
+    void add_upload_files(const std::vector<leaf::file_info> &files);
+    void add_download_files(const std::vector<leaf::file_info> &files);
     void create_directory(const std::string &dir);
     void change_current_dir(const std::string &dir);
 

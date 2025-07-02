@@ -806,5 +806,11 @@ void Widget::on_new_file_clicked()
     {
         return;
     }
-    file_client_->add_upload_file(filename.toStdString());
+    std::filesystem::path file_path(filename.toStdString());
+    leaf::file_info f;
+    f.local_path = std::filesystem::absolute(file_path).string();
+    f.filename = file_path.filename().string();
+    f.file_size = std::filesystem::file_size(f.filename);
+    f.dir = current_dir_->storage_name;
+    file_client_->add_upload_file(std::move(f));
 }

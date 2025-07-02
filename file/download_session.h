@@ -30,8 +30,8 @@ class download_session : public std::enable_shared_from_this<download_session>
     void startup();
     void shutdown();
     void update();
-    void add_file(const std::string &file);
-    void add_files(const std::vector<std::string> &files);
+    void add_file(leaf::file_info f);
+    void add_files(const std::vector<leaf::file_info> &files);
 
    public:
     boost::asio::awaitable<void> login(boost::beast::error_code &);
@@ -40,7 +40,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> send_keepalive(boost::beast::error_code &ec);
     boost::asio::awaitable<void> download(boost::beast::error_code &ec);
-    boost::asio::awaitable<void> send_download_file_request(const std::string &filename, boost::beast::error_code &ec);
+    boost::asio::awaitable<void> send_download_file_request(const leaf::file_info &file, boost::beast::error_code &ec);
     boost::asio::awaitable<leaf::download_session::download_context> wait_download_file_response(boost::beast::error_code &ec);
     boost::asio::awaitable<void> wait_ack(boost::beast::error_code &ec);
     boost::asio::awaitable<void> wait_file_data(leaf::download_session::download_context &ctx, boost::beast::error_code &ec);
@@ -48,8 +48,8 @@ class download_session : public std::enable_shared_from_this<download_session>
     boost::asio::awaitable<void> delay(int second);
 
    private:
-    void safe_add_file(const std::string &filename);
-    void safe_add_files(const std::vector<std::string> &files);
+    void safe_add_file(leaf::file_info f);
+    void safe_add_files(const std::vector<file_info> &files);
 
    private:
     uint32_t seq_ = 0;
@@ -58,7 +58,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     std::string port_;
     std::string token_;
     boost::asio::io_context &io_;
-    std::queue<std::string> padding_files_;
+    std::queue<leaf::file_info> padding_files_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
 };
 }    // namespace leaf

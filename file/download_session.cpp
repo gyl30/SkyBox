@@ -178,19 +178,19 @@ boost::asio::awaitable<void> download_session::download(boost::beast::error_code
         auto file = padding_files_.front();
         padding_files_.pop();
         // send download file request
-        LOG_INFO("{} send download file request {}", id_, file);
+        LOG_INFO("{} send download file request {}", id_, file.local_path);
         co_await send_download_file_request(file, ec);
         if (ec)
         {
-            LOG_ERROR("{} send download file request error {} {}", id_, file, ec.message());
+            LOG_ERROR("{} send download file request error {} {}", id_, file.local_path, ec.message());
             break;
         }
-        LOG_INFO("{} send download file request success {}", id_, file);
+        LOG_INFO("{} send download file request success {}", id_, file.local_path);
         // wait download file response
         auto ctx = co_await wait_download_file_response(ec);
         if (ec)
         {
-            LOG_ERROR("{} wait download file response error {} {}", id_, file, ec.message());
+            LOG_ERROR("{} wait download file response error {} {}", id_, file.local_path, ec.message());
             break;
         }
         LOG_INFO("{} wait download file response success {} file size {}", id_, ctx.response.filename, ctx.response.filesize);
@@ -199,7 +199,7 @@ boost::asio::awaitable<void> download_session::download(boost::beast::error_code
         co_await wait_ack(ec);
         if (ec)
         {
-            LOG_ERROR("{} wait ack error {} {}", id_, file, ec.message());
+            LOG_ERROR("{} wait ack error {} {}", id_, file.local_path, ec.message());
             break;
         }
         LOG_INFO("{} wait ack success for download file {}", id_, ctx.response.filename);
@@ -225,10 +225,11 @@ boost::asio::awaitable<void> download_session::download(boost::beast::error_code
     co_return;
 }
 
-boost::asio::awaitable<void> download_session::send_download_file_request(const std::string& filename, boost::beast::error_code& ec)
+boost::asio::awaitable<void> download_session::send_download_file_request(const file_info& file, boost::beast::error_code& ec)
 {
     leaf::download_file_request req;
-    req.filename = filename;
+    req.dir = file.dir;
+    req.filename = file.filename;
     req.id = ++seq_;
     co_await write(leaf::serialize_download_file_request(req), ec);
 }
@@ -412,9 +413,9 @@ boost::asio::awaitable<void> download_session::wait_file_done(boost::beast::erro
     }
 }
 
-void download_session::safe_add_file(const std::string& filename) { padding_files_.push(filename); }
+void download_session::safe_add_file(leaf::file_info f) { padding_files_.emplace(std::move(f)); }
 
-void download_session::safe_add_files(const std::vector<std::string>& files)
+void download_session::safe_add_files(const std::vector<leaf::file_info>& files)
 {
     for (const auto& filename : files)
     {
@@ -422,12 +423,12 @@ void download_session::safe_add_files(const std::vector<std::string>& files)
     }
 }
 
-void download_session::add_file(const std::string& file)
+void download_session::add_file(leaf::file_info f)
 {
-    boost::asio::post(io_, [this, file, self = shared_from_this()]() { safe_add_file(file); });
+    boost::asio::post(io_, [this, f = std::move(f), self = shared_from_this()]() { safe_add_file(f); });
 }
 
-void download_session::add_files(const std::vector<std::string>& files)
+void download_session::add_files(const std::vector<leaf::file_info>& files)
 {
     boost::asio::post(io_, [this, files, self = shared_from_this()]() { safe_add_files(files); });
 }

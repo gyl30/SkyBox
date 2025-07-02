@@ -75,29 +75,29 @@ boost::asio::awaitable<void> file_transfer_client::shutdown_coro()
     LOG_INFO("{} shutdown complete", id_);
 }
 
-void file_transfer_client::add_upload_file(const std::string &filename)
+void file_transfer_client::add_upload_file(leaf::file_info f)
 {
     boost::asio::post(*ex_,
-                      [this, filename]()
+                      [this, f = std::move(f)]()
                       {
                           if (upload_)
                           {
-                              upload_->add_file(filename);
+                              upload_->add_file(f);
                           }
                       });
 }
-void file_transfer_client::add_download_file(const std::string &filename)
+void file_transfer_client::add_download_file(leaf::file_info f)
 {
     boost::asio::post(*ex_,
-                      [this, filename]()
+                      [this, f = std::move(f)]()
                       {
                           if (download_)
                           {
-                              download_->add_file(filename);
+                              download_->add_file(f);
                           }
                       });
 }
-void file_transfer_client::add_upload_files(const std::vector<std::string> &files)
+void file_transfer_client::add_upload_files(const std::vector<leaf::file_info> &files)
 {
     boost::asio::post(*ex_,
                       [this, files]()
@@ -108,7 +108,7 @@ void file_transfer_client::add_upload_files(const std::vector<std::string> &file
                           }
                       });
 }
-void file_transfer_client::add_download_files(const std::vector<std::string> &files)
+void file_transfer_client::add_download_files(const std::vector<file_info> &files)
 {
     boost::asio::post(*ex_,
                       [this, files]()
