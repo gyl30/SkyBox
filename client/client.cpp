@@ -1,4 +1,7 @@
 #include <iostream>
+#include <string>
+#include <cstdint>
+#include <filesystem>
 #include <boost/asio.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
@@ -205,23 +208,34 @@ int main(int argc, char *argv[])
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    std::vector<std::string> download_files;
+    std::vector<leaf::file_info> download_files;
     for (const auto &dir : args->download_paths)
     {
-        download_files.push_back(dir);
+        leaf::file_info f;
+        f.filename = dir;
+        download_files.push_back(f);
     }
 
-    std::vector<std::string> upload_files;
+    std::vector<leaf::file_info> upload_files;
     for (const auto &dir : args->upload_paths)
     {
+        leaf::file_info f;
         if (leaf::is_file(dir))
         {
-            upload_files.push_back(dir);
+            f.filename = std::filesystem::path(dir).filename().string();
+            f.local_path = dir;
+            upload_files.push_back(f);
         }
         if (leaf::is_dir(dir))
         {
             auto files = leaf::dir_files(dir);
-            upload_files.insert(upload_files.end(), files.begin(), files.end());
+            for (const auto &file : files)
+            {
+                f.filename = std::filesystem::path(file).filename().string();
+                f.local_path = file;
+                f.file_size = std::filesystem::file_size(file);
+                upload_files.push_back(f);
+            }
         }
     }
 
