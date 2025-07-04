@@ -91,29 +91,29 @@ boost::asio::awaitable<void> upload_file_handle::loop()
             LOG_ERROR("{} upload file request error {}", id_, ec.message());
             break;
         }
-        LOG_INFO("{} upload file request success filename {} filesize {}", id_, ctx.file->filename, ctx.file->file_size);
+        LOG_INFO("{} upload file request success filename {} filesize {}", id_, ctx.file.filename, ctx.file.file_size);
         // setup 3 wait ack
-        LOG_INFO("{} wait ack {}", id_, ctx.file->filename);
+        LOG_INFO("{} wait ack {}", id_, ctx.file.filename);
         co_await wait_ack(ec);
         if (ec)
         {
-            LOG_ERROR("{} ack error {} {}", id_, ec.message(), ctx.file->filename);
+            LOG_ERROR("{} ack error {} {}", id_, ec.message(), ctx.file.filename);
             break;
         }
-        LOG_INFO("{} ack success {}", id_, ctx.file->filename);
+        LOG_INFO("{} ack success {}", id_, ctx.file.filename);
         // setup 4 wait file data
-        LOG_INFO("{} wait file data {}", id_, ctx.file->filename);
+        LOG_INFO("{} wait file data {}", id_, ctx.file.filename);
         co_await wait_file_data(ctx, ec);
         if (ec)
         {
-            LOG_ERROR("{} file data error {} {}", id_, ec.message(), ctx.file->filename);
+            LOG_ERROR("{} file data error {} {}", id_, ec.message(), ctx.file.filename);
             break;
         }
-        LOG_INFO("{} send file done {}", id_, ctx.file->local_path);
+        LOG_INFO("{} send file done {}", id_, ctx.file.local_path);
         co_await send_file_done(ec);
         if (ec)
         {
-            LOG_ERROR("{} send file done error {} {}", id_, ctx.file->local_path, ec.message());
+            LOG_ERROR("{} send file done error {} {}", id_, ctx.file.local_path, ec.message());
         }
     }
     LOG_INFO("{} recv shutdown", id_);
@@ -186,11 +186,10 @@ boost::asio::awaitable<leaf::upload_file_handle::upload_context> upload_file_han
     }
     LOG_INFO("{} upload request file size {} name {} path {}", id_, req->filesize, req->filename, upload_file_path);
 
-    auto file = std::make_shared<file_info>();
-    file->local_path = upload_file_path;
-    file->filename = req->filename;
-    file->file_size = req->filesize;
-    file->hash_count = 0;
+    leaf::file_info file;
+    file.local_path = upload_file_path;
+    file.filename = req->filename;
+    file.file_size = req->filesize;
     ctx.file = file;
     ctx.request = req.value();
     leaf::upload_file_response ufr;
@@ -227,11 +226,11 @@ boost::asio::awaitable<void> upload_file_handle::send_file_done(boost::beast::er
 boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_file_handle::upload_context& ctx, boost::beast::error_code& ec)
 {
     auto hash = std::make_shared<leaf::blake2b>();
-    auto writer = std::make_shared<leaf::file_writer>(ctx.file->local_path);
+    auto writer = std::make_shared<leaf::file_writer>(ctx.file.local_path);
     ec = writer->open();
     if (ec)
     {
-        LOG_ERROR("{} open file {} error {}", id_, ctx.file->local_path, ec.message());
+        LOG_ERROR("{} open file {} error {}", id_, ctx.file.local_path, ec.message());
         co_return;
     }
     bool done = false;
@@ -248,7 +247,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
         if (type == leaf::message_type::done)
         {
             done = true;
-            LOG_INFO("{} upload file {} done", id_, ctx.file->filename);
+            LOG_INFO("{} upload file {} done", id_, ctx.file.filename);
             break;
         }
         if (type != leaf::message_type::file_data)
@@ -266,16 +265,14 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
         writer->write_at(static_cast<int64_t>(writer->size()), d->data.data(), d->data.size(), ec);
         if (ec)
         {
-            LOG_ERROR("{} file write error {} {}", id_, ctx.file->filename, ec.message());
+            LOG_ERROR("{} file write error {} {}", id_, ctx.file.filename, ec.message());
             break;
         }
-        ctx.file->hash_count++;
         hash->update(d->data.data(), d->data.size());
 
-        LOG_DEBUG("{} file {} hash count {} hash {} data size {} write size {}",
+        LOG_DEBUG("{} file {} hash {} data size {} write size {}",
                   id_,
-                  ctx.file->filename,
-                  ctx.file->hash_count,
+                  ctx.file.filename,
                   d->hash.empty() ? "empty" : d->hash,
                   d->data.size(),
                   writer->size());
@@ -286,29 +283,28 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::upload_fil
             auto hex_str = hash->hex();
             if (hex_str != d->hash)
             {
-                LOG_ERROR("{} file hash not match {} {} {}", id_, ctx.file->filename, hex_str, d->hash);
+                LOG_ERROR("{} file hash not match {} {} {}", id_, ctx.file.filename, hex_str, d->hash);
                 break;
             }
-            ctx.file->hash_count = 0;
-            hash = std::make_shared<leaf::blake2b>();
+            hash->reset();
         }
-        if (ctx.file->file_size == writer->size())
+        if (ctx.file.file_size == writer->size())
         {
-            auto filename = leaf::encode_leaf_filename(ctx.file->local_path);
-            leaf::rename(ctx.file->local_path, filename);
-            LOG_INFO("{} file {} to {} done", id_, ctx.file->local_path, filename);
+            auto filename = leaf::encode_leaf_filename(ctx.file.local_path);
+            leaf::rename(ctx.file.local_path, filename);
+            LOG_INFO("{} file {} to {} done", id_, ctx.file.local_path, filename);
         }
     }
     auto file_ec = writer->close();
     if (file_ec)
     {
-        LOG_ERROR("{} file close file {} error {}", id_, ctx.file->local_path, file_ec.message());
+        LOG_ERROR("{} file close file {} error {}", id_, ctx.file.local_path, file_ec.message());
     }
     if (!done)
     {
         co_return;
     }
-    LOG_INFO("{} upload file {} done", id_, ctx.file->filename);
+    LOG_INFO("{} upload file {} done", id_, ctx.file.filename);
 }
 
 boost::asio::awaitable<leaf::keepalive> upload_file_handle::wait_keepalive(boost::beast::error_code& ec)

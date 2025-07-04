@@ -14,7 +14,7 @@ class upload_file_handle : public websocket_handle
 {
     struct upload_context
     {
-        leaf::file_info::ptr file;
+        leaf::file_info file;
         leaf::upload_file_request request;
     };
 

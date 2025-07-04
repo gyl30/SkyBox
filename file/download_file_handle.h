@@ -3,10 +3,7 @@
 
 #include <queue>
 #include <mutex>
-#include <boost/asio/experimental/channel.hpp>
-#include "file/file.h"
 #include "protocol/message.h"
-#include "crypt/blake2b.h"
 #include "file/file_context.h"
 #include "net/websocket_handle.h"
 
@@ -17,7 +14,7 @@ class download_file_handle : public websocket_handle
 {
     struct download_context
     {
-        leaf::file_info::ptr file;
+        leaf::file_info file;
         leaf::download_file_request request;
     };
 
@@ -48,7 +45,7 @@ class download_file_handle : public websocket_handle
     std::once_flag shutdown_flag_;
     leaf::websocket_session::ptr session_;
     const boost::asio::any_io_executor& io_;
-    std::queue<leaf::file_info::ptr> padding_files_;
+    std::queue<leaf::file_info> padding_files_;
 };
 
 }    // namespace leaf

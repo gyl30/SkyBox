@@ -373,10 +373,15 @@ void Widget::on_upload_file()
     {
         return;
     }
-    std::vector<std::string> ff;
+    std::vector<leaf::file_info> ff;
     for (const auto &f : files)
     {
-        ff.push_back(f.toStdString());
+        leaf::file_info fi;
+        fi.local_path = f.toStdString();
+        fi.filename = std::filesystem::path(f.toStdString()).filename().string();
+        fi.file_size = std::filesystem::file_size(fi.filename);
+        fi.dir = current_dir_->storage_name;
+        ff.push_back(fi);
     }
     file_client_->add_upload_files(ff);
 }
