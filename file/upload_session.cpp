@@ -272,7 +272,7 @@ boost::asio::awaitable<void> upload_session::send_file_data(const file_info& fil
         }
         // block count hash or eof hash
         auto reader_size = reader->size();
-        if ((reader_size != 0 && read_size % kHashBlockSize == 0) || ec == boost::asio::error::eof)
+        if ((reader_size != 0 && read_size % kHashBlockSize == 0) || read_size == file.file_size || ec == boost::asio::error::eof)
         {
             hash->final();
             fd.hash = hash->hex();
@@ -306,6 +306,7 @@ boost::asio::awaitable<void> upload_session::send_file_data(const file_info& fil
         if (ec == boost::asio::error::eof || reader->size() == file.file_size)
         {
             ec = {};
+            LOG_DEBUG("{} send file done", file.local_path);
             co_await send_file_done(ec);
             break;
         }

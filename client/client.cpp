@@ -217,23 +217,26 @@ int main(int argc, char *argv[])
     }
 
     std::vector<leaf::file_info> upload_files;
-    for (const auto &dir : args->upload_paths)
+    for (const auto &path : args->upload_paths)
     {
         leaf::file_info f;
-        if (leaf::is_file(dir))
+        if (leaf::is_file(path))
         {
-            f.filename = std::filesystem::path(dir).filename().string();
-            f.local_path = dir;
+            f.filename = std::filesystem::path(path).filename().string();
+            f.local_path = path;
+            f.file_size = std::filesystem::file_size(path);
+            f.dir = ".";
             upload_files.push_back(f);
         }
-        if (leaf::is_dir(dir))
+        if (leaf::is_dir(path))
         {
-            auto files = leaf::dir_files(dir);
+            auto files = leaf::dir_files(path);
             for (const auto &file : files)
             {
                 f.filename = std::filesystem::path(file).filename().string();
                 f.local_path = file;
                 f.file_size = std::filesystem::file_size(file);
+                f.dir = ".";
                 upload_files.push_back(f);
             }
         }
