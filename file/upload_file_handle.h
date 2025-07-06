@@ -12,12 +12,6 @@ namespace leaf
 
 class upload_file_handle : public websocket_handle
 {
-    struct upload_context
-    {
-        leaf::file_info file;
-        leaf::upload_file_request request;
-    };
-
    public:
     explicit upload_file_handle(const boost::asio::any_io_executor& io, std::string id, leaf::websocket_session::ptr& session);
     ~upload_file_handle() override;
@@ -33,9 +27,9 @@ class upload_file_handle : public websocket_handle
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> wait_login(boost::beast::error_code& ec);
     boost::asio::awaitable<leaf::keepalive> wait_keepalive(boost::beast::error_code& ec);
-    boost::asio::awaitable<leaf::upload_file_handle::upload_context> wait_upload_file_request(boost::beast::error_code& ec);
+    boost::asio::awaitable<leaf::file_info> wait_upload_file_request(boost::beast::error_code& ec);
     boost::asio::awaitable<void> wait_ack(boost::beast::error_code& ec);
-    boost::asio::awaitable<void> wait_file_data(leaf::upload_file_handle::upload_context& ctx, boost::beast::error_code& ec);
+    boost::asio::awaitable<void> wait_file_data(leaf::file_info& file, boost::beast::error_code& ec);
     boost::asio::awaitable<void> send_file_done(boost::beast::error_code& ec);
 
    private:
