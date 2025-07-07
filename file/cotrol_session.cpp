@@ -21,7 +21,7 @@ cotrol_session::~cotrol_session() { LOG_INFO("{} destroyed", id_); }
 
 void cotrol_session::startup()
 {
-    LOG_INFO("{} startup", id_);
+    LOG_INFO("{} startup host {} port {} token {}", id_, host_, port_, token_);
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/cotrol", io_);
 
     boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
@@ -34,14 +34,14 @@ boost::asio::awaitable<void> cotrol_session::loop()
     auto self = shared_from_this();
     LOG_INFO("{} recv startup", id_);
     boost::beast::error_code ec;
-    LOG_INFO("{} connect ws client {}:{}", id_, host_, port_);
+    LOG_INFO("{} connect ws client {}:{} token {}", id_, host_, port_, token_);
     co_await ws_client_->handshake(ec);
     if (ec)
     {
         LOG_ERROR("{} handshake error {}", id_, ec.message());
         co_return;
     }
-    LOG_INFO("{} connect ws client success {}:{}", id_, host_, port_);
+    LOG_INFO("{} connect ws client success {}:{} token {}", id_, host_, port_, token_);
     LOG_INFO("{} login start", id_);
     co_await login(ec);
     if (ec)
@@ -215,6 +215,9 @@ void cotrol_session::create_directory(const std::string& dir)
         boost::asio::detached);
 }
 
-void cotrol_session::change_current_dir(const std::string& dir) { current_dir_ = dir; }
+void cotrol_session::change_current_dir(const std::string& dir)
+{
+    boost::asio::post(io_, [this, self = shared_from_this(), dir = dir]() { current_dir_ = dir; });
+}
 
 }    // namespace leaf

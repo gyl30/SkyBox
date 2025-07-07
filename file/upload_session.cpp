@@ -94,7 +94,7 @@ boost::asio::awaitable<void> upload_session::loop()
         auto file = padding_files_.front();
         padding_files_.pop_front();
         // send upload file request
-        LOG_INFO("{} send upload file request {}", id_, file.local_path);
+        LOG_INFO("{} send upload request file {} name {} dir {}", id_, file.local_path, file.filename, file.dir);
         co_await send_upload_file_request(file, ec);
         if (ec)
         {
@@ -195,7 +195,7 @@ boost::asio::awaitable<void> upload_session::send_upload_file_request(const file
     u.dir = file.dir;
     u.filename = file.filename;
     u.filesize = file.file_size;
-    LOG_DEBUG("{} upload request {} filename {} filesize {}", id_, u.id, file.local_path, file.file_size);
+    LOG_DEBUG("{} upload request {} dir {} filename {} filesize {}", id_, u.id, file.dir, file.local_path, file.file_size);
     co_await write(leaf::serialize_upload_file_request(u), ec);
 }
 

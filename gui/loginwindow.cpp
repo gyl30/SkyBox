@@ -7,7 +7,6 @@
 #include <QGuiApplication>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
-
 #include "log/log.h"
 #include "protocol/codec.h"
 #include "gui/loginwindow.h"
@@ -44,7 +43,13 @@ void login_widget::request_finished(QNetworkReply *reply)
     if (reply->error() == QNetworkReply::NoError)
     {
         QByteArray bytes = reply->readAll();
-        std::string token = QString::fromUtf8(bytes).toStdString();
+        auto l = leaf::deserialize_login_token(std::vector<uint8_t>(bytes.begin(), bytes.end()));
+        if (!l.has_value())
+        {
+            QMessageBox::warning(this, "提示", "登录失败，数据错误");
+            return;
+        }
+        std::string token = l->token;
         auto username = user_->text().toStdString();
         auto password = pass_->text().toStdString();
         LOG_INFO("username {} password {} token {}", username, password, token);

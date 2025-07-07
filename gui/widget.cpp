@@ -36,7 +36,6 @@ Widget::Widget(std::string user, std::string password, std::string token, QWidge
     leaf::event_manager::instance().startup();
 
     main_layout = new QVBoxLayout(this);
-
     stack_ = new QStackedWidget(this);
     file_page_ = new QWidget(stack_);
     upload_list_widget_ = new upload_list_widget(stack_);
@@ -68,14 +67,13 @@ Widget::Widget(std::string user, std::string password, std::string token, QWidge
 
     current_dir_ = root_;
     model_->set_current_dir(current_dir_);
-
     update_breadcrumb();
 }
 
 void Widget::setup_demo_data()
 {
     root_ = std::make_shared<leaf::file_item>();
-    root_->storage_name = "root";
+    root_->storage_name = ".";
     root_->last_modified = QDateTime::currentSecsSinceEpoch();
     root_->display_name = "根目录";
     root_->type = leaf::file_item_type::Folder;
@@ -379,7 +377,7 @@ void Widget::on_upload_file()
         leaf::file_info fi;
         fi.local_path = f.toStdString();
         fi.filename = std::filesystem::path(f.toStdString()).filename().string();
-        fi.file_size = std::filesystem::file_size(fi.filename);
+        fi.file_size = std::filesystem::file_size(fi.local_path);
         fi.dir = current_dir_->storage_name;
         ff.push_back(fi);
     }
@@ -670,9 +668,9 @@ void Widget::startup()
     connect(this, &Widget::download_notify_signal, this, &Widget::on_download_notify);
     connect(this, &Widget::cotrol_notify_signal, this, &Widget::on_cotrol_notify);
     connect(this, &Widget::notify_event_signal, this, &Widget::on_notify_event);
-
     file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user_, password_, token_);
     file_client_->startup();
+    file_client_->change_current_dir(current_dir_->storage_name);
 }
 
 void Widget::error_progress(const std::any &data)

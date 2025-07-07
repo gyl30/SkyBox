@@ -11,7 +11,7 @@ REFLECT_STRUCT(leaf::keepalive, (id)(client_id)(client_timestamp)(server_timesta
 REFLECT_STRUCT(leaf::login_request, (username)(password));
 REFLECT_STRUCT(leaf::login_token, (id)(token));
 REFLECT_STRUCT(leaf::error_message, (id)(error));
-REFLECT_STRUCT(leaf::upload_file_request, (id)(filesize)(filename));
+REFLECT_STRUCT(leaf::upload_file_request, (id)(filesize)(dir)(filename));
 REFLECT_STRUCT(leaf::upload_file_response, (id)(filename));
 REFLECT_STRUCT(leaf::download_file_response, (id)(filesize)(filename));
 REFLECT_STRUCT(leaf::download_file_request, (id)(filename));

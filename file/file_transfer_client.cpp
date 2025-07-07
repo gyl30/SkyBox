@@ -30,6 +30,7 @@ void file_transfer_client::startup()
     executors.startup();
     ex_ = &executors.get_executor();
     auto self = shared_from_this();
+    LOG_INFO("{} startup host {} port {} token {}", id_, host_, port_, token_);
     cotrol_ = std::make_shared<leaf::cotrol_session>(id_, host_, port_, token_, executors.get_executor());
     upload_ = std::make_shared<leaf::upload_session>(id_, host_, port_, token_, executors.get_executor());
     download_ = std::make_shared<leaf::download_session>(id_, host_, port_, token_, executors.get_executor());

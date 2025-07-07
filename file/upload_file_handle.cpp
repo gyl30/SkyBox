@@ -170,7 +170,7 @@ boost::asio::awaitable<leaf::file_info> upload_file_handle::wait_upload_file_req
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return file;
     }
-    auto local_path = std::filesystem::path(token_).append(leaf::encode(req->dir)).string();
+    auto local_path = std::filesystem::path(token_).append(req->dir).string();
     auto file_path = leaf::make_file_path(local_path, leaf::encode(req->filename));
     auto upload_file_path = leaf::encode_tmp_filename(file_path);
     bool exist = std::filesystem::exists(upload_file_path, ec);
@@ -185,7 +185,13 @@ boost::asio::awaitable<leaf::file_info> upload_file_handle::wait_upload_file_req
         ec = boost::system::errc::make_error_code(boost::system::errc::file_exists);
         co_return file;
     }
-    LOG_INFO("{} upload request file size {} name {} path {}", id_, req->filesize, req->filename, upload_file_path);
+    LOG_INFO("{} upload request file size {} name {} path {} dir {} local path {}",
+             id_,
+             req->filesize,
+             req->filename,
+             req->dir,
+             upload_file_path,
+             local_path);
 
     file.filename = req->filename;
     file.file_size = req->filesize;

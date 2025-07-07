@@ -205,10 +205,10 @@ boost::asio::awaitable<void> cotrol_file_handle::on_files_request(const std::str
 
     const auto& msg = files_request.value();
 
-    auto file_path = std::filesystem::path(token_).append(leaf::encode(msg.dir)).string();
+    auto file_path = std::filesystem::path(token_).append(msg.dir).string();
     auto dir_path = leaf::make_file_path(file_path);
 
-    LOG_INFO("{} on files request dir {}", id_, dir_path);
+    LOG_INFO("{} on files request dir {} {} msg dir {}", id_, file_path, dir_path, msg.dir);
     leaf::files_response response;
     // 递归遍历目录中的所有文件
     auto files = lookup_dir(dir_path);
