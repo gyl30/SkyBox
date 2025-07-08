@@ -281,6 +281,10 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
     if (item->type == leaf::file_item_type::Folder)
     {
         current_dir_ = item;
+        if (file_client_ != nullptr)
+        {
+            file_client_->change_current_dir(current_dir_->storage_name);
+        }
         model_->set_current_dir(current_dir_);
         update_breadcrumb();
     }
@@ -747,7 +751,12 @@ void Widget::on_files(const std::vector<leaf::file_node> &files)
         item->last_modified = QDateTime::currentSecsSinceEpoch();
         auto parent_item = find_parent(f.parent);
         item->parent = parent_item;
-        parent_item->children.push_back(item);
+        auto it = std::find_if(
+            parent_item->children.begin(), parent_item->children.end(), [&item](const auto &i) { return i->storage_name == item->storage_name; });
+        if (it == parent_item->children.end())
+        {
+            parent_item->children.push_back(item);
+        }
     }
 }
 

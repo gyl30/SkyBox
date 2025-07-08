@@ -49,6 +49,7 @@ boost::asio::awaitable<void> cotrol_file_handle::shutdown_coro()
 }
 boost::asio::awaitable<void> cotrol_file_handle::loop()
 {
+    auto self = shared_from_this();
     LOG_INFO("{} recv coro startup", id_);
     boost::beast::error_code ec;
     // setup 1 wait login
@@ -208,7 +209,7 @@ boost::asio::awaitable<void> cotrol_file_handle::on_files_request(const std::str
     auto file_path = std::filesystem::path(token_).append(msg.dir).string();
     auto dir_path = leaf::make_file_path(file_path);
 
-    LOG_INFO("{} on files request dir {} {} msg dir {}", id_, file_path, dir_path, msg.dir);
+    LOG_INFO("{} on files request dir {} file path {} dir path {}", id_, msg.dir, file_path, dir_path);
     leaf::files_response response;
     // 递归遍历目录中的所有文件
     auto files = lookup_dir(dir_path);
@@ -217,7 +218,7 @@ boost::asio::awaitable<void> cotrol_file_handle::on_files_request(const std::str
         std::string filename = std::filesystem::path(file.name).filename().string();
         file.name = leaf::decode(leaf::decode_leaf_filename(filename));
         file.parent = msg.dir;
-        LOG_INFO("file path {} relative to file {}", file.name, filename);
+        LOG_INFO("file name {} relative to {}", filename, file.name);
     }
     response.token = msg.token;
     response.files.swap(files);
