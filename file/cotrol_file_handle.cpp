@@ -216,9 +216,18 @@ boost::asio::awaitable<void> cotrol_file_handle::on_files_request(const std::str
     for (auto&& file : files)
     {
         std::string filename = std::filesystem::path(file.name).filename().string();
-        file.name = leaf::decode(leaf::decode_leaf_filename(filename));
+
+        if (file.type == "file")
+        {
+            file.name = leaf::decode(leaf::decode_leaf_filename(filename));
+        }
+        else
+        {
+            file.name = filename;
+        }
+        LOG_INFO("file name {} relative to {} type {}", filename, file.name, file.type);
+
         file.parent = msg.dir;
-        LOG_INFO("file name {} relative to {}", filename, file.name);
     }
     response.token = msg.token;
     response.files.swap(files);
