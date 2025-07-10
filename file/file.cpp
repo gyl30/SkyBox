@@ -37,9 +37,9 @@ std::string tmp_to_leaf_filename(const std::string& p)
 {
     return std::filesystem::path(p).replace_extension(leaf_extension()).string();
 }
-std::string make_file_path(const std::string& id)
+std::string make_token_path(const std::string& token)
 {
-    return std::filesystem::path(leaf::kDefaultDir).append(id).string();
+    return std::filesystem::path(leaf::kDefaultDir).append(token).string();
 }
 
 static std::optional<std::filesystem::path> resolve_abs_path(const std::filesystem::path& root,

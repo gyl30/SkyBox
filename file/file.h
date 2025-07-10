@@ -15,7 +15,7 @@ std::string decode_tmp_filename(const std::string& p);
 std::string decode_leaf_filename(const std::string& p);
 std::string tmp_to_leaf_filename(const std::string& p);
 std::string make_file_path(const std::string& id, const std::string& filename);
-std::string make_file_path(const std::string& id);
+std::string make_token_path(const std::string& token);
 std::vector<std::string> dir_files(const std::string& dir);
 bool is_dir(const std::string& path);
 bool is_file(const std::string& file);
@@ -33,10 +33,7 @@ class writer
     virtual boost::system::error_code open() = 0;
     virtual boost::system::error_code close() = 0;
     virtual std::size_t write(void const* buffer, std::size_t size, boost::system::error_code& ec) = 0;
-    virtual std::size_t write_at(std::int64_t offset,
-                                 void const* buffer,
-                                 std::size_t size,
-                                 boost::system::error_code& ec) = 0;
+    virtual std::size_t write_at(std::int64_t offset, void const* buffer, std::size_t size, boost::system::error_code& ec) = 0;
     virtual std::size_t size() = 0;
 };
 class reader
@@ -67,10 +64,7 @@ class null_writer : public writer
         size_ += size;
         return size;
     }
-    std::size_t write_at(std::int64_t /*offset*/,
-                         void const* /*buffer*/,
-                         std::size_t size,
-                         boost::system::error_code& /*ec*/) override
+    std::size_t write_at(std::int64_t /*offset*/, void const* /*buffer*/, std::size_t size, boost::system::error_code& /*ec*/) override
     {
         size_ += size;
         return size;
@@ -94,10 +88,7 @@ class null_reader : public reader
         size_ += size;
         return size;
     }
-    std::size_t read_at(std::int64_t /*offset*/,
-                        void* /*buffer*/,
-                        std::size_t size,
-                        boost::system::error_code& /*ec*/) override
+    std::size_t read_at(std::int64_t /*offset*/, void* /*buffer*/, std::size_t size, boost::system::error_code& /*ec*/) override
     {
         size_ += size;
         return size;
@@ -119,10 +110,7 @@ class file_writer : public writer
     boost::system::error_code open() override;
     boost::system::error_code close() override;
     std::size_t write(void const* buffer, std::size_t size, boost::system::error_code& ec) override;
-    std::size_t write_at(std::int64_t offset,
-                         void const* buffer,
-                         std::size_t size,
-                         boost::system::error_code& ec) override;
+    std::size_t write_at(std::int64_t offset, void const* buffer, std::size_t size, boost::system::error_code& ec) override;
     std::size_t size() override;
 
    private:

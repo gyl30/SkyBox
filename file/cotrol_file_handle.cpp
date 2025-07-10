@@ -156,41 +156,51 @@ boost::asio::awaitable<void> cotrol_file_handle::wait_login(boost::beast::error_
     LOG_INFO("{} login success token {}", id_, token_);
     co_await write(leaf::serialize_login_token(login.value()), ec);
 }
-static std::vector<leaf::file_node> lookup_dir(const std::filesystem::path& dir)
+static std::vector<leaf::file_node> lookup_dir(const std::filesystem::path& dir, const std::string& token_path)
 {
     if (!std::filesystem::exists(dir))
     {
         return {};
     }
-    std::stack<std::string> dirs;
-    dirs.push(dir.string());
     std::vector<leaf::file_node> files;
-    while (!dirs.empty())
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(dir, ec))
     {
-        std::string path = dirs.top();
-        dirs.pop();
-        for (const auto& entry : std::filesystem::directory_iterator(path))
+        if (ec)
         {
-            std::string filename = entry.path().string();
-            leaf::file_node f;
-            f.name = filename;
-            f.parent = path;
-            f.type = "file";
-            if (entry.is_directory())
-            {
-                f.type = "dir";
-                dirs.push(entry.path().string());
-            }
-            else if (entry.is_regular_file())
-            {
-                std::string ext = entry.path().extension().string();
-                if (ext != kLeafFilenameSuffix)
-                {
-                    continue;
-                }
-            }
-            files.push_back(f);
+            LOG_ERROR("error reading directory {}: {}", dir.string(), ec.message());
+            continue;
         }
+        const auto& file_path = entry.path();
+        leaf::file_node f;
+        if (entry.is_directory())
+        {
+            f.type = "dir";
+            f.name = file_path.filename().string();
+        }
+        else if (entry.is_regular_file())
+        {
+            if (file_path.extension().string() != kLeafFilenameSuffix)
+            {
+                continue;
+            }
+            f.type = "file";
+            f.name = leaf::decode(leaf::decode_leaf_filename(file_path.filename().string()));
+        }
+        else
+        {
+            continue;
+        }
+        if (file_path.parent_path().string() == token_path)
+        {
+            f.parent = ".";
+        }
+        else
+        {
+            f.parent = file_path.parent_path().filename().string();
+        }
+        LOG_INFO("file name {} to {} type {} file parent {}", file_path.filename().string(), f.name, f.type, f.parent);
+        files.push_back(f);
     }
     return files;
 }
@@ -205,30 +215,12 @@ boost::asio::awaitable<void> cotrol_file_handle::on_files_request(const std::str
     }
 
     const auto& msg = files_request.value();
-
-    auto file_path = std::filesystem::path(token_).append(msg.dir).string();
-    auto dir_path = leaf::make_file_path(file_path);
-
-    LOG_INFO("{} on files request dir {} file path {} dir path {}", id_, msg.dir, file_path, dir_path);
+    std::string token_path = leaf::make_token_path(token_);
+    auto file_path = std::filesystem::path(token_path).append(msg.dir);
+    auto dir_path = std::filesystem::absolute(file_path).lexically_normal().string();
+    LOG_INFO("{} on files request dir {} file path {} dir path {}", id_, msg.dir, file_path.string(), dir_path);
     leaf::files_response response;
-    // 递归遍历目录中的所有文件
-    auto files = lookup_dir(dir_path);
-    for (auto&& file : files)
-    {
-        std::string filename = std::filesystem::path(file.name).filename().string();
-
-        if (file.type == "file")
-        {
-            file.name = leaf::decode(leaf::decode_leaf_filename(filename));
-        }
-        else
-        {
-            file.name = filename;
-        }
-        LOG_INFO("file name {} relative to {} type {}", filename, file.name, file.type);
-
-        file.parent = msg.dir;
-    }
+    auto files = lookup_dir(dir_path, token_path);
     response.token = msg.token;
     response.files.swap(files);
     co_await write(leaf::serialize_files_response(response), ec);
