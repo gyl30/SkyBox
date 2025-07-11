@@ -15,7 +15,7 @@ std::string decode_tmp_filename(const std::string& p);
 std::string decode_leaf_filename(const std::string& p);
 std::string tmp_to_leaf_filename(const std::string& p);
 std::string make_file_path(const std::string& id, const std::string& filename);
-std::string make_token_path(const std::string& token);
+std::string make_user_path(const std::string& token);
 std::vector<std::string> dir_files(const std::string& dir);
 bool is_dir(const std::string& path);
 bool is_file(const std::string& file);

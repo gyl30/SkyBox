@@ -215,7 +215,7 @@ boost::asio::awaitable<void> cotrol_file_handle::on_files_request(const std::str
     }
 
     const auto& msg = files_request.value();
-    std::string token_path = leaf::make_token_path(token_);
+    std::string token_path = leaf::make_user_path(token_);
     auto file_path = std::filesystem::path(token_path).append(msg.dir);
     auto dir_path = std::filesystem::absolute(file_path).lexically_normal().string();
     LOG_INFO("{} on files request dir {} file path {} dir path {}", id_, msg.dir, file_path.string(), dir_path);
