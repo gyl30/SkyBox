@@ -14,6 +14,7 @@
 #include <QListView>
 #include <QTimer>
 #include "file/event.h"
+#include "file/directory.h"
 #include "gui/file_model.h"
 #include "gui/upload_list_widget.h"
 #include "file/file_transfer_client.h"
@@ -110,10 +111,9 @@ class Widget : public QWidget
     QVBoxLayout* side_layout_ = nullptr;
     QVBoxLayout* main_layout = nullptr;
     QHBoxLayout* content_layout_ = nullptr;
-    std::shared_ptr<leaf::file_item> root_;
-    std::shared_ptr<leaf::file_item> current_dir_;
     upload_list_widget* upload_list_widget_ = nullptr;
-    QVector<std::shared_ptr<leaf::file_item>> breadcrumb_list_;
+    std::shared_ptr<leaf::path_manager> path_manager_ = nullptr;
+    std::vector<std::shared_ptr<leaf::directory>> breadcrumb_list_;
     std::shared_ptr<leaf::file_transfer_client> file_client_ = nullptr;
     std::unordered_map<std::string, std::shared_ptr<leaf::file_item>> item_map_;
 };

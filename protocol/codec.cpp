@@ -16,7 +16,7 @@ REFLECT_STRUCT(leaf::upload_file_response, (id)(filename));
 REFLECT_STRUCT(leaf::download_file_response, (id)(filesize)(filename));
 REFLECT_STRUCT(leaf::download_file_request, (id)(filename));
 REFLECT_STRUCT(leaf::delete_file_request, (id)(filename));
-REFLECT_STRUCT(leaf::file_node, (parent)(name)(type));
+REFLECT_STRUCT(leaf::file_node, (parent)(name)(type)(file_size));
 REFLECT_STRUCT(leaf::files_request, (token)(dir));
 REFLECT_STRUCT(leaf::files_response, (files)(token)(dir));
 }    // namespace reflect

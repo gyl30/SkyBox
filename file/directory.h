@@ -17,6 +17,7 @@ class directory
    public:
     void add_subdirectory(const std::shared_ptr<directory>& dir) { subdirectories_.push_back(dir); }
     void add_file(const leaf::file_item& file) { files_.push_back(file); }
+    void reset_files(std::vector<leaf::file_item> files) { files_ = std::move(files); }
 
    public:
     [[nodiscard]] const std::string& name() const { return name_; }
@@ -32,7 +33,7 @@ class directory
 class path_manager
 {
    public:
-    explicit path_manager(directory* root) : root_(root), current_directory_(root) {}
+    explicit path_manager(const std::shared_ptr<directory>& root) : root_(root), current_directory_(root) {}
 
    public:
     bool enter_directory(const std::shared_ptr<directory>& dir)

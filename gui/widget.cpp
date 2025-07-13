@@ -35,6 +35,8 @@ Widget::Widget(std::string user, std::string password, std::string token, QWidge
 
     leaf::event_manager::instance().startup();
 
+    path_manager_ = std::make_shared<leaf::path_manager>(std::make_shared<leaf::directory>("."));
+
     main_layout = new QVBoxLayout(this);
     stack_ = new QStackedWidget(this);
     file_page_ = new QWidget(stack_);
@@ -64,71 +66,46 @@ Widget::Widget(std::string user, std::string password, std::string token, QWidge
     main_layout->setContentsMargins(8, 0, 0, 0);
 
     setup_demo_data();
-
-    current_dir_ = root_;
-    model_->set_current_dir(current_dir_);
     update_breadcrumb();
 }
 
 void Widget::setup_demo_data()
 {
-    root_ = std::make_shared<leaf::file_item>();
-    root_->storage_name = ".";
-    root_->last_modified = QDateTime::currentSecsSinceEpoch();
-    root_->display_name = "根目录";
-    root_->type = leaf::file_item_type::Folder;
-    auto folder_a = std::make_shared<leaf::file_item>();
-    folder_a->storage_name = "文档";
-    folder_a->display_name = "文档";
-    folder_a->type = leaf::file_item_type::Folder;
-    folder_a->parent = root_;
-    folder_a->last_modified = QDateTime::currentSecsSinceEpoch();
-    ;
+    auto folder_a = std::make_shared<leaf::directory>("文档");
 
-    auto file_a1 = std::make_shared<leaf::file_item>();
-    file_a1->display_name = "产品需求文档.docx";
-    file_a1->storage_name = "产品需求文档.docx";
-    file_a1->type = leaf::file_item_type::File;
-    file_a1->parent = folder_a;
-    file_a1->file_size = 1024L * 350;
-    file_a1->last_modified = QDateTime::currentSecsSinceEpoch();
+    auto file_a = std::make_shared<leaf::file_item>();
+    file_a->display_name = "产品需求文档.docx";
+    file_a->storage_name = "产品需求文档.docx";
+    file_a->type = leaf::file_item_type::File;
+    file_a->file_size = 1024L * 350;
 
-    auto file_a2 = std::make_shared<leaf::file_item>();
-    file_a2->display_name = "会议纪要.txt";
-    file_a2->storage_name = "会议纪要.txt";
-    file_a2->type = leaf::file_item_type::File;
-    file_a2->parent = folder_a;
-    file_a2->file_size = 1024L * 2;
-    file_a2->last_modified = QDateTime::currentSecsSinceEpoch();
+    auto file_b = std::make_shared<leaf::file_item>();
+    file_b->display_name = "会议纪要.txt";
+    file_b->storage_name = "会议纪要.txt";
+    file_b->type = leaf::file_item_type::File;
+    file_b->file_size = 1024L * 2;
+    folder_a->add_file(*file_a);
+    folder_a->add_file(*file_b);
 
-    folder_a->children = {file_a1, file_a2};
-
-    auto folder_b = std::make_shared<leaf::file_item>();
-    folder_b->display_name = "图片收藏";
-    folder_b->storage_name = "图片收藏";
-    folder_b->type = leaf::file_item_type::Folder;
-    folder_b->parent = root_;
-    folder_b->last_modified = QDateTime::currentSecsSinceEpoch();
-
-    auto file_b1 = std::make_shared<leaf::file_item>();
-    file_b1->display_name = "风景照 (1).jpg";
-    file_b1->storage_name = "风景照 (1).jpg";
-    file_b1->type = leaf::file_item_type::File;
-    file_b1->parent = folder_b;
-    file_b1->file_size = 1024L * 1024 * 2;
-    file_b1->last_modified = QDateTime::currentSecsSinceEpoch();
-
-    folder_b->children = {file_b1};
+    auto folder_b = std::make_shared<leaf::directory>("图片收藏");
 
     auto file_c = std::make_shared<leaf::file_item>();
-    file_c->storage_name = "项目计划.pdf";
-    file_c->display_name = "项目计划.pdf";
+    file_c->display_name = "风景照 (1).jpg";
+    file_c->storage_name = "风景照 (1).jpg";
     file_c->type = leaf::file_item_type::File;
-    file_c->parent = root_;
-    file_c->file_size = 1024L * 780;
-    file_c->last_modified = QDateTime::currentSecsSinceEpoch();
+    file_c->file_size = 1024L * 1024 * 2;
 
-    root_->children = {folder_a, folder_b, file_c};
+    auto file_d = std::make_shared<leaf::file_item>();
+    file_d->storage_name = "项目计划.pdf";
+    file_d->display_name = "项目计划.pdf";
+    file_d->type = leaf::file_item_type::File;
+    file_d->file_size = 1024L * 780;
+
+    folder_b->add_file(*file_c);
+    folder_b->add_file(*file_d);
+
+    path_manager_->current_directory()->add_subdirectory(folder_a);
+    path_manager_->current_directory()->add_subdirectory(folder_b);
 }
 
 void Widget::setup_side_ui()
@@ -278,14 +255,21 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
         return;
     }
 
+    auto files = path_manager_->current_directory()->files();
+    for (const auto &file : files)
+    {
+        if (file.type == leaf::file_item_type::Folder && file.display_name == item->display_name)
+        {
+            model_->set_files({});
+        }
+    }
+
     if (item->type == leaf::file_item_type::Folder)
     {
-        current_dir_ = item;
         if (file_client_ != nullptr)
         {
-            file_client_->change_current_dir(current_dir_->storage_name);
+            file_client_->change_current_dir(item->storage_name);
         }
-        model_->set_current_dir(current_dir_);
         update_breadcrumb();
     }
 }
@@ -298,7 +282,7 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
         return;
     }
 
-    std::shared_ptr<leaf::file_item> item = model_->item_at(index.row());
+    auto item = model_->item_at(index.row());
     if (!item)
     {
         return;
@@ -308,7 +292,6 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
     QAction *rename_action = context_menu.addAction("✏️ 重命名");
     QAction *delete_action = context_menu.addAction("🗑️ 删除");
     context_menu.addSeparator();
-    QAction *properties_action = context_menu.addAction("ℹ️ 属性");
 
     QAction *selected_action = context_menu.exec(view_->viewport()->mapToGlobal(pos));
 
@@ -326,18 +309,6 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
         {
             QMessageBox::information(this, "删除", "删除：" + QString::fromStdString(item->display_name));
         }
-    }
-    else if (selected_action == properties_action)
-    {
-        auto last_modified = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(item->last_modified)).toString("yyyy-MM-dd hh:mm:ss");
-        QMessageBox::information(this,
-                                 "属性",
-                                 QString("名称: %1\n类型: %2\n大小: %3\n最后修改: %4\n存储名 : %5")
-                                     .arg(QString::fromStdString(item->display_name))
-                                     .arg(item->type == leaf::file_item_type::Folder ? "文件夹" : "文件")
-                                     .arg(item->file_size)
-                                     .arg(last_modified)
-                                     .arg(QString::fromStdString(item->display_name)));
     }
 }
 bool Widget::eventFilter(QObject *watched, QEvent *event)
@@ -382,7 +353,7 @@ void Widget::on_upload_file()
         fi.local_path = f.toStdString();
         fi.filename = std::filesystem::path(f.toStdString()).filename().string();
         fi.file_size = std::filesystem::file_size(fi.local_path);
-        fi.dir = current_dir_->storage_name;
+        fi.dir = path_manager_->current_directory()->name();
         ff.push_back(fi);
     }
     file_client_->add_upload_files(ff);
@@ -393,34 +364,20 @@ void Widget::on_new_folder()
     QString folder_name_base = "新建文件夹";
     QString unique_name = folder_name_base;
     int count = 1;
-    while (model_->name_exists(unique_name, leaf::file_item_type::Folder))
+    while (model_->name_exists(folder_name_base, leaf::file_item_type::Folder))
     {
         unique_name = QString("%1 (%2)").arg(folder_name_base).arg(count++);
     }
 
-    std::shared_ptr<leaf::file_item> new_folder_item;
+    leaf::file_item new_folder_item;
+    new_folder_item.type = leaf::file_item_type::Folder;
+    new_folder_item.display_name = unique_name.toStdString();
+    new_folder_item.storage_name = unique_name.toStdString();
+    new_folder_item.file_size = 0;
     if (!model_->add_folder(unique_name, new_folder_item))
     {
         QMessageBox::warning(this, "创建失败", "无法创建文件夹，可能名称不合法或已存在。");
         return;
-    }
-    int row_count = model_->rowCount(QModelIndex());
-    if (row_count > 0)
-    {
-        QModelIndex new_index = model_->index(row_count - 1, 0);
-        for (int i = 0; i < row_count; ++i)
-        {
-            if (model_->item_at(i) == new_folder_item)
-            {
-                new_index = model_->index(i, 0);
-                break;
-            }
-        }
-        if (new_index.isValid())
-        {
-            view_->setCurrentIndex(new_index);
-            view_->edit(new_index);
-        }
     }
 }
 
@@ -435,10 +392,11 @@ void Widget::on_breadcrumb_clicked()
     bool ok;
     int idx = sender_obj->property("crumbIndex").toInt(&ok);
 
+    path_manager_->navigate_to_breadcrumb(idx);
     if (ok && idx >= 0 && idx < breadcrumb_list_.size())
     {
-        current_dir_ = breadcrumb_list_[idx];
-        model_->set_current_dir(current_dir_);
+        const auto &files = path_manager_->current_directory()->files();
+        model_->set_files(files);
         update_breadcrumb();
     }
 }
@@ -449,7 +407,7 @@ void Widget::update_breadcrumb()
 
     build_breadcrumb_path();
 
-    if (breadcrumb_list_.isEmpty())
+    if (breadcrumb_list_.empty())
     {
         breadcrumb_layout_->addStretch();
         return;
@@ -506,24 +464,16 @@ void Widget::clear_breadcrumb_layout()
     breadcrumb_list_.clear();
 }
 
-void Widget::build_breadcrumb_path()
-{
-    std::shared_ptr<leaf::file_item> dir = current_dir_;
-    while (dir)
-    {
-        breadcrumb_list_.prepend(dir);
-        dir = dir->parent.lock();
-    }
-}
+void Widget::build_breadcrumb_path() { breadcrumb_list_ = path_manager_->breadcrumb_paths(); }
 
 QToolButton *Widget::create_breadcrumb_button(int index)
 {
     auto *btn = new QToolButton(breadcrumb_widget_);
     auto &item = breadcrumb_list_[index];
-    auto text = (index == 0 && item->display_name == "根目录") ? "🏠 " + item->display_name : item->display_name;
+    auto text = (index == 0 && item->name() == "根目录") ? "🏠 " + item->name() : item->name();
 
     btn->setText(QString::fromStdString(text));
-    btn->setToolTip(QString::fromStdString(item->display_name));
+    btn->setToolTip(QString::fromStdString(item->name()));
     btn->setProperty("crumbIndex", index);
     btn->setAutoRaise(true);
     btn->setCursor(Qt::PointingHandCursor);
@@ -607,7 +557,7 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
     int end_index = static_cast<int>(breadcrumb_list_.size()) - 2;
     for (int j = start_index; j <= end_index; ++j)
     {
-        QAction *action = menu->addAction(QString::fromStdString(breadcrumb_list_[j]->display_name));
+        QAction *action = menu->addAction(QString::fromStdString(breadcrumb_list_[j]->name()));
         action->setData(j);
         connect(action,
                 &QAction::triggered,
@@ -618,8 +568,8 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
                     int idx = action->data().toInt(&ok);
                     if (ok && idx >= 0 && idx < breadcrumb_list_.size())
                     {
-                        current_dir_ = breadcrumb_list_[idx];
-                        model_->set_current_dir(current_dir_);
+                        auto dir = breadcrumb_list_[idx];
+                        model_->set_files(dir->files());
                         update_breadcrumb();
                     }
                 });
@@ -674,7 +624,7 @@ void Widget::startup()
     connect(this, &Widget::notify_event_signal, this, &Widget::on_notify_event);
     file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user_, password_, token_);
     file_client_->startup();
-    file_client_->change_current_dir(current_dir_->storage_name);
+    file_client_->change_current_dir(path_manager_->current_directory()->name());
 }
 
 void Widget::error_progress(const std::any &data)
@@ -731,32 +681,23 @@ void Widget::on_error_occurred(const QString &error_msg)
 
 void Widget::on_files(const std::vector<leaf::file_node> &files)
 {
-    auto find_parent = [this](const std::string &file) -> std::shared_ptr<leaf::file_item>
+    if (files.empty())
     {
-        auto it = item_map_.find(file);
-        if (it == item_map_.end())
-        {
-            return root_;
-        }
-        return it->second;
-    };
+        return;
+    }
+    auto current_dir = path_manager_->current_directory();
+    if (current_dir->name() != files.front().parent)
+    {
+        return;
+    }
     for (const auto &f : files)
     {
-        LOG_DEBUG("on file file {} type {} parent {}", f.name, f.type, f.parent);
-        auto type = f.type == "dir " ? leaf::file_item_type::Folder : leaf::file_item_type::File;
-        auto item = std::make_shared<leaf::file_item>();
-        item->display_name = f.name;
-        item->storage_name = item->display_name;
-        item->type = type;
-        item->last_modified = QDateTime::currentSecsSinceEpoch();
-        auto parent_item = find_parent(f.parent);
-        item->parent = parent_item;
-        auto it = std::find_if(
-            parent_item->children.begin(), parent_item->children.end(), [&item](const auto &i) { return i->storage_name == item->storage_name; });
-        if (it == parent_item->children.end())
-        {
-            parent_item->children.push_back(item);
-        }
+        leaf::file_item item;
+        item.display_name = f.name;
+        item.storage_name = f.name;
+        item.type = f.type == "dir" ? leaf::file_item_type::Folder : leaf::file_item_type::File;
+        item.file_size = f.type == "dir" ? 0 : f.file_size;
+        current_dir->add_file(item);
     }
 }
 
@@ -823,6 +764,6 @@ void Widget::on_new_file_clicked()
     f.local_path = std::filesystem::absolute(file_path).string();
     f.filename = file_path.filename().string();
     f.file_size = std::filesystem::file_size(f.filename);
-    f.dir = current_dir_->storage_name;
+    f.dir = path_manager_->current_directory()->name();
     file_client_->add_upload_file(std::move(f));
 }

@@ -51,6 +51,7 @@ struct files_request
 };
 struct file_node
 {
+    int64_t file_size = 0;
     std::string parent;
     std::string name;
     std::string type;

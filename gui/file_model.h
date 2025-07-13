@@ -2,6 +2,9 @@
 #define LEAF_GUI_FILE_MODEL_H
 
 #include <memory>
+#include <vector>
+#include <string>
+#include <optional>
 #include <QAbstractListModel>
 #include "file/file_item.h"
 
@@ -19,14 +22,13 @@ class file_model : public QAbstractListModel
     Qt::ItemFlags flags(const QModelIndex &index) const override;
     bool setData(const QModelIndex &index, const QVariant &value, int role) override;
 
-    void set_current_dir(const std::shared_ptr<leaf::file_item> &dir);
-    std::shared_ptr<leaf::file_item> item_at(int row) const;
-    bool add_folder(const QString &name, std::shared_ptr<leaf::file_item> &folder);
+    void set_files(const std::vector<leaf::file_item> &files);
+    [[nodiscard]] std::optional<leaf::file_item> item_at(int row) const;
+    bool add_folder(const QString &name, const leaf::file_item &folder);
     bool name_exists(const QString &name, file_item_type type) const;
-    bool add_file_from_path(const QString &file_path);
 
    private:
-    std::shared_ptr<leaf::file_item> current_dir_;
+    std::vector<leaf::file_item> files_;
 };
 }    // namespace leaf
 
