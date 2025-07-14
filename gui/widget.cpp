@@ -393,7 +393,7 @@ void Widget::on_breadcrumb_clicked()
     int idx = sender_obj->property("crumbIndex").toInt(&ok);
 
     path_manager_->navigate_to_breadcrumb(idx);
-    if (ok && idx >= 0 && idx < breadcrumb_list_.size())
+    if (ok && idx >= 0 && idx < static_cast<int>(breadcrumb_list_.size()))
     {
         const auto &files = path_manager_->current_directory()->files();
         model_->set_files(files);
@@ -420,9 +420,9 @@ void Widget::update_breadcrumb()
 
     QList<QWidget *> widgets;
 
-    for (int i = 0; i < breadcrumb_list_.size(); ++i)
+    for (int i = 0; i < static_cast<int>(breadcrumb_list_.size()); ++i)
     {
-        if (truncate && i >= START_COUNT && i < breadcrumb_list_.size() - END_COUNT)
+        if (truncate && i >= START_COUNT && i < static_cast<int>(breadcrumb_list_.size()) - END_COUNT)
         {
             if (i == START_COUNT)
             {
@@ -478,7 +478,7 @@ QToolButton *Widget::create_breadcrumb_button(int index)
     btn->setAutoRaise(true);
     btn->setCursor(Qt::PointingHandCursor);
 
-    if (index == breadcrumb_list_.size() - 1)
+    if (index == static_cast<int>(breadcrumb_list_.size() - 1))
     {
         btn->setEnabled(false);
         QFont font = btn->font();
@@ -566,7 +566,7 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
                 {
                     bool ok;
                     int idx = action->data().toInt(&ok);
-                    if (ok && idx >= 0 && idx < breadcrumb_list_.size())
+                    if (ok && idx >= 0 && idx < static_cast<int>(breadcrumb_list_.size()))
                     {
                         auto dir = breadcrumb_list_[idx];
                         model_->set_files(dir->files());
@@ -685,11 +685,19 @@ void Widget::on_files(const std::vector<leaf::file_node> &files)
     {
         return;
     }
+    LOG_INFO("files response size {} current_directory {}", files.size(), path_manager_->current_directory()->name());
+    for (const auto &file : files)
+    {
+        LOG_INFO("files response file {} parent {} type {}", file.name, file.parent, file.type);
+    }
+
     auto current_dir = path_manager_->current_directory();
     if (current_dir->name() != files.front().parent)
     {
         return;
     }
+
+    std::vector<leaf::file_item> file_itmes;
     for (const auto &f : files)
     {
         leaf::file_item item;
@@ -697,8 +705,10 @@ void Widget::on_files(const std::vector<leaf::file_node> &files)
         item.storage_name = f.name;
         item.type = f.type == "dir" ? leaf::file_item_type::Folder : leaf::file_item_type::File;
         item.file_size = f.type == "dir" ? 0 : f.file_size;
-        current_dir->add_file(item);
+        file_itmes.push_back(item);
     }
+    current_dir->reset_files(file_itmes);
+    model_->set_files(file_itmes);
 }
 
 void Widget::on_notify_event(const leaf::notify_event &e)

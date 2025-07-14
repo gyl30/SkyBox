@@ -73,7 +73,7 @@ class path_manager
     }
     bool navigate_to_breadcrumb(int index)
     {
-        if (index < 0 || index >= paths_.size())
+        if (index < 0 || index >= static_cast<int>(paths_.size()))
         {
             return false;
         }
