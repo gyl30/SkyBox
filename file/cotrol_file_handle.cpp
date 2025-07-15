@@ -1,4 +1,3 @@
-#include <stack>
 #include <string>
 #include <filesystem>
 
@@ -243,6 +242,8 @@ boost::asio::awaitable<void> cotrol_file_handle::on_create_dir(const std::string
         co_return;
     }
     LOG_INFO("{} create dir {} --> {}", id_, dir_request->dir, dir_path);
+    auto response = dir_request.value();
+    co_await write(leaf::serialize_create_dir(response), ec);
 }
 
 }    // namespace leaf

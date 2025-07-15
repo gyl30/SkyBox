@@ -200,12 +200,45 @@ boost::asio::awaitable<void> cotrol_session::create_directory_coro(const std::st
     if (ec)
     {
         e.data = ec.message();
+        leaf::event_manager::instance().post("notify", e);
+        co_return;
     }
-    else
+    boost::beast::flat_buffer buffer;
+    co_await ws_client_->read(ec, buffer);
+    if (ec)
     {
-        e.data = std::string("successful");
+        e.data = ec.message();
+        leaf::event_manager::instance().post("notify", e);
+        co_return;
     }
-    leaf::event_manager::instance().post("notify", e);
+
+    auto message = boost::beast::buffers_to_string(buffer.data());
+    auto type = leaf::get_message_type(message);
+    if (type != leaf::message_type::dir)
+    {
+        LOG_ERROR("{} create_directory response message type error {}", id_, leaf::message_type_to_string(type));
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        e.data = ec.message();
+        leaf::event_manager::instance().post("notify", e);
+        co_return;
+    }
+    auto dir_res = leaf::deserialize_create_dir(std::vector<uint8_t>(message.begin(), message.end()));
+    if (!dir_res.has_value())
+    {
+        LOG_ERROR("{} create_directory message deserialize error", id_);
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        e.data = ec.message();
+        leaf::event_manager::instance().post("notify", e);
+        co_return;
+    }
+    if (dir_res->dir != dir)
+    {
+        LOG_ERROR("{} create_directory response token {} dir {} not match request dir {}", id_, token_, dir_res->dir, dir);
+        e.data = "response dir not match request dir";
+        leaf::event_manager::instance().post("notify", e);
+    }
+    e.data = "successful";
+    LOG_INFO("{} create_directory successful token {} dir {}", id_, token_, dir_res->dir);
 }
 void cotrol_session::create_directory(const std::string& dir)
 {
