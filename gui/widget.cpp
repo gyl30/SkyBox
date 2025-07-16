@@ -721,6 +721,10 @@ void Widget::on_notify_event(const leaf::notify_event &e)
     {
         rename_notify(e);
     }
+    if (e.method == "create_directory")
+    {
+        create_directory_notify(e);
+    }
     if (e.method == "new_directory")
     {
         new_directory_notify(e);
@@ -745,10 +749,33 @@ void Widget::new_directory_notify(const leaf::notify_event &e)
     if (file_client_)
     {
         auto dir = std::any_cast<std::string>(e.data);
-        file_client_->create_directory(dir);
+        leaf::create_dir cd;
+        cd.dir = dir;
+        cd.parent = path_manager_->current_directory()->name();
+        cd.token = token_;
+        file_client_->create_directory(cd);
     }
 }
 
+void Widget::create_directory_notify(const leaf::notify_event &e)
+{
+    if (!e.error.empty())
+    {
+        LOG_ERROR("create directory error: {}", e.error);
+        return;
+    }
+    auto dir = std::any_cast<leaf::create_dir>(e.data);
+    auto current_dir = path_manager_->current_directory();
+    if (current_dir->name() == dir.parent)
+    {
+        LOG_INFO("create directory success, current directory {} match {}", current_dir->name(), dir.parent);
+        current_dir->add_subdirectory(std::make_shared<leaf::directory>(dir.dir));
+    }
+    else
+    {
+        LOG_ERROR("create directory failed, current directory {} not match {}", current_dir->name(), dir.parent);
+    }
+}
 void Widget::rename_notify(const leaf::notify_event &e) {}
 
 Widget::~Widget()

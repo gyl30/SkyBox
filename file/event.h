@@ -20,6 +20,7 @@ struct upload_event
 struct notify_event
 {
     std::string method;
+    std::string error;
     std::any data;
 };
 struct download_event

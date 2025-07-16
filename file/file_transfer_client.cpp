@@ -121,11 +121,11 @@ void file_transfer_client::add_download_files(const std::vector<file_info> &file
                       });
 }
 
-void file_transfer_client::create_directory(const std::string &dir)
+void file_transfer_client::create_directory(const leaf::create_dir &cd)
 {
     if (cotrol_)
     {
-        cotrol_->create_directory(dir);
+        cotrol_->create_directory(cd);
     }
 }
 void file_transfer_client::change_current_dir(const std::string &dir)

@@ -187,11 +187,8 @@ boost::asio::awaitable<void> cotrol_session::shutdown_coro()
     co_return;
 }
 
-boost::asio::awaitable<void> cotrol_session::create_directory_coro(const std::string& dir)
+boost::asio::awaitable<void> cotrol_session::create_directory_coro(const leaf::create_dir& cd)
 {
-    leaf::create_dir cd;
-    cd.dir = dir;
-    cd.token = token_;
     boost::system::error_code ec;
     leaf::notify_event e;
     e.method = "create_directory";
@@ -199,7 +196,7 @@ boost::asio::awaitable<void> cotrol_session::create_directory_coro(const std::st
     co_await write(leaf::serialize_create_dir(cd), ec);
     if (ec)
     {
-        e.data = ec.message();
+        e.error = ec.message();
         leaf::event_manager::instance().post("notify", e);
         co_return;
     }
@@ -207,7 +204,7 @@ boost::asio::awaitable<void> cotrol_session::create_directory_coro(const std::st
     co_await ws_client_->read(ec, buffer);
     if (ec)
     {
-        e.data = ec.message();
+        e.error = ec.message();
         leaf::event_manager::instance().post("notify", e);
         co_return;
     }
@@ -218,7 +215,7 @@ boost::asio::awaitable<void> cotrol_session::create_directory_coro(const std::st
     {
         LOG_ERROR("{} create_directory response message type error {}", id_, leaf::message_type_to_string(type));
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
-        e.data = ec.message();
+        e.error = ec.message();
         leaf::event_manager::instance().post("notify", e);
         co_return;
     }
@@ -227,24 +224,24 @@ boost::asio::awaitable<void> cotrol_session::create_directory_coro(const std::st
     {
         LOG_ERROR("{} create_directory message deserialize error", id_);
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
-        e.data = ec.message();
+        e.error = ec.message();
         leaf::event_manager::instance().post("notify", e);
         co_return;
     }
-    if (dir_res->dir != dir)
+    if (dir_res->dir != cd.dir)
     {
-        LOG_ERROR("{} create_directory response token {} dir {} not match request dir {}", id_, token_, dir_res->dir, dir);
-        e.data = "response dir not match request dir";
+        LOG_ERROR("{} create_directory response token {} dir {} not match request dir {}", id_, token_, dir_res->dir, cd.dir);
+        e.error = "response dir not match request dir";
         leaf::event_manager::instance().post("notify", e);
     }
-    e.data = "successful";
+    e.data = dir_res.value();
     LOG_INFO("{} create_directory successful token {} dir {}", id_, token_, dir_res->dir);
 }
-void cotrol_session::create_directory(const std::string& dir)
+void cotrol_session::create_directory(const leaf::create_dir& cd)
 {
     boost::asio::co_spawn(
         io_,
-        [this, self = shared_from_this(), dir = dir]() -> boost::asio::awaitable<void> { co_await create_directory_coro(dir); },
+        [this, self = shared_from_this(), cd = cd]() -> boost::asio::awaitable<void> { co_await create_directory_coro(cd); },
         boost::asio::detached);
 }
 

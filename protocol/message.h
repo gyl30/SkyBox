@@ -28,6 +28,7 @@ enum class message_type : uint8_t
 
 struct create_dir
 {
+    std::string parent;
     std::string dir;
     std::string token;
 };

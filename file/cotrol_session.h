@@ -21,14 +21,14 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
    public:
     void startup();
     void shutdown();
-    void create_directory(const std::string &dir);
+    void create_directory(const leaf::create_dir &cd);
     void change_current_dir(const std::string &dir);
 
    private:
     boost::asio::awaitable<void> loop();
     boost::asio::awaitable<void> timer_coro();
     boost::asio::awaitable<void> write(const std::vector<uint8_t> &data, boost::beast::error_code &);
-    boost::asio::awaitable<void> create_directory_coro(const std::string &dir);
+    boost::asio::awaitable<void> create_directory_coro(const leaf::create_dir &cd);
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> login(boost::beast::error_code &);
     boost::asio::awaitable<void> wait_files_response(boost::beast::error_code &);
