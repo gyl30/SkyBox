@@ -368,6 +368,14 @@ void Widget::on_new_folder()
     {
         unique_name = QString("%1 (%2)").arg(folder_name_base).arg(count++);
     }
+    if (file_client_ != nullptr)
+    {
+        leaf::create_dir cd;
+        cd.dir = unique_name.toStdString();
+        cd.parent = path_manager_->current_directory()->name();
+        cd.token = token_;
+        file_client_->create_directory(cd);
+    }
 
     leaf::file_item new_folder_item;
     new_folder_item.type = leaf::file_item_type::Folder;
@@ -725,10 +733,6 @@ void Widget::on_notify_event(const leaf::notify_event &e)
     {
         create_directory_notify(e);
     }
-    if (e.method == "new_directory")
-    {
-        new_directory_notify(e);
-    }
     if (e.method == "change_directory")
     {
         change_directory_notify(e);
@@ -741,19 +745,6 @@ void Widget::change_directory_notify(const leaf::notify_event &e)
     {
         auto dir = std::any_cast<std::string>(e.data);
         file_client_->change_current_dir(dir);
-    }
-}
-
-void Widget::new_directory_notify(const leaf::notify_event &e)
-{
-    if (file_client_)
-    {
-        auto dir = std::any_cast<std::string>(e.data);
-        leaf::create_dir cd;
-        cd.dir = dir;
-        cd.parent = path_manager_->current_directory()->name();
-        cd.token = token_;
-        file_client_->create_directory(cd);
     }
 }
 
