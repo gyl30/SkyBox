@@ -25,8 +25,6 @@ void cotrol_session::startup()
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/cotrol", io_);
 
     boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
-
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await timer_coro(); }, boost::asio::detached);
 }
 
 boost::asio::awaitable<void> cotrol_session::loop()
@@ -50,8 +48,31 @@ boost::asio::awaitable<void> cotrol_session::loop()
         co_return;
     }
     LOG_INFO("{} login success", id_);
+    timer_ = std::make_shared<boost::asio::steady_timer>(co_await boost::asio::this_coro::executor);
     while (true)
     {
+        timer_->expires_after(std::chrono::seconds(5));
+        co_await timer_->async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        if (ec == boost::asio::error::operation_aborted && !create_dirs_.empty())
+        {
+            ec = {};
+            for (const auto& cd : create_dirs_)
+            {
+                co_await create_directory_coro(cd);
+            }
+            continue;
+        }
+        if (ec)
+        {
+            LOG_ERROR("{} timer wait error {}", id_, ec.message());
+            break;
+        }
+        co_await send_files_request(ec);
+        if (ec)
+        {
+            LOG_ERROR("{} send files request error {}", id_, ec.message());
+            break;
+        }
         co_await wait_files_response(ec);
         if (ec)
         {
@@ -59,6 +80,7 @@ boost::asio::awaitable<void> cotrol_session::loop()
             break;
         }
     }
+    LOG_INFO("{} timer shutdown", id_);
     LOG_INFO("{} recv shutdown", id_);
 }
 
@@ -126,30 +148,6 @@ boost::asio::awaitable<void> cotrol_session::login(boost::beast::error_code& ec)
         co_return;
     }
 }
-boost::asio::awaitable<void> cotrol_session::timer_coro()
-{
-    auto self = shared_from_this();
-    LOG_INFO("{} timer startup", id_);
-    timer_ = std::make_shared<boost::asio::steady_timer>(co_await boost::asio::this_coro::executor);
-    boost::system::error_code ec;
-    while (true)
-    {
-        timer_->expires_after(std::chrono::seconds(5));
-        co_await timer_->async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-        if (ec)
-        {
-            LOG_ERROR("{} timer wait error {}", id_, ec.message());
-            break;
-        }
-        co_await send_files_request(ec);
-        if (ec)
-        {
-            LOG_ERROR("{} send files request error {}", id_, ec.message());
-            break;
-        }
-    }
-    LOG_INFO("{} timer shutdown", id_);
-}
 
 boost::asio::awaitable<void> cotrol_session::send_files_request(boost::beast::error_code& ec)
 {
@@ -189,7 +187,7 @@ boost::asio::awaitable<void> cotrol_session::shutdown_coro()
 
 boost::asio::awaitable<void> cotrol_session::create_directory_coro(const leaf::create_dir& cd)
 {
-    boost::system::error_code ec;
+    boost::beast::error_code ec;
     leaf::notify_event e;
     e.method = "create_directory";
 
@@ -239,10 +237,12 @@ boost::asio::awaitable<void> cotrol_session::create_directory_coro(const leaf::c
 }
 void cotrol_session::create_directory(const leaf::create_dir& cd)
 {
-    boost::asio::co_spawn(
-        io_,
-        [this, self = shared_from_this(), cd = cd]() -> boost::asio::awaitable<void> { co_await create_directory_coro(cd); },
-        boost::asio::detached);
+    boost::asio::post(io_,
+                      [this, self = shared_from_this(), cd = cd]()
+                      {
+                          create_dirs_.push_back(cd);
+                          timer_->cancel();
+                      });
 }
 
 void cotrol_session::change_current_dir(const std::string& dir)
