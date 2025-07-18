@@ -15,9 +15,40 @@ class directory
     explicit directory(std::string dir) : name_(std::move(dir)) {}
 
    public:
-    void add_subdirectory(const std::shared_ptr<directory>& dir) { subdirectories_.push_back(dir); }
+    void add_subdirectory(const std::shared_ptr<directory>& dir)
+    {
+        leaf::file_item item;
+        item.type = leaf::file_item_type::Folder;
+        item.display_name = dir->name();
+        item.storage_name = dir->name();
+        item.file_size = 0;
+        files_.push_back(item);
+        subdirectories_.push_back(dir);
+    }
     void add_file(const leaf::file_item& file) { files_.push_back(file); }
     void reset_files(std::vector<leaf::file_item> files) { files_ = std::move(files); }
+    bool dir_exist(const std::shared_ptr<directory>& dir)
+    {
+        for (const auto& sub_dir : subdirectories_)
+        {
+            if (sub_dir->name() == dir->name())
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    bool file_exist(const leaf::file_item& file)
+    {
+        for (const auto& f : files_)
+        {
+            if (f.display_name == file.display_name)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
    public:
     [[nodiscard]] const std::string& name() const { return name_; }

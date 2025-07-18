@@ -231,14 +231,21 @@ boost::asio::awaitable<void> cotrol_file_handle::on_create_dir(const std::string
     if (!dir_request.has_value())
     {
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        LOG_ERROR("{} deserialize create dir request error", id_);
         co_return;
     }
 
     auto dir_path = leaf::make_file_path(dir_request->token, dir_request->dir);
     if (dir_path.empty())
     {
-        LOG_ERROR("{} create dir {} failed", id_, dir_request->dir);
+        LOG_ERROR("{} create dir failed {}", id_, dir_request->dir);
         ec = boost::system::errc::make_error_code(boost::system::errc::no_such_file_or_directory);
+        co_return;
+    }
+    std::filesystem::create_directory(dir_path, ec);
+    if (ec)
+    {
+        LOG_ERROR("{} create dir failed {} {}", id_, dir_request->dir, ec.message());
         co_return;
     }
     LOG_INFO("{} create dir {} --> {}", id_, dir_request->dir, dir_path);

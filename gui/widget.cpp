@@ -254,24 +254,31 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
     {
         return;
     }
+    if (item->type != leaf::file_item_type::Folder)
+    {
+        return;
+    }
 
-    auto files = path_manager_->current_directory()->files();
+    auto current_dir = path_manager_->current_directory();
+    auto files = current_dir->files();
     for (const auto &file : files)
     {
-        if (file.type == leaf::file_item_type::Folder && file.display_name == item->display_name)
+        if (file.type != leaf::file_item_type::Folder || file.display_name != item->display_name)
         {
-            model_->set_files({});
+            continue;
         }
+        auto dir_path = std::filesystem::path(current_dir->name()).append(item->display_name).string();
+        LOG_INFO("enter directory {}", dir_path);
+        path_manager_->enter_directory(std::make_shared<leaf::directory>(dir_path));
     }
+    current_dir = path_manager_->current_directory();
+    model_->set_files(current_dir->files());
 
-    if (item->type == leaf::file_item_type::Folder)
+    if (file_client_ != nullptr)
     {
-        if (file_client_ != nullptr)
-        {
-            file_client_->change_current_dir(item->storage_name);
-        }
-        update_breadcrumb();
+        file_client_->change_current_dir(item->storage_name);
     }
+    update_breadcrumb();
 }
 
 void Widget::view_custom_context_menu_requested(const QPoint &pos)
@@ -362,12 +369,25 @@ void Widget::on_upload_file()
 void Widget::on_new_folder()
 {
     QString folder_name_base = "新建文件夹";
-    QString unique_name = folder_name_base;
     int count = 1;
-    while (model_->name_exists(folder_name_base, leaf::file_item_type::Folder))
+    QString unique_name = folder_name_base;
+    auto current_dir = path_manager_->current_directory();
+    while (true)
     {
+        auto dir_path = std::filesystem::path(path_manager_->current_directory()->name()).append(unique_name.toStdString()).string();
+        auto dir = std::make_shared<leaf::directory>(dir_path);
+        if (!current_dir->dir_exist(dir))
+        {
+            break;
+        }
         unique_name = QString("%1 (%2)").arg(folder_name_base).arg(count++);
     }
+
+    auto dir_path = std::filesystem::path(path_manager_->current_directory()->name()).append(unique_name.toStdString()).string();
+    LOG_INFO("new dir {}", dir_path);
+    auto new_dir = std::make_shared<leaf::directory>(dir_path);
+    path_manager_->current_directory()->add_subdirectory(new_dir);
+
     if (file_client_ != nullptr)
     {
         leaf::create_dir cd;
@@ -376,17 +396,7 @@ void Widget::on_new_folder()
         cd.token = token_;
         file_client_->create_directory(cd);
     }
-
-    leaf::file_item new_folder_item;
-    new_folder_item.type = leaf::file_item_type::Folder;
-    new_folder_item.display_name = unique_name.toStdString();
-    new_folder_item.storage_name = unique_name.toStdString();
-    new_folder_item.file_size = 0;
-    if (!model_->add_folder(unique_name, new_folder_item))
-    {
-        QMessageBox::warning(this, "创建失败", "无法创建文件夹，可能名称不合法或已存在。");
-        return;
-    }
+    model_->set_files(current_dir->files());
 }
 
 void Widget::on_breadcrumb_clicked()
@@ -760,7 +770,6 @@ void Widget::create_directory_notify(const leaf::notify_event &e)
     if (current_dir->name() == dir.parent)
     {
         LOG_INFO("create directory success, current directory {} match {}", current_dir->name(), dir.parent);
-        current_dir->add_subdirectory(std::make_shared<leaf::directory>(dir.dir));
     }
     else
     {
