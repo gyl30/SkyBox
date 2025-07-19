@@ -111,7 +111,7 @@ boost::asio::awaitable<void> cotrol_session::wait_files_response(boost::beast::e
     LOG_INFO("{} files response {} file size {}", id_, files->token, files->files.size());
     leaf::notify_event e;
     e.method = "files";
-    e.data = files->files;
+    e.data = files.value();
     leaf::event_manager::instance().post("notify", e);
     buffer.consume(buffer.size());
 }
@@ -154,6 +154,7 @@ boost::asio::awaitable<void> cotrol_session::send_files_request(boost::beast::er
     leaf::files_request req;
     req.token = token_;
     req.dir = current_dir_;
+    LOG_INFO("{} send files request token {} dir {}", id_, req.token, req.dir);
     co_await write(leaf::serialize_files_request(req), ec);
 }
 

@@ -222,6 +222,7 @@ boost::asio::awaitable<void> cotrol_file_handle::on_files_request(const std::str
     auto files = lookup_dir(dir_path, token_path);
     response.token = msg.token;
     response.files.swap(files);
+    response.dir = msg.dir;
     co_await write(leaf::serialize_files_response(response), ec);
 }
 

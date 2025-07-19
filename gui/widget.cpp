@@ -104,8 +104,8 @@ void Widget::setup_demo_data()
     folder_b->add_file(*file_c);
     folder_b->add_file(*file_d);
 
-    path_manager_->current_directory()->add_subdirectory(folder_a);
-    path_manager_->current_directory()->add_subdirectory(folder_b);
+    path_manager_->current_directory()->add_dir(folder_a);
+    path_manager_->current_directory()->add_dir(folder_b);
 }
 
 void Widget::setup_side_ui()
@@ -274,9 +274,10 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
     current_dir = path_manager_->current_directory();
     model_->set_files(current_dir->files());
 
+    LOG_DEBUG("update current directory {}", current_dir->name());
     if (file_client_ != nullptr)
     {
-        file_client_->change_current_dir(item->storage_name);
+        file_client_->change_current_dir(current_dir->name());
     }
     update_breadcrumb();
 }
@@ -386,7 +387,7 @@ void Widget::on_new_folder()
     auto dir_path = std::filesystem::path(path_manager_->current_directory()->name()).append(unique_name.toStdString()).string();
     LOG_INFO("new dir {}", dir_path);
     auto new_dir = std::make_shared<leaf::directory>(dir_path);
-    path_manager_->current_directory()->add_subdirectory(new_dir);
+    path_manager_->current_directory()->add_dir(new_dir);
 
     if (file_client_ != nullptr)
     {
@@ -697,43 +698,43 @@ void Widget::on_error_occurred(const QString &error_msg)
     }
 }
 
-void Widget::on_files(const std::vector<leaf::file_node> &files)
+void Widget::on_files(const leaf::files_response &files)
 {
-    if (files.empty())
+    LOG_INFO("files response dir {} size {} current_directory {}", files.dir, files.files.size(), path_manager_->current_directory()->name());
+    if (files.dir != path_manager_->current_directory()->name())
     {
+        LOG_ERROR("files response dir {} not match current directory {}", files.dir, path_manager_->current_directory()->name());
         return;
     }
-    LOG_INFO("files response size {} current_directory {}", files.size(), path_manager_->current_directory()->name());
-    for (const auto &file : files)
+    for (const auto &file : files.files)
     {
-        LOG_INFO("files response file {} parent {} type {}", file.name, file.parent, file.type);
+        LOG_INFO("files response dir {} file {} parent {} type {}", files.dir, file.name, file.parent, file.type);
     }
 
-    auto current_dir = path_manager_->current_directory();
-    if (current_dir->name() != files.front().parent)
-    {
-        return;
-    }
-
-    std::vector<leaf::file_item> file_itmes;
-    for (const auto &f : files)
+    for (const auto &f : files.files)
     {
         leaf::file_item item;
         item.display_name = f.name;
         item.storage_name = f.name;
         item.type = f.type == "dir" ? leaf::file_item_type::Folder : leaf::file_item_type::File;
         item.file_size = f.type == "dir" ? 0 : f.file_size;
-        file_itmes.push_back(item);
+        if (item.type == leaf::file_item_type::Folder)
+        {
+            path_manager_->current_directory()->add_dir(item);
+        }
+        if (item.type == leaf::file_item_type::File)
+        {
+            path_manager_->current_directory()->add_file(item);
+        }
     }
-    current_dir->reset_files(file_itmes);
-    model_->set_files(file_itmes);
+    model_->set_files(path_manager_->current_directory()->files());
 }
 
 void Widget::on_notify_event(const leaf::notify_event &e)
 {
     if (e.method == "files")
     {
-        on_files(std::any_cast<std::vector<leaf::file_node>>(e.data));
+        on_files(std::any_cast<leaf::files_response>(e.data));
     }
     if (e.method == "rename")
     {

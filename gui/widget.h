@@ -63,7 +63,7 @@ class Widget : public QWidget
     void upload_progress(const std::any& data);
     void cotrol_progress(const std::any& data);
     void download_progress(const std::any& data);
-    void on_files(const std::vector<leaf::file_node>& files);
+    void on_files(const leaf::files_response& files);
     void error_progress(const std::any& data);
 
    public:

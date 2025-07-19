@@ -15,21 +15,23 @@ class directory
     explicit directory(std::string dir) : name_(std::move(dir)) {}
 
    public:
-    void add_subdirectory(const std::shared_ptr<directory>& dir)
+    void add_dir(const leaf::file_item& item)
     {
-        leaf::file_item item;
-        item.type = leaf::file_item_type::Folder;
-        item.display_name = dir->name();
-        item.storage_name = dir->name();
-        item.file_size = 0;
+        auto dir = std::make_shared<directory>(item.display_name);
         files_.push_back(item);
-        subdirectories_.push_back(dir);
+        dirs_.push_back(dir);
     }
+
     void add_file(const leaf::file_item& file) { files_.push_back(file); }
-    void reset_files(std::vector<leaf::file_item> files) { files_ = std::move(files); }
+
+    void reset()
+    {
+        files_.clear();
+        dirs_.clear();
+    }
     bool dir_exist(const std::shared_ptr<directory>& dir)
     {
-        for (const auto& sub_dir : subdirectories_)
+        for (const auto& sub_dir : dirs_)
         {
             if (sub_dir->name() == dir->name())
             {
@@ -53,12 +55,12 @@ class directory
    public:
     [[nodiscard]] const std::string& name() const { return name_; }
     [[nodiscard]] const std::vector<leaf::file_item>& files() const { return files_; }
-    [[nodiscard]] const std::vector<std::shared_ptr<directory>>& subdirectories() const { return subdirectories_; }
+    [[nodiscard]] const std::vector<std::shared_ptr<directory>>& subdirectories() const { return dirs_; }
 
    private:
     std::string name_;
     std::vector<leaf::file_item> files_;
-    std::vector<std::shared_ptr<directory>> subdirectories_;
+    std::vector<std::shared_ptr<directory>> dirs_;
 };
 
 class path_manager
