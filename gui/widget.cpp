@@ -35,7 +35,7 @@ Widget::Widget(std::string user, std::string password, std::string token, QWidge
 
     leaf::event_manager::instance().startup();
 
-    path_manager_ = std::make_shared<leaf::path_manager>(std::make_shared<leaf::directory>("."));
+    path_manager_ = std::make_shared<leaf::path_manager>(std::make_shared<leaf::directory>("", "."));
 
     main_layout = new QVBoxLayout(this);
     stack_ = new QStackedWidget(this);
@@ -71,7 +71,7 @@ Widget::Widget(std::string user, std::string password, std::string token, QWidge
 
 void Widget::setup_demo_data()
 {
-    auto folder_a = std::make_shared<leaf::directory>("文档");
+    auto folder_a = std::make_shared<leaf::directory>(".", "文档");
 
     auto file_a = std::make_shared<leaf::file_item>();
     file_a->display_name = "产品需求文档.docx";
@@ -87,7 +87,7 @@ void Widget::setup_demo_data()
     folder_a->add_file(*file_a);
     folder_a->add_file(*file_b);
 
-    auto folder_b = std::make_shared<leaf::directory>("图片收藏");
+    auto folder_b = std::make_shared<leaf::directory>(".", "图片收藏");
 
     auto file_c = std::make_shared<leaf::file_item>();
     file_c->display_name = "风景照 (1).jpg";
@@ -267,17 +267,16 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
         {
             continue;
         }
-        auto dir_path = std::filesystem::path(current_dir->name()).append(item->display_name).string();
-        LOG_INFO("enter directory {}", dir_path);
-        path_manager_->enter_directory(std::make_shared<leaf::directory>(dir_path));
+        LOG_INFO("enter directory parent {} display_name {}", current_dir->path(), item->display_name);
+        path_manager_->enter_directory(std::make_shared<leaf::directory>(current_dir->path(), item->display_name));
     }
     current_dir = path_manager_->current_directory();
     model_->set_files(current_dir->files());
 
-    LOG_DEBUG("update current directory {}", current_dir->name());
+    LOG_DEBUG("update current directory {}", current_dir->path());
     if (file_client_ != nullptr)
     {
-        file_client_->change_current_dir(current_dir->name());
+        file_client_->change_current_dir(current_dir->path());
     }
     update_breadcrumb();
 }
@@ -361,7 +360,7 @@ void Widget::on_upload_file()
         fi.local_path = f.toStdString();
         fi.filename = std::filesystem::path(f.toStdString()).filename().string();
         fi.file_size = std::filesystem::file_size(fi.local_path);
-        fi.dir = path_manager_->current_directory()->name();
+        fi.dir = path_manager_->current_directory()->path();
         ff.push_back(fi);
     }
     file_client_->add_upload_files(ff);
@@ -373,27 +372,26 @@ void Widget::on_new_folder()
     int count = 1;
     QString unique_name = folder_name_base;
     auto current_dir = path_manager_->current_directory();
+
+    auto new_dir = std::make_shared<leaf::directory>(current_dir->path(), unique_name.toStdString());
     while (true)
     {
-        auto dir_path = std::filesystem::path(path_manager_->current_directory()->name()).append(unique_name.toStdString()).string();
-        auto dir = std::make_shared<leaf::directory>(dir_path);
-        if (!current_dir->dir_exist(dir))
+        if (!current_dir->dir_exist(new_dir))
         {
             break;
         }
-        unique_name = QString("%1 (%2)").arg(folder_name_base).arg(count++);
+        unique_name = QString("%2_%1").arg(folder_name_base).arg(count++);
+        new_dir = std::make_shared<leaf::directory>(current_dir->path(), unique_name.toStdString());
     }
 
-    auto dir_path = std::filesystem::path(path_manager_->current_directory()->name()).append(unique_name.toStdString()).string();
-    LOG_INFO("new dir {}", dir_path);
-    auto new_dir = std::make_shared<leaf::directory>(dir_path);
+    LOG_INFO("new dir parent {} dir {}", path_manager_->current_directory()->path(), unique_name.toStdString());
     path_manager_->current_directory()->add_dir(new_dir);
 
     if (file_client_ != nullptr)
     {
         leaf::create_dir cd;
         cd.dir = unique_name.toStdString();
-        cd.parent = path_manager_->current_directory()->name();
+        cd.parent = path_manager_->current_directory()->path();
         cd.token = token_;
         file_client_->create_directory(cd);
     }
@@ -489,7 +487,7 @@ QToolButton *Widget::create_breadcrumb_button(int index)
 {
     auto *btn = new QToolButton(breadcrumb_widget_);
     auto &item = breadcrumb_list_[index];
-    auto text = (index == 0 && item->name() == "根目录") ? "🏠 " + item->name() : item->name();
+    auto text = (index == 0 && item->path() == ".") ? "🏠 " + std::string("根目录") : item->name();
 
     btn->setText(QString::fromStdString(text));
     btn->setToolTip(QString::fromStdString(item->name()));
@@ -643,7 +641,7 @@ void Widget::startup()
     connect(this, &Widget::notify_event_signal, this, &Widget::on_notify_event);
     file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user_, password_, token_);
     file_client_->startup();
-    file_client_->change_current_dir(path_manager_->current_directory()->name());
+    file_client_->change_current_dir(path_manager_->current_directory()->path());
 }
 
 void Widget::error_progress(const std::any &data)
@@ -700,16 +698,19 @@ void Widget::on_error_occurred(const QString &error_msg)
 
 void Widget::on_files(const leaf::files_response &files)
 {
-    LOG_INFO("files response dir {} size {} current_directory {}", files.dir, files.files.size(), path_manager_->current_directory()->name());
-    if (files.dir != path_manager_->current_directory()->name())
+    auto current_dir = path_manager_->current_directory();
+    LOG_INFO("files response dir {} size {} current_directory {}", files.dir, files.files.size(), current_dir->path());
+    if (files.dir != current_dir->path())
     {
-        LOG_ERROR("files response dir {} not match current directory {}", files.dir, path_manager_->current_directory()->name());
+        LOG_ERROR("files response dir {} not match current directory {}", files.dir, current_dir->path());
         return;
     }
     for (const auto &file : files.files)
     {
         LOG_INFO("files response dir {} file {} parent {} type {}", files.dir, file.name, file.parent, file.type);
     }
+
+    current_dir->reset();
 
     for (const auto &f : files.files)
     {
@@ -720,14 +721,14 @@ void Widget::on_files(const leaf::files_response &files)
         item.file_size = f.type == "dir" ? 0 : f.file_size;
         if (item.type == leaf::file_item_type::Folder)
         {
-            path_manager_->current_directory()->add_dir(item);
+            current_dir->add_dir(item, std::make_shared<leaf::directory>(current_dir->path(), item.display_name));
         }
         if (item.type == leaf::file_item_type::File)
         {
-            path_manager_->current_directory()->add_file(item);
+            current_dir->add_file(item);
         }
     }
-    model_->set_files(path_manager_->current_directory()->files());
+    model_->set_files(current_dir->files());
 }
 
 void Widget::on_notify_event(const leaf::notify_event &e)
@@ -768,13 +769,13 @@ void Widget::create_directory_notify(const leaf::notify_event &e)
     }
     auto dir = std::any_cast<leaf::create_dir>(e.data);
     auto current_dir = path_manager_->current_directory();
-    if (current_dir->name() == dir.parent)
+    if (current_dir->path() == dir.parent)
     {
-        LOG_INFO("create directory success, current directory {} match {}", current_dir->name(), dir.parent);
+        LOG_INFO("create directory success, current directory {} match {}", current_dir->path(), dir.parent);
     }
     else
     {
-        LOG_ERROR("create directory failed, current directory {} not match {}", current_dir->name(), dir.parent);
+        LOG_ERROR("create directory failed, current directory {} not match {}", current_dir->path(), dir.parent);
     }
 }
 void Widget::rename_notify(const leaf::notify_event &e) {}
@@ -802,6 +803,6 @@ void Widget::on_new_file_clicked()
     f.local_path = std::filesystem::absolute(file_path).string();
     f.filename = file_path.filename().string();
     f.file_size = std::filesystem::file_size(f.filename);
-    f.dir = path_manager_->current_directory()->name();
+    f.dir = path_manager_->current_directory()->path();
     file_client_->add_upload_file(std::move(f));
 }

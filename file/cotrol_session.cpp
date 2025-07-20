@@ -53,18 +53,13 @@ boost::asio::awaitable<void> cotrol_session::loop()
     {
         timer_->expires_after(std::chrono::seconds(5));
         co_await timer_->async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-        if (ec == boost::asio::error::operation_aborted && !create_dirs_.empty())
+        if (ec == boost::asio::error::operation_aborted)
         {
-            ec = {};
-            for (const auto& cd : create_dirs_)
-            {
-                co_await create_directory_coro(cd);
-            }
-            continue;
+            co_await create_directorys(ec);
         }
         if (ec)
         {
-            LOG_ERROR("{} timer wait error {}", id_, ec.message());
+            LOG_ERROR("{} error {}", id_, ec.message());
             break;
         }
         co_await send_files_request(ec);
@@ -80,7 +75,6 @@ boost::asio::awaitable<void> cotrol_session::loop()
             break;
         }
     }
-    LOG_INFO("{} timer shutdown", id_);
     LOG_INFO("{} recv shutdown", id_);
 }
 
@@ -185,13 +179,31 @@ boost::asio::awaitable<void> cotrol_session::shutdown_coro()
     LOG_INFO("{} shutdown", id_);
     co_return;
 }
-
-boost::asio::awaitable<void> cotrol_session::create_directory_coro(const leaf::create_dir& cd)
+boost::asio::awaitable<void> cotrol_session::create_directorys(boost::beast::error_code& ec)
 {
-    boost::beast::error_code ec;
+    while (!cache_create_dirs_.empty())
+    {
+        create_dirs_.push(cache_create_dirs_.front());
+        cache_create_dirs_.pop();
+    }
+
+    while (!create_dirs_.empty())
+    {
+        auto cd = create_dirs_.front();
+        co_await create_directory(cd, ec);
+        if (ec)
+        {
+            LOG_ERROR("{} create directory {} error {}", id_, cd.dir, ec.message());
+            break;
+        }
+        create_dirs_.pop();
+    }
+}
+boost::asio::awaitable<void> cotrol_session::create_directory(const leaf::create_dir& cd, boost::beast::error_code& ec)
+{
     leaf::notify_event e;
     e.method = "create_directory";
-
+    LOG_INFO("{} create_directory token {} dir {} parent {}", id_, token_, cd.dir, cd.parent);
     co_await write(leaf::serialize_create_dir(cd), ec);
     if (ec)
     {
@@ -236,12 +248,13 @@ boost::asio::awaitable<void> cotrol_session::create_directory_coro(const leaf::c
     e.data = dir_res.value();
     LOG_INFO("{} create_directory successful token {} dir {}", id_, token_, dir_res->dir);
 }
+
 void cotrol_session::create_directory(const leaf::create_dir& cd)
 {
     boost::asio::post(io_,
                       [this, self = shared_from_this(), cd = cd]()
                       {
-                          create_dirs_.push_back(cd);
+                          cache_create_dirs_.push(cd);
                           timer_->cancel();
                       });
 }

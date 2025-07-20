@@ -1,10 +1,12 @@
 #ifndef LEAF_FILE_DIRECTORY_H
 #define LEAF_FILE_DIRECTORY_H
 
+#include <cassert>
 #include <utility>
 #include <vector>
 #include <string>
 #include <memory>
+#include <filesystem>
 #include "file/file_item.h"
 
 namespace leaf
@@ -12,12 +14,12 @@ namespace leaf
 class directory
 {
    public:
-    explicit directory(std::string dir) : name_(std::move(dir)) {}
+    directory(std::string parent, std::string dir) : parent_(std::move(parent)), name_(std::move(dir)) {}
 
    public:
-    void add_dir(const leaf::file_item& item)
+    void add_dir(const std::shared_ptr<directory>& dir) { dirs_.push_back(dir); }
+    void add_dir(const leaf::file_item& item, const std::shared_ptr<directory>& dir)
     {
-        auto dir = std::make_shared<directory>(item.display_name);
         files_.push_back(item);
         dirs_.push_back(dir);
     }
@@ -54,10 +56,20 @@ class directory
 
    public:
     [[nodiscard]] const std::string& name() const { return name_; }
+    [[nodiscard]] const std::string& parent() const { return parent_; }
+    [[nodiscard]] std::string path() const
+    {
+        if (parent_.empty())
+        {
+            return name_;
+        }
+        return std::filesystem::path(parent_).append(name_).string();
+    }
     [[nodiscard]] const std::vector<leaf::file_item>& files() const { return files_; }
     [[nodiscard]] const std::vector<std::shared_ptr<directory>>& subdirectories() const { return dirs_; }
 
    private:
+    std::string parent_;
     std::string name_;
     std::vector<leaf::file_item> files_;
     std::vector<std::shared_ptr<directory>> dirs_;
@@ -74,6 +86,9 @@ class path_manager
         const auto& subdirectories = current_directory_->subdirectories();
         for (const auto& sub_dir : subdirectories)    // NOLINT
         {
+            assert(sub_dir->parent() == dir->parent());
+            assert(current_directory_->name() == sub_dir->parent());
+            assert(current_directory_->name() == dir->parent());
             if (sub_dir->name() == dir->name())
             {
                 paths_.push_back(dir);

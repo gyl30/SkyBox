@@ -235,21 +235,21 @@ boost::asio::awaitable<void> cotrol_file_handle::on_create_dir(const std::string
         LOG_ERROR("{} deserialize create dir request error", id_);
         co_return;
     }
-
-    auto dir_path = leaf::make_file_path(dir_request->token, dir_request->dir);
-    if (dir_path.empty())
+    std::string dir_path = std::filesystem::path(dir_request->parent).append(dir_request->dir);
+    auto local_path = leaf::make_file_path(dir_request->token, dir_path);
+    if (local_path.empty())
     {
-        LOG_ERROR("{} create dir failed {}", id_, dir_request->dir);
+        LOG_ERROR("{} create dir failed parent {} dir {}", id_, dir_request->parent, dir_request->dir);
         ec = boost::system::errc::make_error_code(boost::system::errc::no_such_file_or_directory);
         co_return;
     }
-    std::filesystem::create_directory(dir_path, ec);
+    std::filesystem::create_directory(local_path, ec);
     if (ec)
     {
-        LOG_ERROR("{} create dir failed {} {}", id_, dir_request->dir, ec.message());
+        LOG_ERROR("{} create dir failed parent {} dir {} localath {} error {}", id_, dir_request->parent, dir_request->dir, local_path, ec.message());
         co_return;
     }
-    LOG_INFO("{} create dir {} --> {}", id_, dir_request->dir, dir_path);
+    LOG_INFO("{} create dir parent {} dir {} local {}", id_, dir_request->parent, dir_request->dir, local_path);
     auto response = dir_request.value();
     co_await write(leaf::serialize_create_dir(response), ec);
 }
