@@ -87,8 +87,8 @@ class path_manager
         for (const auto& sub_dir : subdirectories)    // NOLINT
         {
             assert(sub_dir->parent() == dir->parent());
-            assert(current_directory_->name() == sub_dir->parent());
-            assert(current_directory_->name() == dir->parent());
+            assert(current_directory_->path() == sub_dir->parent());
+            assert(current_directory_->path() == dir->parent());
             if (sub_dir->name() == dir->name())
             {
                 paths_.push_back(dir);
