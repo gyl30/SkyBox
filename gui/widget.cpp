@@ -408,14 +408,27 @@ void Widget::on_breadcrumb_clicked()
 
     bool ok;
     int idx = sender_obj->property("crumbIndex").toInt(&ok);
-
-    path_manager_->navigate_to_breadcrumb(idx);
-    if (ok && idx >= 0 && idx < static_cast<int>(breadcrumb_list_.size()))
+    if (!ok)
     {
-        const auto &files = path_manager_->current_directory()->files();
-        model_->set_files(files);
-        update_breadcrumb();
+        return;
     }
+
+    if (idx < 0)
+    {
+        return;
+    }
+    if (idx > static_cast<int>(breadcrumb_list_.size()))
+    {
+        return;
+    }
+    path_manager_->navigate_to_breadcrumb(idx);
+    const auto &files = path_manager_->current_directory()->files();
+    model_->set_files(files);
+    if (file_client_ != nullptr)
+    {
+        file_client_->change_current_dir(path_manager_->current_directory()->path());
+    }
+    update_breadcrumb();
 }
 
 void Widget::update_breadcrumb()
