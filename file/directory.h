@@ -78,7 +78,7 @@ class directory
 class path_manager
 {
    public:
-    explicit path_manager(const std::shared_ptr<directory>& root) : root_(root), current_directory_(root) {}
+    explicit path_manager(const std::shared_ptr<directory>& root) : root_(root), current_directory_(root) { paths_.push_back(root); }
 
    public:
     bool enter_directory(const std::shared_ptr<directory>& dir)
