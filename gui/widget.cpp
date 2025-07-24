@@ -598,8 +598,13 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
                     int idx = action->data().toInt(&ok);
                     if (ok && idx >= 0 && idx < static_cast<int>(breadcrumb_list_.size()))
                     {
-                        auto dir = breadcrumb_list_[idx];
-                        model_->set_files(dir->files());
+                        path_manager_->navigate_to_breadcrumb(idx);
+                        const auto &files = path_manager_->current_directory()->files();
+                        model_->set_files(files);
+                        if (file_client_ != nullptr)
+                        {
+                            file_client_->change_current_dir(path_manager_->current_directory()->path());
+                        }
                         update_breadcrumb();
                     }
                 });
