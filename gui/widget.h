@@ -58,6 +58,7 @@ class Widget : public QWidget
     void create_directory_notify(const leaf::notify_event& e);
     void rename_notify(const leaf::notify_event& e);
     void update_breadcrumb();
+    void navigate_to_breadcrumb(QObject* obj);
 
     void notify_progress(const std::any& data);
     void upload_progress(const std::any& data);
@@ -115,6 +116,7 @@ class Widget : public QWidget
     std::shared_ptr<leaf::path_manager> path_manager_ = nullptr;
     std::vector<std::shared_ptr<leaf::directory>> breadcrumb_list_;
     std::shared_ptr<leaf::file_transfer_client> file_client_ = nullptr;
+    std::map<std::string, std::shared_ptr<leaf::directory>> directory_cache_;
     std::unordered_map<std::string, std::shared_ptr<leaf::file_item>> item_map_;
 };
 #endif

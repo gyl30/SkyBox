@@ -132,6 +132,17 @@ class path_manager
     }
     [[nodiscard]] const std::vector<std::shared_ptr<directory>>& breadcrumb_paths() const { return paths_; }
     [[nodiscard]] const std::shared_ptr<directory>& current_directory() const { return current_directory_; }
+    [[nodiscard]] std::shared_ptr<directory> get_directory(const std::string& path) const
+    {
+        for (const auto& dir : paths_)
+        {
+            if (dir->path() == path)
+            {
+                return dir;
+            }
+        }
+        return nullptr;
+    }
 
    private:
     std::shared_ptr<directory> root_;

@@ -271,7 +271,17 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
         path_manager_->enter_directory(std::make_shared<leaf::directory>(current_dir->path(), item->display_name));
     }
     current_dir = path_manager_->current_directory();
-    model_->set_files(current_dir->files());
+    files = current_dir->files();
+    if (files.empty())
+    {
+        auto it = directory_cache_.find(current_dir->path());
+        if (it != directory_cache_.end())
+        {
+            files = directory_cache_[current_dir->path()]->files();
+            LOG_DEBUG("path {} files empty load cache {} files", current_dir->path(), files.size());
+        }
+    }
+    model_->set_files(files);
 
     LOG_DEBUG("update current directory {}", current_dir->path());
     if (file_client_ != nullptr)
@@ -406,8 +416,13 @@ void Widget::on_breadcrumb_clicked()
         return;
     }
 
+    navigate_to_breadcrumb(sender_obj);
+}
+
+void Widget::navigate_to_breadcrumb(QObject *obj)
+{
     bool ok;
-    int idx = sender_obj->property("crumbIndex").toInt(&ok);
+    int idx = obj->property("crumbIndex").toInt(&ok);
     if (!ok)
     {
         return;
@@ -422,7 +437,12 @@ void Widget::on_breadcrumb_clicked()
         return;
     }
     path_manager_->navigate_to_breadcrumb(idx);
-    const auto &files = path_manager_->current_directory()->files();
+    auto files = path_manager_->current_directory()->files();
+    if (files.empty())
+    {
+        files = directory_cache_[path_manager_->current_directory()->path()]->files();
+    }
+    LOG_DEBUG("breadcrumb clicked path {} file size {}", path_manager_->current_directory()->path(), files.size());
     model_->set_files(files);
     if (file_client_ != nullptr)
     {
@@ -430,7 +450,6 @@ void Widget::on_breadcrumb_clicked()
     }
     update_breadcrumb();
 }
-
 void Widget::update_breadcrumb()
 {
     clear_breadcrumb_layout();
@@ -588,26 +607,8 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
     for (int j = start_index; j <= end_index; ++j)
     {
         QAction *action = menu->addAction(QString::fromStdString(breadcrumb_list_[j]->name()));
-        action->setData(j);
-        connect(action,
-                &QAction::triggered,
-                this,
-                [this, action]()
-                {
-                    bool ok;
-                    int idx = action->data().toInt(&ok);
-                    if (ok && idx >= 0 && idx < static_cast<int>(breadcrumb_list_.size()))
-                    {
-                        path_manager_->navigate_to_breadcrumb(idx);
-                        const auto &files = path_manager_->current_directory()->files();
-                        model_->set_files(files);
-                        if (file_client_ != nullptr)
-                        {
-                            file_client_->change_current_dir(path_manager_->current_directory()->path());
-                        }
-                        update_breadcrumb();
-                    }
-                });
+        action->setProperty("crumbIndex", j);
+        connect(action, &QAction::triggered, this, [this, action]() { navigate_to_breadcrumb(action); });
     }
 
     btn->setMenu(menu);
@@ -746,6 +747,7 @@ void Widget::on_files(const leaf::files_response &files)
             current_dir->add_file(item);
         }
     }
+    directory_cache_[current_dir->path()] = current_dir;
     model_->set_files(current_dir->files());
 }
 
