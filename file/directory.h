@@ -24,6 +24,8 @@ class directory
         dirs_.push_back(dir);
     }
 
+    void reset_files(const std::vector<leaf::file_item>& files) { files_ = files; }
+    void reset_dir(const std::vector<std::shared_ptr<directory>>& dirs) { dirs_ = dirs; }
     void add_file(const leaf::file_item& file) { files_.push_back(file); }
 
     void reset()
@@ -81,20 +83,21 @@ class path_manager
     explicit path_manager(const std::shared_ptr<directory>& root) : root_(root), current_directory_(root) { paths_.push_back(root); }
 
    public:
-    bool enter_directory(const std::shared_ptr<directory>& dir)
+    bool enter_directory(const std::string& parent, const std::string& name)
     {
         const auto& subdirectories = current_directory_->subdirectories();
         for (const auto& sub_dir : subdirectories)    // NOLINT
         {
-            assert(sub_dir->parent() == dir->parent());
+            assert(sub_dir->parent() == parent);
             assert(current_directory_->path() == sub_dir->parent());
-            assert(current_directory_->path() == dir->parent());
-            if (sub_dir->name() == dir->name())
+            assert(current_directory_->path() == parent);
+            if (sub_dir->name() != name)
             {
-                paths_.push_back(dir);
-                current_directory_ = sub_dir;
-                return true;
+                continue;
             }
+            paths_.push_back(sub_dir);
+            current_directory_ = sub_dir;
+            return true;
         }
         return false;
     }

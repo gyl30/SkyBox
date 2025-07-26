@@ -161,7 +161,9 @@ void Widget::setup_files_ui()
     view_->setUniformItemSizes(true);
     view_->setSelectionMode(QAbstractItemView::SingleSelection);
     view_->setContextMenuPolicy(Qt::CustomContextMenu);
-    view_->setEditTriggers(QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked);
+    // view_->setEditTriggers(QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked);
+    view_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
     view_->setWordWrap(true);
     view_->setContentsMargins(10, 10, 10, 10);
 
@@ -259,6 +261,7 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
         return;
     }
 
+    model_->set_files({});
     auto current_dir = path_manager_->current_directory();
     auto files = current_dir->files();
     for (const auto &file : files)
@@ -267,8 +270,8 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
         {
             continue;
         }
-        LOG_INFO("enter directory parent {} display_name {}", current_dir->path(), item->display_name);
-        path_manager_->enter_directory(std::make_shared<leaf::directory>(current_dir->path(), item->display_name));
+        LOG_INFO("enter directory parent {} dir {}", current_dir->path(), item->display_name);
+        path_manager_->enter_directory(current_dir->path(), item->display_name);
     }
     current_dir = path_manager_->current_directory();
     files = current_dir->files();
@@ -277,13 +280,21 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
         auto it = directory_cache_.find(current_dir->path());
         if (it != directory_cache_.end())
         {
-            files = directory_cache_[current_dir->path()]->files();
-            LOG_DEBUG("path {} files empty load cache {} files", current_dir->path(), files.size());
+            auto cache_dir = it->second;
+            current_dir->reset_files(cache_dir->files());
+            current_dir->reset_dir(cache_dir->subdirectories());
+            LOG_DEBUG("path {} files empty load cache {} files", current_dir->path(), current_dir->files().size());
         }
     }
+
+    files = current_dir->files();
     model_->set_files(files);
 
     LOG_DEBUG("update current directory {}", current_dir->path());
+    for (const auto &file : files)
+    {
+        LOG_DEBUG("dir {} file {} type {}", current_dir->path(), file.display_name, static_cast<int>(file.type));
+    }
     if (file_client_ != nullptr)
     {
         file_client_->change_current_dir(current_dir->path());
@@ -395,7 +406,12 @@ void Widget::on_new_folder()
     }
 
     LOG_INFO("new dir parent {} dir {}", path_manager_->current_directory()->path(), unique_name.toStdString());
-    path_manager_->current_directory()->add_dir(new_dir);
+    leaf::file_item new_folder_item;
+    new_folder_item.display_name = unique_name.toStdString();
+    new_folder_item.storage_name = unique_name.toStdString();
+    new_folder_item.type = leaf::file_item_type::Folder;
+    new_folder_item.file_size = 0;
+    path_manager_->current_directory()->add_dir(new_folder_item, new_dir);
 
     if (file_client_ != nullptr)
     {
