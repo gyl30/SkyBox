@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QFileInfo>
 #include <string>
+#include "log/log.h"
 #include "gui/util.h"
 #include "gui/file_model.h"
 
@@ -66,6 +67,12 @@ bool file_model::setData(const QModelIndex &index, const QVariant &value, int ro
     }
 
     auto &item = files_[index.row()];
+    QString old_name = QString::fromStdString(item.display_name);
+
+    if (new_name.isEmpty() || new_name == old_name)
+    {
+        return false;
+    }
     for (const auto &file : files_)
     {
         if (file.display_name == new_name.toStdString())
@@ -76,8 +83,9 @@ bool file_model::setData(const QModelIndex &index, const QVariant &value, int ro
     }
     item.display_name = new_name.toStdString();
     item.storage_name = new_name.toStdString();
-    emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole, Qt::ToolTipRole});
-    return true;
+    LOG_DEBUG("rename file {} to {}", item.display_name, new_name.toStdString());
+    emit rename(index, old_name, new_name);
+    return false;
 }
 
 void file_model::set_files(const std::vector<leaf::file_item> &files)
@@ -94,35 +102,6 @@ std::optional<leaf::file_item> file_model::item_at(int row) const
         return {};
     }
     return files_[row];
-}
-
-bool file_model::add_folder(const QString &name, const leaf::file_item &folder)
-{
-    if (name_exists(name, file_item_type::Folder))
-    {
-        return false;
-    }
-
-    beginInsertRows(QModelIndex(), static_cast<int>(files_.size()), static_cast<int>(files_.size()));
-    files_.push_back(folder);
-    endInsertRows();
-    return true;
-}
-
-bool file_model::name_exists(const QString &displayName, file_item_type type) const
-{
-    for (const auto &file : files_)    // NOLINT
-    {
-        if (file.type != type)
-        {
-            continue;
-        }
-        if (file.display_name == displayName.toStdString())
-        {
-            return true;
-        }
-    }
-    return false;
 }
 
 }    // namespace leaf

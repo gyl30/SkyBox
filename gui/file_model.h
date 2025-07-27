@@ -24,8 +24,9 @@ class file_model : public QAbstractListModel
 
     void set_files(const std::vector<leaf::file_item> &files);
     [[nodiscard]] std::optional<leaf::file_item> item_at(int row) const;
-    bool add_folder(const QString &name, const leaf::file_item &folder);
-    bool name_exists(const QString &name, file_item_type type) const;
+
+   Q_SIGNALS:
+    void rename(const QModelIndex &index, const QString &old_name, const QString &new_name);
 
    private:
     std::vector<leaf::file_item> files_;

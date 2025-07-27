@@ -65,47 +65,7 @@ Widget::Widget(std::string user, std::string password, std::string token, QWidge
     main_layout->addLayout(content_layout_);
     main_layout->setContentsMargins(8, 0, 0, 0);
 
-    setup_demo_data();
     update_breadcrumb();
-}
-
-void Widget::setup_demo_data()
-{
-    auto folder_a = std::make_shared<leaf::directory>(".", "文档");
-
-    auto file_a = std::make_shared<leaf::file_item>();
-    file_a->display_name = "产品需求文档.docx";
-    file_a->storage_name = "产品需求文档.docx";
-    file_a->type = leaf::file_item_type::File;
-    file_a->file_size = 1024L * 350;
-
-    auto file_b = std::make_shared<leaf::file_item>();
-    file_b->display_name = "会议纪要.txt";
-    file_b->storage_name = "会议纪要.txt";
-    file_b->type = leaf::file_item_type::File;
-    file_b->file_size = 1024L * 2;
-    folder_a->add_file(*file_a);
-    folder_a->add_file(*file_b);
-
-    auto folder_b = std::make_shared<leaf::directory>(".", "图片收藏");
-
-    auto file_c = std::make_shared<leaf::file_item>();
-    file_c->display_name = "风景照 (1).jpg";
-    file_c->storage_name = "风景照 (1).jpg";
-    file_c->type = leaf::file_item_type::File;
-    file_c->file_size = 1024L * 1024 * 2;
-
-    auto file_d = std::make_shared<leaf::file_item>();
-    file_d->storage_name = "项目计划.pdf";
-    file_d->display_name = "项目计划.pdf";
-    file_d->type = leaf::file_item_type::File;
-    file_d->file_size = 1024L * 780;
-
-    folder_b->add_file(*file_c);
-    folder_b->add_file(*file_d);
-
-    path_manager_->current_directory()->add_dir(folder_a);
-    path_manager_->current_directory()->add_dir(folder_b);
 }
 
 void Widget::setup_side_ui()
@@ -161,8 +121,7 @@ void Widget::setup_files_ui()
     view_->setUniformItemSizes(true);
     view_->setSelectionMode(QAbstractItemView::SingleSelection);
     view_->setContextMenuPolicy(Qt::CustomContextMenu);
-    // view_->setEditTriggers(QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked);
-    view_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    view_->setEditTriggers(QAbstractItemView::EditKeyPressed);
 
     view_->setWordWrap(true);
     view_->setContentsMargins(10, 10, 10, 10);
@@ -210,6 +169,7 @@ void Widget::setup_files_ui()
 
     model_ = new leaf::file_model(this);
     view_->setModel(model_);
+
     file_page_layout->addWidget(view_, 1);
     loading_overlay_ = new QWidget(file_page_);
     loading_overlay_->setObjectName("loadingOverlay");
@@ -244,6 +204,8 @@ void Widget::setup_connections()
 
     connect(view_, &QListView::doubleClicked, this, [this](const QModelIndex &index) { view_dobule_clicked(index); });
     connect(view_, &QListView::customContextMenuRequested, this, [this](const QPoint &pos) { view_custom_context_menu_requested(pos); });
+
+    connect(model_, &leaf::file_model::rename, this, &Widget::on_rename);
 }
 void Widget::view_dobule_clicked(const QModelIndex &index)
 {
@@ -338,6 +300,18 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
             QMessageBox::information(this, "删除", "删除：" + QString::fromStdString(item->display_name));
         }
     }
+}
+
+void Widget::on_rename(const QModelIndex &index, const QString &old_name, const QString &new_name)
+{
+    auto item_opt = model_->item_at(index.row());
+    if (!item_opt)
+    {
+        return;
+    }
+
+    //
+    LOG_DEBUG("rename file from {} to {}", old_name.toStdString(), new_name.toStdString());
 }
 bool Widget::eventFilter(QObject *watched, QEvent *event)
 {

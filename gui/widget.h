@@ -50,6 +50,7 @@ class Widget : public QWidget
     void on_upload_file();
     void on_new_folder();
     void on_breadcrumb_clicked();
+    void on_rename(const QModelIndex& index, const QString& old_name, const QString& new_name);
 
    private:
     void login_notify(const leaf::notify_event& e);
@@ -81,7 +82,6 @@ class Widget : public QWidget
     void setup_connections();
     void view_dobule_clicked(const QModelIndex& index);
     void view_custom_context_menu_requested(const QPoint& pos);
-    void setup_demo_data();
     QToolButton* create_ellipsis_button(int start_index);
     QToolButton* create_breadcrumb_button(int index);
     void build_breadcrumb_path();
