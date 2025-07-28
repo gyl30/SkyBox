@@ -24,6 +24,7 @@ enum class message_type : uint8_t
     ack = 12,
     done = 13,
     dir = 14,
+    rename = 15,
 };
 
 struct create_dir
@@ -31,6 +32,15 @@ struct create_dir
     std::string parent;
     std::string dir;
     std::string token;
+};
+
+struct rename_request
+{
+    std::string type;
+    std::string token;
+    std::string parent;
+    std::string old_name;
+    std::string new_name;
 };
 
 struct login_request

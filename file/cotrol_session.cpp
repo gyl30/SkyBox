@@ -264,4 +264,6 @@ void cotrol_session::change_current_dir(const std::string& dir)
     boost::asio::post(io_, [this, self = shared_from_this(), dir = dir]() { current_dir_ = dir; });
 }
 
+void cotrol_session::rename(const leaf::rename_request& req) {}
+
 }    // namespace leaf

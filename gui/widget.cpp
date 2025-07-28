@@ -310,8 +310,17 @@ void Widget::on_rename(const QModelIndex &index, const QString &old_name, const 
         return;
     }
 
-    //
-    LOG_DEBUG("rename file from {} to {}", old_name.toStdString(), new_name.toStdString());
+    leaf::rename_request rq;
+    rq.parent = path_manager_->current_directory()->path();
+    rq.old_name = old_name.toStdString();
+    rq.new_name = new_name.toStdString();
+    rq.type = item_opt->type == leaf::file_item_type::Folder ? "dir" : "file";
+    rq.token = token_;
+    LOG_DEBUG("parent {} rename file from {} to {} type {}", rq.parent, rq.old_name, rq.new_name, rq.type);
+    if (file_client_)
+    {
+        file_client_->rename(rq);
+    }
 }
 bool Widget::eventFilter(QObject *watched, QEvent *event)
 {

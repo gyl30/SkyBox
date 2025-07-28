@@ -28,6 +28,7 @@ class file_transfer_client : public std::enable_shared_from_this<file_transfer_c
     void add_download_files(const std::vector<leaf::file_info> &files);
     void create_directory(const leaf::create_dir &cd);
     void change_current_dir(const std::string &dir);
+    void rename(const leaf::rename_request &req);
 
    private:
     boost::asio::awaitable<void> shutdown_coro();

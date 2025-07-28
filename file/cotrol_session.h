@@ -24,6 +24,7 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     void shutdown();
     void create_directory(const leaf::create_dir &cd);
     void change_current_dir(const std::string &dir);
+    void rename(const leaf::rename_request &req);
 
    private:
     boost::asio::awaitable<void> loop();

@@ -135,4 +135,12 @@ void file_transfer_client::change_current_dir(const std::string &dir)
         cotrol_->change_current_dir(dir);
     }
 }
+
+void file_transfer_client::rename(const leaf::rename_request &req)
+{
+    if (cotrol_)
+    {
+        cotrol_->rename(req);
+    }
+}
 }    // namespace leaf

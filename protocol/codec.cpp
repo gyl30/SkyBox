@@ -9,6 +9,7 @@ namespace reflect
 REFLECT_STRUCT(leaf::create_dir, (parent)(dir)(token));
 REFLECT_STRUCT(leaf::keepalive, (id)(client_id)(client_timestamp)(server_timestamp));
 REFLECT_STRUCT(leaf::login_request, (username)(password));
+REFLECT_STRUCT(leaf::rename_request, (type)(token)(parent)(old_name)(new_name));
 REFLECT_STRUCT(leaf::login_token, (id)(token));
 REFLECT_STRUCT(leaf::error_message, (id)(error));
 REFLECT_STRUCT(leaf::upload_file_request, (id)(filesize)(dir)(filename));
@@ -637,6 +638,39 @@ std::optional<leaf::create_dir> deserialize_create_dir(const std::vector<uint8_t
         return {};
     }
     return c;
+}
+std::vector<uint8_t> serialize_rename_request(const rename_request &r)
+{
+    leaf::write_buffer w;
+    write_padding(w);
+    w.write_uint16(leaf::to_underlying(message_type::rename));
+    std::string str = reflect::serialize_struct(r);
+    w.write_bytes(str.data(), str.size());
+    std::vector<uint8_t> bytes;
+    w.copy_to(&bytes);
+    return bytes;
+}
+std::optional<leaf::rename_request> deserialize_rename_request(const std::vector<uint8_t> &data)
+{
+    leaf::read_buffer r(data.data(), data.size());
+    uint16_t type = 0;
+    r.read_uint16(&type);
+    if (type != leaf::to_underlying(message_type::dir))
+    {
+        return {};
+    }
+    std::string str;
+    r.read_string(&str, r.size());
+    if (str.empty())
+    {
+        return {};
+    }
+    leaf::rename_request rq;
+    if (!reflect::deserialize_struct(rq, str))
+    {
+        return {};
+    }
+    return rq;
 }
 
 }    // namespace leaf
