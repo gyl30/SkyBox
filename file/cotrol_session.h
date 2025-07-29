@@ -29,12 +29,22 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
    private:
     boost::asio::awaitable<void> loop();
     boost::asio::awaitable<void> write(const std::vector<uint8_t> &data, boost::beast::error_code &);
-    boost::asio::awaitable<void> create_directorys(boost::beast::error_code &);
-    boost::asio::awaitable<void> create_directory(const leaf::create_dir &cd,boost::beast::error_code &);
+    boost::asio::awaitable<void> wait_create_response( boost::beast::error_code &);
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> login(boost::beast::error_code &);
     boost::asio::awaitable<void> wait_files_response(boost::beast::error_code &);
     boost::asio::awaitable<void> send_files_request(boost::beast::error_code &);
+    void register_handler();
+
+   private:
+    struct message_pack
+    {
+        std::string type;
+        std::vector<uint8_t> message;
+    };
+
+   private:
+    void push_message(message_pack &&mp);
 
    private:
     std::string id_;
@@ -43,10 +53,9 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     std::string token_;
     std::string current_dir_;
     boost::asio::io_context &io_;
-    std::queue<leaf::create_dir> create_dirs_;
-    std::queue<leaf::create_dir> cache_create_dirs_;
-    std::shared_ptr<boost::asio::steady_timer> timer_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
+    std::map<std::string, std::function<boost::asio::awaitable<void>(boost::system::error_code &)>> handlers_;
+    boost::asio::experimental::channel<void(boost::system::error_code, message_pack)> channel_{io_, 1024};
 };
 
 }    // namespace leaf

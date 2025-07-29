@@ -30,7 +30,7 @@ void cotrol_session::startup()
 boost::asio::awaitable<void> cotrol_session::loop()
 {
     auto self = shared_from_this();
-    LOG_INFO("{} recv startup", id_);
+    LOG_INFO("{} loop startup", id_);
     boost::beast::error_code ec;
     LOG_INFO("{} connect ws client {}:{} token {}", id_, host_, port_, token_);
     co_await ws_client_->handshake(ec);
@@ -48,34 +48,36 @@ boost::asio::awaitable<void> cotrol_session::loop()
         co_return;
     }
     LOG_INFO("{} login success", id_);
-    timer_ = std::make_shared<boost::asio::steady_timer>(co_await boost::asio::this_coro::executor);
+
     while (true)
     {
-        timer_->expires_after(std::chrono::seconds(5));
-        co_await timer_->async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-        if (ec == boost::asio::error::operation_aborted)
-        {
-            co_await create_directorys(ec);
-        }
+        boost::system::error_code ec;
+        auto mp = co_await channel_.async_receive(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
         if (ec)
         {
-            LOG_ERROR("{} error {}", id_, ec.message());
+            LOG_ERROR("{} reciver message from channel error {}", id_, ec.message());
             break;
         }
-        co_await send_files_request(ec);
+        co_await ws_client_->write(ec, mp.message.data(), mp.message.size());
         if (ec)
         {
-            LOG_ERROR("{} send files request error {}", id_, ec.message());
+            LOG_ERROR("{} write message to ws client {}", id_, ec.message());
             break;
         }
-        co_await wait_files_response(ec);
+        auto it = handlers_.find(mp.type);
+        if (it == handlers_.end())
+        {
+            break;
+        }
+        co_await it->second(ec);
         if (ec)
         {
-            LOG_ERROR("{} wait files response error {}", id_, ec.message());
+            LOG_ERROR("{} handle message {} error {}", id_, mp.type, ec.message());
             break;
         }
     }
-    LOG_INFO("{} recv shutdown", id_);
+
+    LOG_INFO("{} loop shutdown", id_);
 }
 
 boost::asio::awaitable<void> cotrol_session::wait_files_response(boost::beast::error_code& ec)
@@ -84,6 +86,7 @@ boost::asio::awaitable<void> cotrol_session::wait_files_response(boost::beast::e
     co_await ws_client_->read(ec, buffer);
     if (ec)
     {
+        LOG_ERROR("{} send files request error {}", id_, ec.message());
         co_return;
     }
 
@@ -143,15 +146,6 @@ boost::asio::awaitable<void> cotrol_session::login(boost::beast::error_code& ec)
     }
 }
 
-boost::asio::awaitable<void> cotrol_session::send_files_request(boost::beast::error_code& ec)
-{
-    leaf::files_request req;
-    req.token = token_;
-    req.dir = current_dir_;
-    LOG_INFO("{} send files request token {} dir {}", id_, req.token, req.dir);
-    co_await write(leaf::serialize_files_request(req), ec);
-}
-
 boost::asio::awaitable<void> cotrol_session::write(const std::vector<uint8_t>& data, boost::beast::error_code& ec)
 {
     co_await ws_client_->write(ec, data.data(), data.size());
@@ -165,12 +159,6 @@ void cotrol_session::shutdown()
 
 boost::asio::awaitable<void> cotrol_session::shutdown_coro()
 {
-    if (timer_)
-    {
-        timer_->cancel();
-        timer_.reset();
-    }
-
     if (ws_client_)
     {
         ws_client_->close();
@@ -179,38 +167,16 @@ boost::asio::awaitable<void> cotrol_session::shutdown_coro()
     LOG_INFO("{} shutdown", id_);
     co_return;
 }
-boost::asio::awaitable<void> cotrol_session::create_directorys(boost::beast::error_code& ec)
-{
-    while (!cache_create_dirs_.empty())
-    {
-        create_dirs_.push(cache_create_dirs_.front());
-        cache_create_dirs_.pop();
-    }
 
-    while (!create_dirs_.empty())
-    {
-        auto cd = create_dirs_.front();
-        co_await create_directory(cd, ec);
-        if (ec)
-        {
-            LOG_ERROR("{} create directory {} error {}", id_, cd.dir, ec.message());
-            break;
-        }
-        create_dirs_.pop();
-    }
+void cotrol_session::register_handler()
+{
+    handlers_["files"] = std::bind_front(&cotrol_session::wait_files_response, this);
+    handlers_["create_directory"] = std::bind_front(&cotrol_session::wait_create_response, this);
 }
-boost::asio::awaitable<void> cotrol_session::create_directory(const leaf::create_dir& cd, boost::beast::error_code& ec)
+boost::asio::awaitable<void> cotrol_session::wait_create_response(boost::beast::error_code& ec)
 {
     leaf::notify_event e;
     e.method = "create_directory";
-    LOG_INFO("{} create_directory token {} dir {} parent {}", id_, token_, cd.dir, cd.parent);
-    co_await write(leaf::serialize_create_dir(cd), ec);
-    if (ec)
-    {
-        e.error = ec.message();
-        leaf::event_manager::instance().post("notify", e);
-        co_return;
-    }
     boost::beast::flat_buffer buffer;
     co_await ws_client_->read(ec, buffer);
     if (ec)
@@ -239,24 +205,16 @@ boost::asio::awaitable<void> cotrol_session::create_directory(const leaf::create
         leaf::event_manager::instance().post("notify", e);
         co_return;
     }
-    if (dir_res->dir != cd.dir)
-    {
-        LOG_ERROR("{} create_directory response token {} dir {} not match request dir {}", id_, token_, dir_res->dir, cd.dir);
-        e.error = "response dir not match request dir";
-        leaf::event_manager::instance().post("notify", e);
-    }
     e.data = dir_res.value();
     LOG_INFO("{} create_directory successful token {} dir {}", id_, token_, dir_res->dir);
 }
 
 void cotrol_session::create_directory(const leaf::create_dir& cd)
 {
-    boost::asio::post(io_,
-                      [this, self = shared_from_this(), cd = cd]()
-                      {
-                          cache_create_dirs_.push(cd);
-                          timer_->cancel();
-                      });
+    message_pack mp;
+    mp.type = "create_directory";
+    mp.message = leaf::serialize_create_dir(cd);
+    push_message(std::move(mp));
 }
 
 void cotrol_session::change_current_dir(const std::string& dir)
@@ -264,6 +222,24 @@ void cotrol_session::change_current_dir(const std::string& dir)
     boost::asio::post(io_, [this, self = shared_from_this(), dir = dir]() { current_dir_ = dir; });
 }
 
-void cotrol_session::rename(const leaf::rename_request& req) {}
+void cotrol_session::rename(const leaf::rename_request& req)
+{
+    message_pack mp;
+    mp.type = "rename";
+    mp.message = leaf::serialize_rename_request(req);
+    push_message(std::move(mp));
+}
+
+void cotrol_session::push_message(message_pack&& mp)
+{
+    boost::asio::co_spawn(
+        io_,
+        [this, self = shared_from_this(), mp = std::move(mp)]() -> boost::asio::awaitable<void>
+        {
+            boost::system::error_code ec;
+            co_await channel_.async_send(boost::system::error_code{}, mp, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        },
+        boost::asio::detached);
+}
 
 }    // namespace leaf
