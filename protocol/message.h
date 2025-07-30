@@ -43,6 +43,8 @@ struct rename_request
     std::string new_name;
 };
 
+using rename_response = rename_request;
+
 struct login_request
 {
     std::string username;

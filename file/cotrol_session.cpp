@@ -171,6 +171,7 @@ boost::asio::awaitable<void> cotrol_session::shutdown_coro()
 void cotrol_session::register_handler()
 {
     handlers_["files"] = std::bind_front(&cotrol_session::wait_files_response, this);
+    handlers_["rename"] = std::bind_front(&cotrol_session::wait_rename_response, this);
     handlers_["create_directory"] = std::bind_front(&cotrol_session::wait_create_response, this);
 }
 boost::asio::awaitable<void> cotrol_session::wait_create_response(boost::beast::error_code& ec)
@@ -209,6 +210,47 @@ boost::asio::awaitable<void> cotrol_session::wait_create_response(boost::beast::
     LOG_INFO("{} create_directory successful token {} dir {}", id_, token_, dir_res->dir);
 }
 
+boost::asio::awaitable<void> cotrol_session::wait_rename_response(boost::beast::error_code& ec)
+{
+    leaf::notify_event e;
+    e.method = "rename";
+    boost::beast::flat_buffer buffer;
+    co_await ws_client_->read(ec, buffer);
+    if (ec)
+    {
+        e.error = ec.message();
+        leaf::event_manager::instance().post("notify", e);
+        co_return;
+    }
+
+    auto message = boost::beast::buffers_to_string(buffer.data());
+    auto type = leaf::get_message_type(message);
+    if (type != leaf::message_type::dir)
+    {
+        LOG_ERROR("{} rename response message type error {}", id_, leaf::message_type_to_string(type));
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        e.error = ec.message();
+        leaf::event_manager::instance().post("notify", e);
+        co_return;
+    }
+    auto rename_response = leaf::deserialize_rename_response(std::vector<uint8_t>(message.begin(), message.end()));
+    if (!rename_response.has_value())
+    {
+        LOG_ERROR("{} rename message deserialize error", id_);
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        e.error = ec.message();
+        leaf::event_manager::instance().post("notify", e);
+        co_return;
+    }
+    e.data = rename_response.value();
+    LOG_INFO("{} rename successful token {} from {} to {} parent {}",
+             id_,
+             token_,
+             rename_response->token,
+             rename_response->old_name,
+             rename_response->new_name,
+             rename_response->parent);
+}
 void cotrol_session::create_directory(const leaf::create_dir& cd)
 {
     message_pack mp;

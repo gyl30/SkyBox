@@ -673,4 +673,8 @@ std::optional<leaf::rename_request> deserialize_rename_request(const std::vector
     return rq;
 }
 
+std::vector<uint8_t> serialize_rename_response(const rename_response &r) { return serialize_rename_request(r); }
+
+std::optional<leaf::rename_response> deserialize_rename_response(const std::vector<uint8_t> &data) { return deserialize_rename_request(data); }
+
 }    // namespace leaf
