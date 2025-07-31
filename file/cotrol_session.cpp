@@ -23,7 +23,7 @@ void cotrol_session::startup()
 {
     LOG_INFO("{} startup host {} port {} token {}", id_, host_, port_, token_);
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/cotrol", io_);
-
+    register_handler();
     boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
 }
 
@@ -58,6 +58,7 @@ boost::asio::awaitable<void> cotrol_session::loop()
             LOG_ERROR("{} reciver message from channel error {}", id_, ec.message());
             break;
         }
+        LOG_DEBUG("{} ------- {} message ------", id_, mp.type);
         co_await ws_client_->write(ec, mp.message.data(), mp.message.size());
         if (ec)
         {
@@ -69,6 +70,7 @@ boost::asio::awaitable<void> cotrol_session::loop()
         {
             break;
         }
+        LOG_DEBUG("{} ------- {} handle ------", id_, mp.type);
         co_await it->second(ec);
         if (ec)
         {
@@ -261,7 +263,13 @@ void cotrol_session::create_directory(const leaf::create_dir& cd)
 
 void cotrol_session::change_current_dir(const std::string& dir)
 {
-    boost::asio::post(io_, [this, self = shared_from_this(), dir = dir]() { current_dir_ = dir; });
+    leaf::files_request req;
+    req.token = token_;
+    req.dir = dir;
+    message_pack mp;
+    mp.type = "files";
+    mp.message = leaf::serialize_files_request(req);
+    push_message(std::move(mp));
 }
 
 void cotrol_session::rename(const leaf::rename_request& req)

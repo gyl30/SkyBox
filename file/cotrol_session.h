@@ -51,7 +51,6 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     std::string host_;
     std::string port_;
     std::string token_;
-    std::string current_dir_;
     boost::asio::io_context &io_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
     std::map<std::string, std::function<boost::asio::awaitable<void>(boost::system::error_code &)>> handlers_;
