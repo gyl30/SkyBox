@@ -78,13 +78,58 @@ boost::asio::awaitable<void> cotrol_file_handle::loop()
         {
             co_await on_create_dir(message, ec);
         }
+        if (type == leaf::message_type::rename)
+        {
+            co_await on_rename(message, ec);
+        }
         if (ec)
         {
-            LOG_ERROR("{} process message error {}", id_, ec.message());
+            LOG_ERROR("{} process message {} error {}", id_, (int)type, ec.message());
             break;
         }
     }
     LOG_INFO("{} recv coro shutdown", id_);
+}
+
+boost::asio::awaitable<void> cotrol_file_handle::on_rename(const std::string& message, boost::beast::error_code& ec)
+{
+    auto rename_request = leaf::deserialize_rename_request(std::vector<uint8_t>(message.begin(), message.end()));
+    if (!rename_request.has_value())
+    {
+        ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
+        co_return;
+    }
+    if (rename_request->token != token_)
+    {
+        LOG_ERROR("{} rename request token {} not match {}", id_, rename_request->token, token_);
+        ec = boost::system::errc::make_error_code(boost::system::errc::permission_denied);
+        co_return;
+    }
+    const auto& msg = rename_request.value();
+    std::string token_path = leaf::make_user_path(token_);
+    auto old_file_path = std::filesystem::path(token_path).append(msg.old_name);
+    auto new_file_path = std::filesystem::path(token_path).append(msg.new_name);
+    LOG_INFO("{} on rename old {} new {} parent {} token_path {}", id_, old_file_path.string(), new_file_path.string(), msg.parent, token_path);
+    std::filesystem::rename(old_file_path, new_file_path, ec);
+    if (ec)
+    {
+        LOG_ERROR("{} rename old {} new {} parent {} token_path {} error {}",
+                  id_,
+                  old_file_path.string(),
+                  new_file_path.string(),
+                  msg.parent,
+                  token_path,
+                  ec.message());
+        co_return;
+    }
+    leaf::rename_response response;
+    response.token = msg.token;
+    response.old_name = msg.old_name;
+    response.new_name = msg.new_name;
+    response.parent = msg.parent;
+    response.type = msg.type;
+
+    co_await write(leaf::serialize_rename_response(response), ec);
 }
 
 boost::asio::awaitable<void> cotrol_file_handle::keepalive(boost::beast::error_code& ec)

@@ -30,6 +30,7 @@ class cotrol_file_handle : public websocket_handle
 
     boost::asio::awaitable<void> on_files_request(const std::string& message, boost::beast::error_code& ec);
     boost::asio::awaitable<void> on_create_dir(const std::string& message, boost::beast::error_code& ec);
+    boost::asio::awaitable<void> on_rename(const std::string& message, boost::beast::error_code& ec);
 
    private:
     std::string id_;

@@ -653,9 +653,10 @@ std::vector<uint8_t> serialize_rename_request(const rename_request &r)
 std::optional<leaf::rename_request> deserialize_rename_request(const std::vector<uint8_t> &data)
 {
     leaf::read_buffer r(data.data(), data.size());
+    read_padding(r);
     uint16_t type = 0;
     r.read_uint16(&type);
-    if (type != leaf::to_underlying(message_type::dir))
+    if (type != leaf::to_underlying(message_type::rename))
     {
         return {};
     }
