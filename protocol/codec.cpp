@@ -79,6 +79,7 @@ std::string message_type_to_string(leaf::message_type type)
     MESSAGE_TYPE_TO_STRING(done)
     MESSAGE_TYPE_TO_STRING(dir)
     MESSAGE_TYPE_TO_STRING(error)
+    MESSAGE_TYPE_TO_STRING(rename)
 #undef MESSAGE_TYPE_TO_STRING
     return "unknown";
 }

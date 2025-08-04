@@ -107,8 +107,10 @@ boost::asio::awaitable<void> cotrol_file_handle::on_rename(const std::string& me
     }
     const auto& msg = rename_request.value();
     std::string token_path = leaf::make_user_path(token_);
-    auto old_file_path = std::filesystem::path(token_path).append(msg.old_name);
-    auto new_file_path = std::filesystem::path(token_path).append(msg.new_name);
+    auto old_name = std::filesystem::path(msg.parent).append(msg.old_name).string();
+    auto new_name = std::filesystem::path(msg.parent).append(msg.new_name).string();
+    auto old_file_path = std::filesystem::path(token_path).append(old_name);
+    auto new_file_path = std::filesystem::path(token_path).append(new_name);
     LOG_INFO("{} on rename old {} new {} parent {} token_path {}", id_, old_file_path.string(), new_file_path.string(), msg.parent, token_path);
     std::filesystem::rename(old_file_path, new_file_path, ec);
     if (ec)

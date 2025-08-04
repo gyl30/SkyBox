@@ -227,7 +227,7 @@ boost::asio::awaitable<void> cotrol_session::wait_rename_response(boost::beast::
 
     auto message = boost::beast::buffers_to_string(buffer.data());
     auto type = leaf::get_message_type(message);
-    if (type != leaf::message_type::dir)
+    if (type != leaf::message_type::rename)
     {
         LOG_ERROR("{} rename response message type error {}", id_, leaf::message_type_to_string(type));
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
@@ -248,7 +248,6 @@ boost::asio::awaitable<void> cotrol_session::wait_rename_response(boost::beast::
     LOG_INFO("{} rename successful token {} from {} to {} parent {}",
              id_,
              token_,
-             rename_response->token,
              rename_response->old_name,
              rename_response->new_name,
              rename_response->parent);
