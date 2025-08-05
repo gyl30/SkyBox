@@ -692,10 +692,21 @@ void Widget::notify_progress(const std::any &data)
 void Widget::upload_progress(const std::any &data)
 {
     auto e = std::any_cast<leaf::upload_event>(data);
-    LOG_DEBUG("upload progress: file {}, progress {}", e.filename, e.upload_size);
+    LOG_DEBUG("upload progress: file {} progress {}:{}", e.filename, e.file_size, e.upload_size);
     emit upload_notify_signal(e);
 }
-void Widget::on_upload_notify(const leaf::upload_event &e) { upload_list_widget_->add_task_to_view(e); }
+void Widget::on_upload_notify(const leaf::upload_event &e)
+{
+    upload_list_widget_->add_task_to_view(e);
+    if (e.file_size == e.upload_size && e.file_size == 0 && e.upload_size == 0)
+    {
+        if (file_client_ != nullptr)
+        {
+            auto current_dir = path_manager_->current_directory();
+            file_client_->change_current_dir(current_dir->path());
+        }
+    }
+}
 
 void Widget::on_download_notify(const leaf::download_event &e) {}
 
@@ -728,6 +739,7 @@ void Widget::on_files(const leaf::files_response &files)
         LOG_INFO("files response dir {} file {} parent {} type {}", files.dir, file.name, file.parent, file.type);
     }
 
+    model_->set_files({});
     current_dir->reset();
 
     for (const auto &f : files.files)
@@ -763,19 +775,6 @@ void Widget::on_notify_event(const leaf::notify_event &e)
     if (e.method == "create_directory")
     {
         create_directory_notify(e);
-    }
-    if (e.method == "change_directory")
-    {
-        change_directory_notify(e);
-    }
-}
-
-void Widget::change_directory_notify(const leaf::notify_event &e)
-{
-    if (file_client_)
-    {
-        auto dir = std::any_cast<std::string>(e.data);
-        file_client_->change_current_dir(dir);
     }
 }
 

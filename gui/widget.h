@@ -55,7 +55,6 @@ class Widget : public QWidget
    private:
     void login_notify(const leaf::notify_event& e);
     void logout_notify(const leaf::notify_event& e);
-    void change_directory_notify(const leaf::notify_event& e);
     void create_directory_notify(const leaf::notify_event& e);
     void rename_notify(const leaf::notify_event& e);
     void update_breadcrumb();

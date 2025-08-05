@@ -30,8 +30,8 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
     boost::asio::awaitable<void> loop();
     boost::asio::awaitable<void> login(boost::beast::error_code &);
     boost::asio::awaitable<void> wait_files_response(boost::beast::error_code &);
-    boost::asio::awaitable<void> wait_create_response( boost::beast::error_code &);
-    boost::asio::awaitable<void> wait_rename_response( boost::beast::error_code &);
+    boost::asio::awaitable<void> wait_create_response(boost::beast::error_code &);
+    boost::asio::awaitable<void> wait_rename_response(boost::beast::error_code &);
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> write(const std::vector<uint8_t> &data, boost::beast::error_code &);
     void register_handler();

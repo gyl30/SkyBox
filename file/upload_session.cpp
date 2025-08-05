@@ -335,6 +335,10 @@ boost::asio::awaitable<void> upload_session::wait_file_done(boost::beast::error_
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
+    upload_event u;
+    u.upload_size = 0;
+    u.file_size = 0;
+    leaf::event_manager::instance().post("upload", u);
 }
 boost::asio::awaitable<void> upload_session::send_file_done(boost::beast::error_code& ec)
 {
