@@ -249,7 +249,7 @@ boost::asio::awaitable<void> upload_session::send_file_data(const file_info& fil
     int64_t read_offset = 0;
     while (true)
     {
-        assert(reader->size() < file.file_size);
+        assert(reader->size() <= file.file_size);
         LOG_DEBUG("{} read file {} size {} offset {} block size {}", id_, file.local_path, reader->size(), read_offset, kBlockSize);
         auto read_size = reader->read_at(read_offset, buffer, kBlockSize, ec);
         if (ec && ec != boost::asio::error::eof)

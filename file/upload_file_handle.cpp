@@ -239,6 +239,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::file_info&
         co_return;
     }
     bool done = false;
+    auto filename = leaf::encode_leaf_filename(file.local_path);
     while (true)
     {
         boost::beast::flat_buffer buffer;
@@ -252,6 +253,8 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::file_info&
         if (type == leaf::message_type::done)
         {
             done = true;
+            leaf::rename(file.local_path, filename);
+
             LOG_INFO("{} upload file {} done", id_, file.filename);
             break;
         }
@@ -291,9 +294,7 @@ boost::asio::awaitable<void> upload_file_handle::wait_file_data(leaf::file_info&
         }
         if (file.file_size == writer->size())
         {
-            auto filename = leaf::encode_leaf_filename(file.local_path);
-            leaf::rename(file.local_path, filename);
-            LOG_INFO("{} file {} to {} done", id_, file.filename, filename);
+            LOG_INFO("{} file size done {} to {}", id_, file.filename, filename);
         }
     }
     auto file_ec = writer->close();
