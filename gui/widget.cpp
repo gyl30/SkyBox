@@ -171,13 +171,14 @@ void Widget::setup_files_ui()
     view_->setModel(model_);
 
     file_page_layout->addWidget(view_, 1);
-    loading_overlay_ = new QWidget(file_page_);
+    loading_overlay_ = new QWidget(view_);
     loading_overlay_->setObjectName("loadingOverlay");
     loading_overlay_->setStyleSheet(
         "#loadingOverlay {"
         "   background-color: rgba(255, 255, 255, 220);"
         "   border-radius: 5px;"
         "}");
+
     auto *overlay_v_layout = new QVBoxLayout(loading_overlay_);
     loading_label_ = new QLabel("🔄 加载中...", loading_overlay_);
     loading_label_->setAlignment(Qt::AlignCenter);
@@ -190,7 +191,7 @@ void Widget::setup_files_ui()
     overlay_v_layout->addWidget(loading_label_);
     overlay_v_layout->addStretch();
     loading_overlay_->hide();
-    file_page_->installEventFilter(this);
+    view_->installEventFilter(this);
 }
 
 void Widget::setup_upload_ui() {}
@@ -223,20 +224,18 @@ void Widget::view_dobule_clicked(const QModelIndex &index)
         return;
     }
 
-    model_->set_files({});
-    auto current_dir = path_manager_->current_directory();
-    auto files = current_dir->files();
-    for (const auto &file : files)
     {
-        if (file.type != leaf::file_item_type::Folder || file.display_name != item->display_name)
-        {
-            continue;
-        }
-        LOG_INFO("enter directory parent {} dir {}", current_dir->path(), item->display_name);
+        auto current_dir = path_manager_->current_directory();
         path_manager_->enter_directory(current_dir->path(), item->display_name);
     }
-    current_dir = path_manager_->current_directory();
-    files = current_dir->files();
+    if (loading_overlay_->isHidden())
+    {
+        loading_overlay_->resize(view_->size());
+        view_->setEnabled(false);
+        loading_overlay_->show();
+    }
+    auto current_dir = path_manager_->current_directory();
+    auto files = current_dir->files();
     if (files.empty())
     {
         auto it = directory_cache_.find(current_dir->path());
@@ -324,13 +323,14 @@ void Widget::on_rename(const QModelIndex &index, const QString &old_name, const 
 }
 bool Widget::eventFilter(QObject *watched, QEvent *event)
 {
-    if (watched == file_page_ && event->type() == QEvent::Resize)
+    if (watched == view_ && event->type() == QEvent::Resize)
     {
         if (loading_overlay_->isVisible())
         {
-            loading_overlay_->setGeometry(0, 0, file_page_->width(), file_page_->height());
+            loading_overlay_->resize(view_->size());
         }
     }
+
     return QWidget::eventFilter(watched, event);
 }
 
@@ -432,6 +432,10 @@ void Widget::navigate_to_breadcrumb(QObject *obj)
         return;
     }
     if (idx > static_cast<int>(breadcrumb_list_.size()))
+    {
+        return;
+    }
+    if (loading_overlay_->isVisible())
     {
         return;
     }
@@ -734,12 +738,16 @@ void Widget::on_files(const leaf::files_response &files)
         LOG_ERROR("files response dir {} not match current directory {}", files.dir, current_dir->path());
         return;
     }
+    if (loading_overlay_->isVisible())
+    {
+        loading_overlay_->hide();
+        view_->setEnabled(true);
+    }
     for (const auto &file : files.files)
     {
         LOG_INFO("files response dir {} file {} parent {} type {}", files.dir, file.name, file.parent, file.type);
     }
 
-    model_->set_files({});
     current_dir->reset();
 
     for (const auto &f : files.files)

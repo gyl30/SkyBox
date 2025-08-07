@@ -102,26 +102,6 @@ class path_manager
         return false;
     }
 
-    bool exit_directory()
-    {
-        if (!paths_.empty())
-        {
-            current_directory_ = root_;
-            for (const auto& dir : paths_)
-            {
-                for (const auto& sub_dir : current_directory_->subdirectories())
-                {
-                    if (sub_dir->name() == dir->name())
-                    {
-                        current_directory_ = sub_dir;
-                        break;
-                    }
-                }
-            }
-            return true;
-        }
-        return false;
-    }
     bool navigate_to_breadcrumb(int index)
     {
         if (index < 0 || index >= static_cast<int>(paths_.size()))
