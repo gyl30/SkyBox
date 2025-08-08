@@ -210,6 +210,10 @@ void Widget::setup_connections()
 }
 void Widget::view_double_clicked(const QModelIndex &index)
 {
+    if (loading_overlay_->isVisible())
+    {
+        return;
+    }
     if (!index.isValid())
     {
         return;
@@ -228,34 +232,28 @@ void Widget::view_double_clicked(const QModelIndex &index)
         auto current_dir = path_manager_->current_directory();
         path_manager_->enter_directory(current_dir->path(), item->display_name);
     }
-    if (loading_overlay_->isHidden())
-    {
-        loading_overlay_->resize(view_->size());
-        view_->setEnabled(false);
-        loading_overlay_->show();
-    }
     auto current_dir = path_manager_->current_directory();
-    auto files = current_dir->files();
-    if (files.empty())
+    auto it = directory_cache_.find(current_dir->path());
+    if (it != directory_cache_.end())
     {
-        auto it = directory_cache_.find(current_dir->path());
-        if (it != directory_cache_.end())
+        auto cache_dir = it->second;
+        current_dir->reset_files(cache_dir->files());
+        current_dir->reset_dir(cache_dir->subdirectories());
+        LOG_DEBUG("path {} files empty load cache {} files", current_dir->path(), current_dir->files().size());
+        model_->set_files(current_dir->files());
+    }
+    else
+    {
+        model_->set_files({});
+        if (loading_overlay_->isHidden())
         {
-            auto cache_dir = it->second;
-            current_dir->reset_files(cache_dir->files());
-            current_dir->reset_dir(cache_dir->subdirectories());
-            LOG_DEBUG("path {} files empty load cache {} files", current_dir->path(), current_dir->files().size());
+            loading_overlay_->resize(view_->size());
+            view_->setEnabled(false);
+            loading_overlay_->show();
         }
     }
 
-    files = current_dir->files();
-    model_->set_files(files);
-
     LOG_DEBUG("update current directory {}", current_dir->path());
-    for (const auto &file : files)
-    {
-        LOG_DEBUG("dir {} file {} type {}", current_dir->path(), file.display_name, static_cast<int>(file.type));
-    }
     if (file_client_ != nullptr)
     {
         file_client_->change_current_dir(current_dir->path());
