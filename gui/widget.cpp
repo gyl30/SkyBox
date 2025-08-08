@@ -203,12 +203,12 @@ void Widget::setup_connections()
     connect(new_folder_btn_, &QPushButton::clicked, this, &Widget::on_new_folder);
     connect(upload_file_btn_, &QPushButton::clicked, this, &Widget::on_upload_file);
 
-    connect(view_, &QListView::doubleClicked, this, [this](const QModelIndex &index) { view_dobule_clicked(index); });
+    connect(view_, &QListView::doubleClicked, this, [this](const QModelIndex &index) { view_double_clicked(index); });
     connect(view_, &QListView::customContextMenuRequested, this, [this](const QPoint &pos) { view_custom_context_menu_requested(pos); });
 
     connect(model_, &leaf::file_model::rename, this, &Widget::on_rename);
 }
-void Widget::view_dobule_clicked(const QModelIndex &index)
+void Widget::view_double_clicked(const QModelIndex &index)
 {
     if (!index.isValid())
     {

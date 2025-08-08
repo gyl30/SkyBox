@@ -79,7 +79,7 @@ class Widget : public QWidget
     void setup_login_ui();
     void setup_side_ui();
     void setup_connections();
-    void view_dobule_clicked(const QModelIndex& index);
+    void view_double_clicked(const QModelIndex& index);
     void view_custom_context_menu_requested(const QPoint& pos);
     QToolButton* create_ellipsis_button(int start_index);
     QToolButton* create_breadcrumb_button(int index);
