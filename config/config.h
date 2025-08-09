@@ -1,11 +1,13 @@
 #ifndef LEAF_CONFIG_H
 #define LEAF_CONFIG_H
 
+#include <filesystem>
+
 namespace leaf
 {
 constexpr auto kBlockSize = 128 * 1024;
 constexpr auto kHashBlockSize = 10 * kBlockSize;
-constexpr auto kDefaultDir = "/tmp";
+static auto kDefaultDir = std::filesystem::temp_directory_path().string();
 constexpr auto kReadWsLimited = 2 * 1024 * 1024;
 constexpr auto kWriteWsLimited = 2 * 1024 * 1024;
 constexpr auto kTmpFilenameSuffix = ".tmp";
