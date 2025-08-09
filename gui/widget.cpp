@@ -26,7 +26,7 @@
 #include "file/file_item.h"
 #include "file/event_manager.h"
 
-Widget::Widget(std::string user, std::string password, std::string token, QWidget *parent)
+file_widget::file_widget(std::string user, std::string password, std::string token, QWidget *parent)
     : QWidget(parent), token_(std::move(token)), user_(std::move(user)), password_(std::move(password))
 {
     resize(1200, 800);
@@ -68,7 +68,7 @@ Widget::Widget(std::string user, std::string password, std::string token, QWidge
     update_breadcrumb();
 }
 
-void Widget::setup_side_ui()
+void file_widget::setup_side_ui()
 {
     side_layout_ = new QVBoxLayout();
     btn_file_page_ = new QPushButton("📁 我的文件");
@@ -86,7 +86,7 @@ void Widget::setup_side_ui()
     side_layout_->addWidget(btn_upload_page_);
 }
 
-void Widget::setup_files_ui()
+void file_widget::setup_files_ui()
 {
     new_folder_btn_ = new QPushButton("📁 新建文件夹");
     new_folder_btn_->setFixedHeight(30);
@@ -194,21 +194,21 @@ void Widget::setup_files_ui()
     view_->installEventFilter(this);
 }
 
-void Widget::setup_upload_ui() {}
-void Widget::setup_connections()
+void file_widget::setup_upload_ui() {}
+void file_widget::setup_connections()
 {
-    connect(btn_file_page_, &QPushButton::clicked, this, &Widget::show_file_page);
-    connect(btn_upload_page_, &QPushButton::clicked, this, &Widget::show_upload_page);
+    connect(btn_file_page_, &QPushButton::clicked, this, &file_widget::show_file_page);
+    connect(btn_upload_page_, &QPushButton::clicked, this, &file_widget::show_upload_page);
 
-    connect(new_folder_btn_, &QPushButton::clicked, this, &Widget::on_new_folder);
-    connect(upload_file_btn_, &QPushButton::clicked, this, &Widget::on_upload_file);
+    connect(new_folder_btn_, &QPushButton::clicked, this, &file_widget::on_new_folder);
+    connect(upload_file_btn_, &QPushButton::clicked, this, &file_widget::on_upload_file);
 
     connect(view_, &QListView::doubleClicked, this, [this](const QModelIndex &index) { view_double_clicked(index); });
     connect(view_, &QListView::customContextMenuRequested, this, [this](const QPoint &pos) { view_custom_context_menu_requested(pos); });
 
-    connect(model_, &leaf::file_model::rename, this, &Widget::on_rename);
+    connect(model_, &leaf::file_model::rename, this, &file_widget::on_rename);
 }
-void Widget::view_double_clicked(const QModelIndex &index)
+void file_widget::view_double_clicked(const QModelIndex &index)
 {
     if (loading_overlay_->isVisible())
     {
@@ -261,7 +261,7 @@ void Widget::view_double_clicked(const QModelIndex &index)
     update_breadcrumb();
 }
 
-void Widget::view_custom_context_menu_requested(const QPoint &pos)
+void file_widget::view_custom_context_menu_requested(const QPoint &pos)
 {
     QModelIndex index = view_->indexAt(pos);
     if (!index.isValid())
@@ -299,7 +299,7 @@ void Widget::view_custom_context_menu_requested(const QPoint &pos)
     }
 }
 
-void Widget::on_rename(const QModelIndex &index, const QString &old_name, const QString &new_name)
+void file_widget::on_rename(const QModelIndex &index, const QString &old_name, const QString &new_name)
 {
     auto item_opt = model_->item_at(index.row());
     if (!item_opt)
@@ -319,7 +319,7 @@ void Widget::on_rename(const QModelIndex &index, const QString &old_name, const 
         file_client_->rename(rq);
     }
 }
-bool Widget::eventFilter(QObject *watched, QEvent *event)
+bool file_widget::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched == view_ && event->type() == QEvent::Resize)
     {
@@ -332,7 +332,7 @@ bool Widget::eventFilter(QObject *watched, QEvent *event)
     return QWidget::eventFilter(watched, event);
 }
 
-void Widget::show_file_page()
+void file_widget::show_file_page()
 {
     stack_->setCurrentWidget(file_page_);
     btn_file_page_->setChecked(true);
@@ -341,14 +341,14 @@ void Widget::show_file_page()
     upload_file_btn_->setEnabled(true);
 }
 
-void Widget::show_upload_page()
+void file_widget::show_upload_page()
 {
     stack_->setCurrentWidget(upload_list_widget_);
     btn_file_page_->setChecked(false);
     btn_upload_page_->setChecked(true);
 }
 
-void Widget::on_upload_file()
+void file_widget::on_upload_file()
 {
     QStringList files = QFileDialog::getOpenFileNames(this, "选择要上传的文件", QDir::homePath());
     if (files.isEmpty())
@@ -368,7 +368,7 @@ void Widget::on_upload_file()
     file_client_->add_upload_files(ff);
 }
 
-void Widget::on_new_folder()
+void file_widget::on_new_folder()
 {
     QString folder_name_base = "新建文件夹";
     int count = 1;
@@ -405,7 +405,7 @@ void Widget::on_new_folder()
     model_->set_files(current_dir->files());
 }
 
-void Widget::on_breadcrumb_clicked()
+void file_widget::on_breadcrumb_clicked()
 {
     QObject *sender_obj = sender();
     if (sender_obj == nullptr)
@@ -416,7 +416,7 @@ void Widget::on_breadcrumb_clicked()
     navigate_to_breadcrumb(sender_obj);
 }
 
-void Widget::navigate_to_breadcrumb(QObject *obj)
+void file_widget::navigate_to_breadcrumb(QObject *obj)
 {
     bool ok;
     int idx = obj->property("crumbIndex").toInt(&ok);
@@ -451,7 +451,7 @@ void Widget::navigate_to_breadcrumb(QObject *obj)
     }
     update_breadcrumb();
 }
-void Widget::update_breadcrumb()
+void file_widget::update_breadcrumb()
 {
     clear_breadcrumb_layout();
 
@@ -500,7 +500,7 @@ void Widget::update_breadcrumb()
 
     breadcrumb_layout_->addStretch();
 }
-void Widget::clear_breadcrumb_layout()
+void file_widget::clear_breadcrumb_layout()
 {
     QLayoutItem *child;
     while ((child = breadcrumb_layout_->takeAt(0)) != nullptr)
@@ -514,9 +514,9 @@ void Widget::clear_breadcrumb_layout()
     breadcrumb_list_.clear();
 }
 
-void Widget::build_breadcrumb_path() { breadcrumb_list_ = path_manager_->breadcrumb_paths(); }
+void file_widget::build_breadcrumb_path() { breadcrumb_list_ = path_manager_->breadcrumb_paths(); }
 
-QToolButton *Widget::create_breadcrumb_button(int index)
+QToolButton *file_widget::create_breadcrumb_button(int index)
 {
     auto *btn = new QToolButton(breadcrumb_widget_);
     auto &item = breadcrumb_list_[index];
@@ -538,13 +538,13 @@ QToolButton *Widget::create_breadcrumb_button(int index)
     }
     else
     {
-        connect(btn, &QToolButton::clicked, this, &Widget::on_breadcrumb_clicked);
+        connect(btn, &QToolButton::clicked, this, &file_widget::on_breadcrumb_clicked);
     }
 
     return btn;
 }
 
-QToolButton *Widget::create_ellipsis_button(int start_index)
+QToolButton *file_widget::create_ellipsis_button(int start_index)
 {
     auto *btn = new QToolButton(breadcrumb_widget_);
     btn->setText("...");
@@ -623,7 +623,7 @@ QToolButton *Widget::create_ellipsis_button(int start_index)
     return btn;
 }
 
-void Widget::mousePressEvent(QMouseEvent *e)
+void file_widget::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton)
     {
@@ -631,7 +631,7 @@ void Widget::mousePressEvent(QMouseEvent *e)
         e->accept();
     }
 }
-void Widget::mouseMoveEvent(QMouseEvent *e)
+void file_widget::mouseMoveEvent(QMouseEvent *e)
 {
     if ((e->buttons() & Qt::LeftButton) != 0U)
     {
@@ -639,7 +639,7 @@ void Widget::mouseMoveEvent(QMouseEvent *e)
         e->accept();
     }
 }
-void Widget::mouseDoubleClickEvent(QMouseEvent *e)
+void file_widget::mouseDoubleClickEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton)
     {
@@ -647,7 +647,7 @@ void Widget::mouseDoubleClickEvent(QMouseEvent *e)
     }
     QWidget::mouseDoubleClickEvent(e);
 }
-void Widget::startup()
+void file_widget::startup()
 {
     leaf::event_manager::instance().subscribe("error", [this](const std::any &data) { error_progress(data); });
     leaf::event_manager::instance().subscribe("notify", [this](const std::any &data) { notify_progress(data); });
@@ -655,22 +655,22 @@ void Widget::startup()
     leaf::event_manager::instance().subscribe("cotrol", [this](const std::any &data) { cotrol_progress(data); });
     leaf::event_manager::instance().subscribe("download", [this](const std::any &data) { download_progress(data); });
 
-    connect(this, &Widget::upload_notify_signal, this, &Widget::on_upload_notify);
-    connect(this, &Widget::download_notify_signal, this, &Widget::on_download_notify);
-    connect(this, &Widget::cotrol_notify_signal, this, &Widget::on_cotrol_notify);
-    connect(this, &Widget::notify_event_signal, this, &Widget::on_notify_event);
+    connect(this, &file_widget::upload_notify_signal, this, &file_widget::on_upload_notify);
+    connect(this, &file_widget::download_notify_signal, this, &file_widget::on_download_notify);
+    connect(this, &file_widget::cotrol_notify_signal, this, &file_widget::on_cotrol_notify);
+    connect(this, &file_widget::notify_event_signal, this, &file_widget::on_notify_event);
     file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user_, password_, token_);
     file_client_->startup();
     file_client_->change_current_dir(path_manager_->current_directory()->path());
 }
 
-void Widget::error_progress(const std::any &data)
+void file_widget::error_progress(const std::any &data)
 {
     auto e = std::any_cast<leaf::error_event>(data);
     LOG_ERROR("error {}", e.message);
 }
 
-void Widget::cotrol_progress(const std::any &data)
+void file_widget::cotrol_progress(const std::any &data)
 {
     //
     auto e = std::any_cast<leaf::cotrol_event>(data);
@@ -678,26 +678,26 @@ void Widget::cotrol_progress(const std::any &data)
     LOG_INFO("^^^ cotrol progress {}", e.token);
 }
 
-void Widget::download_progress(const std::any &data)
+void file_widget::download_progress(const std::any &data)
 {
     auto e = std::any_cast<leaf::download_event>(data);
     emit download_notify_signal(e);
     LOG_DEBUG("--> download progress {} {} {}", e.filename, e.download_size, e.file_size);
 }
 
-void Widget::notify_progress(const std::any &data)
+void file_widget::notify_progress(const std::any &data)
 {
     auto e = std::any_cast<leaf::notify_event>(data);
     emit notify_event_signal(e);
 }
 
-void Widget::upload_progress(const std::any &data)
+void file_widget::upload_progress(const std::any &data)
 {
     auto e = std::any_cast<leaf::upload_event>(data);
     LOG_DEBUG("upload progress: file {} progress {}:{}", e.filename, e.file_size, e.upload_size);
     emit upload_notify_signal(e);
 }
-void Widget::on_upload_notify(const leaf::upload_event &e)
+void file_widget::on_upload_notify(const leaf::upload_event &e)
 {
     upload_list_widget_->add_task_to_view(e);
     if (e.file_size == e.upload_size && e.file_size == 0 && e.upload_size == 0)
@@ -710,11 +710,11 @@ void Widget::on_upload_notify(const leaf::upload_event &e)
     }
 }
 
-void Widget::on_download_notify(const leaf::download_event &e) {}
+void file_widget::on_download_notify(const leaf::download_event &e) {}
 
-void Widget::on_cotrol_notify(const leaf::cotrol_event &e) {}
+void file_widget::on_cotrol_notify(const leaf::cotrol_event &e) {}
 
-void Widget::on_error_occurred(const QString &error_msg)
+void file_widget::on_error_occurred(const QString &error_msg)
 {
     LOG_ERROR("error {}", error_msg.toStdString());
 
@@ -727,7 +727,7 @@ void Widget::on_error_occurred(const QString &error_msg)
     }
 }
 
-void Widget::on_files(const leaf::files_response &files)
+void file_widget::on_files(const leaf::files_response &files)
 {
     auto current_dir = path_manager_->current_directory();
     LOG_INFO("files response dir {} size {} current_directory {}", files.dir, files.files.size(), current_dir->path());
@@ -768,7 +768,7 @@ void Widget::on_files(const leaf::files_response &files)
     model_->set_files(current_dir->files());
 }
 
-void Widget::on_notify_event(const leaf::notify_event &e)
+void file_widget::on_notify_event(const leaf::notify_event &e)
 {
     if (e.method == "files")
     {
@@ -784,7 +784,7 @@ void Widget::on_notify_event(const leaf::notify_event &e)
     }
 }
 
-void Widget::create_directory_notify(const leaf::notify_event &e)
+void file_widget::create_directory_notify(const leaf::notify_event &e)
 {
     if (!e.error.empty())
     {
@@ -802,9 +802,9 @@ void Widget::create_directory_notify(const leaf::notify_event &e)
         LOG_ERROR("create directory failed, current directory {} not match {}", current_dir->path(), dir.parent);
     }
 }
-void Widget::rename_notify(const leaf::notify_event &e) {}
+void file_widget::rename_notify(const leaf::notify_event &e) {}
 
-Widget::~Widget()
+file_widget::~file_widget()
 {
     if (file_client_ != nullptr)
     {
@@ -815,7 +815,7 @@ Widget::~Widget()
     leaf::event_manager::instance().shutdown();
 }
 
-void Widget::on_new_file_clicked()
+void file_widget::on_new_file_clicked()
 {
     auto filename = QFileDialog::getOpenFileName(this, "选择文件");
     if (filename.isEmpty())

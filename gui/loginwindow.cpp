@@ -55,7 +55,7 @@ void login_widget::request_finished(QNetworkReply *reply)
         LOG_INFO("username {} password {} token {}", username, password, token);
         if (widget == nullptr)
         {
-            widget = new Widget(username, password, token);
+            widget = new file_widget(username, password, token);
         }
         widget->startup();
         widget->show();

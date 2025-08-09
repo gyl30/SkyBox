@@ -28,7 +28,7 @@ class login_widget : public QWidget
     QLineEdit *pass_ = nullptr;
     QByteArray req_;
     QNetworkAccessManager *network_ = nullptr;
-    Widget *widget = nullptr;
+    file_widget *widget = nullptr;
 };
 
 #endif

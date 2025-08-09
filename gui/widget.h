@@ -19,13 +19,13 @@
 #include "gui/upload_list_widget.h"
 #include "file/file_transfer_client.h"
 
-class Widget : public QWidget
+class file_widget : public QWidget
 {
     Q_OBJECT
 
    public:
-    Widget(std::string user, std::string password, std::string token, QWidget* parent = nullptr);
-    ~Widget() override;
+    file_widget(std::string user, std::string password, std::string token, QWidget* parent = nullptr);
+    ~file_widget() override;
 
    public:
     void startup();
