@@ -21,9 +21,9 @@
 
 #include <memory>
 #include "log/log.h"
-#include "gui/widget.h"
 #include "gui/titlebar.h"
 #include "file/file_item.h"
+#include "gui/file_widget.h"
 #include "file/event_manager.h"
 
 file_widget::file_widget(std::string user, std::string password, std::string token, QWidget *parent)

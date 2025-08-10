@@ -6,7 +6,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkAccessManager>
-#include "gui/widget.h"
+#include "gui/file_widget.h"
 
 class QLineEdit;
 
