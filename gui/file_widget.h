@@ -27,18 +27,19 @@ class file_widget : public QWidget
     file_widget(std::string user, std::string password, std::string token, QWidget* parent = nullptr);
     ~file_widget() override;
 
-   public:
-    void startup();
-
    private:
+    void startup();
     void on_new_file_clicked();
 
    Q_SIGNALS:
+    void window_closed();
     void notify_event_signal(const leaf::notify_event& e);
     void upload_notify_signal(const leaf::upload_event& e);
     void download_notify_signal(const leaf::download_event& e);
     void cotrol_notify_signal(const leaf::cotrol_event& e);
 
+   protected:
+    void closeEvent(QCloseEvent* event) override;
    private Q_SLOTS:
     void on_notify_event(const leaf::notify_event& e);
     void on_error_occurred(const QString& error_msg);

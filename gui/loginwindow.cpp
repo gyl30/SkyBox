@@ -1,45 +1,95 @@
-#include <QVBoxLayout>
-#include <QFormLayout>
+#include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QCheckBox>
+#include <QComboBox>
+#include <QHBoxLayout>
+#include <QVBoxLayout>
+#include <QMouseEvent>
+#include <QDebug>
+#include <QFontDatabase>
+#include <QFormLayout>
 #include <QMessageBox>
 #include <QScreen>
 #include <QGuiApplication>
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include <utility>
 #include "log/log.h"
 #include "protocol/codec.h"
 #include "gui/loginwindow.h"
 #include "protocol/message.h"
 
-login_widget::login_widget(QWidget *parent) : QWidget(parent)
+login_window::login_window(QWidget *parent) : QWidget(parent)
 {
-    auto *layout = new QVBoxLayout();
-    auto *form = new QFormLayout();
+    account_ = new QLineEdit(this);
+    account_->setFixedHeight(35);
+    account_->setPlaceholderText("QQ号码/手机/邮箱");
 
-    user_ = new QLineEdit(this);
-    pass_ = new QLineEdit(this);
-    pass_->setEchoMode(QLineEdit::Password);
+    password_ = new QLineEdit(this);
+    password_->setFixedHeight(35);
+    password_->setEchoMode(QLineEdit::Password);
+    password_->setPlaceholderText("密码");
 
-    form->addRow("用户名:", user_);
-    form->addRow("密码:", pass_);
+    login_btn_ = new QPushButton("安全登录", this);
+    login_btn_->setObjectName("loginButton");
 
-    auto *login_btn = new QPushButton("登录", this);
+    connect(login_btn_, &QPushButton::clicked, this, &login_window::on_login_clicked);
 
     network_ = new QNetworkAccessManager(this);
-    connect(network_, &QNetworkAccessManager::finished, this, &login_widget::request_finished);
+    connect(network_, &QNetworkAccessManager::finished, this, &login_window::request_finished);
 
-    layout->addLayout(form);
-    layout->addWidget(login_btn);
-    setLayout(layout);
-    connect(login_btn, &QPushButton::clicked, this, &login_widget::login_clicked);
-    const QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
-    this->move((screenGeometry.width() - this->width()) / 2, (screenGeometry.height() - this->height()) / 2);
-    resize(240, 180);
+    auto *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(8, 8, 8, 8);
+    layout->addSpacing(20);
+    layout->addWidget(account_);
+    layout->addWidget(password_);
+
+    layout->addSpacing(10);
+    layout->addWidget(login_btn_);
+    layout->addStretch();
+
+    this->setLayout(layout);
 }
 
-void login_widget::request_finished(QNetworkReply *reply)
+void login_window::on_login_clicked()
 {
+    if (account_->text().isEmpty() || password_->text().isEmpty())
+    {
+        QMessageBox::warning(this, "提示", "用户名和密码不能为空");
+        return;
+    }
+    login_btn_->setEnabled(false);
+    login_btn_->setText("登录中...");
+    LOG_INFO("login button clicked account {} password {}", account_->text().toStdString(), password_->text().toStdString());
+    leaf::login_request login_request;
+    login_request.username = account_->text().toStdString();
+    login_request.password = password_->text().toStdString();
+    auto data = leaf::serialize_login_request(login_request);
+    QString bytes = QString::fromStdString(std::string(data.begin(), data.end()));
+    req_ = bytes.toUtf8();
+    QString url = "http://" + address_ + ":" + QString::number(port_) + "/leaf/login";
+    LOG_INFO("request url {} content {}", url.toStdString(), std::string(data.begin(), data.end()));
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json; charset=utf-8");
+    network_->post(request, req_);
+}
+void login_window::on_settings_clicked() { emit switch_to_other(); }
+
+void login_window::on_settings(QString ip, uint16_t port)
+{
+    if (ip.isEmpty() || port == 0)
+    {
+        return;
+    }
+    address_ = std::move(ip);
+    port_ = port;
+}
+void login_window::request_finished(QNetworkReply *reply)
+{
+    login_btn_->setEnabled(true);
+    login_btn_->setText("安全登录");
+
     if (reply->error() == QNetworkReply::NoError)
     {
         QByteArray bytes = reply->readAll();
@@ -50,16 +100,10 @@ void login_widget::request_finished(QNetworkReply *reply)
             return;
         }
         std::string token = l->token;
-        auto username = user_->text().toStdString();
-        auto password = pass_->text().toStdString();
+        auto username = account_->text().toStdString();
+        auto password = password_->text().toStdString();
         LOG_INFO("username {} password {} token {}", username, password, token);
-        if (widget == nullptr)
-        {
-            widget = new file_widget(username, password, token);
-        }
-        widget->startup();
-        widget->show();
-        this->hide();
+        emit login_success(account_->text(), password_->text(), QString::fromStdString(token));
     }
     else
     {
@@ -67,24 +111,4 @@ void login_widget::request_finished(QNetworkReply *reply)
         QMessageBox::warning(this, "提示", error_str);
     }
     reply->deleteLater();
-}
-
-void login_widget::login_clicked()
-{
-    if (user_->text().isEmpty() || pass_->text().isEmpty())
-    {
-        QMessageBox::warning(this, "提示", "用户名和密码不能为空");
-        return;
-    }
-    leaf::login_request login_request;
-    login_request.username = user_->text().toStdString();
-    login_request.password = pass_->text().toStdString();
-    auto data = leaf::serialize_login_request(login_request);
-    QString bytes = QString::fromStdString(std::string(data.begin(), data.end()));
-    req_ = bytes.toUtf8();
-    QString url = "http://127.0.0.1:8080/leaf/login";
-    LOG_INFO("request url {} content {}", url.toStdString(), std::string(data.begin(), data.end()));
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json; charset=utf-8");
-    network_->post(request, req_);
 }

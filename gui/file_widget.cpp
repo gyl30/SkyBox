@@ -66,6 +66,8 @@ file_widget::file_widget(std::string user, std::string password, std::string tok
     main_layout->setContentsMargins(8, 0, 0, 0);
 
     update_breadcrumb();
+
+    startup();
 }
 
 void file_widget::setup_side_ui()
@@ -829,4 +831,10 @@ void file_widget::on_new_file_clicked()
     f.file_size = std::filesystem::file_size(f.filename);
     f.dir = path_manager_->current_directory()->path();
     file_client_->add_upload_file(std::move(f));
+}
+void file_widget::closeEvent(QCloseEvent *event)
+{
+    emit window_closed();
+
+    QWidget::closeEvent(event);
 }
