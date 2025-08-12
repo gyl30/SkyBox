@@ -22,7 +22,23 @@ void cotrol_file_handle ::startup()
 {
     LOG_INFO("startup {}", id_);
 
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
+    boost::asio::co_spawn(
+        io_,
+        [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); },
+        [this](const std::exception_ptr &eptr)
+        {
+            try
+            {
+                if (eptr)
+                {
+                    rethrow_exception(eptr);
+                }
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("{} loop exception {}", id_, e.what());
+            }
+        });
 }
 
 boost::asio::awaitable<void> cotrol_file_handle ::write(const std::vector<uint8_t>& data, boost::beast::error_code& ec)
