@@ -4,6 +4,7 @@
 #include <boost/asio/redirect_error.hpp>
 
 #include "log/log.h"
+#include "net/exception.h"
 #include "protocol/codec.h"
 #include "protocol/message.h"
 #include "file/event_manager.h"
@@ -22,9 +23,10 @@ cotrol_session::~cotrol_session() { LOG_INFO("{} destroyed", id_); }
 void cotrol_session::startup()
 {
     LOG_INFO("{} startup host {} port {} token {}", id_, host_, port_, token_);
+    auto msg = fmt::format("{} loop exists", id_);
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/cotrol", io_);
     register_handler();
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
+    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); },[msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); } );
 }
 
 boost::asio::awaitable<void> cotrol_session::loop()

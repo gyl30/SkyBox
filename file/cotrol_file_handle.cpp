@@ -5,6 +5,7 @@
 #include "file/file.h"
 #include "crypt/easy.h"
 #include "config/config.h"
+#include "net/exception.h"
 #include "protocol/codec.h"
 #include "file/cotrol_file_handle.h"
 
@@ -22,23 +23,12 @@ void cotrol_file_handle ::startup()
 {
     LOG_INFO("startup {}", id_);
 
+    auto msg = fmt::format("{} loop exists", id_);
+
     boost::asio::co_spawn(
         io_,
         [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); },
-        [this](const std::exception_ptr &eptr)
-        {
-            try
-            {
-                if (eptr)
-                {
-                    rethrow_exception(eptr);
-                }
-            }
-            catch (const std::exception& e)
-            {
-                LOG_ERROR("{} loop exception {}", id_, e.what());
-            }
-        });
+        [msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); });
 }
 
 boost::asio::awaitable<void> cotrol_file_handle ::write(const std::vector<uint8_t>& data, boost::beast::error_code& ec)
