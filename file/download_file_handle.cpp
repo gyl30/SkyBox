@@ -5,6 +5,7 @@
 #include "log/log.h"
 #include "file/file.h"
 #include "crypt/easy.h"
+#include "net/exception.h"
 #include "crypt/blake2b.h"
 #include "config/config.h"
 #include "protocol/codec.h"
@@ -23,8 +24,11 @@ download_file_handle::~download_file_handle() { LOG_INFO("destroy {}", id_); }
 void download_file_handle::startup()
 {
     LOG_INFO("startup {}", id_);
-
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
+    auto msg = fmt::format("download file handle startup {}", id_);
+    boost::asio::co_spawn(
+        io_,
+        [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); },
+        [msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); });
 }
 
 boost::asio::awaitable<void> download_file_handle ::write(const std::vector<uint8_t>& msg, boost::beast::error_code& ec)
@@ -34,8 +38,11 @@ boost::asio::awaitable<void> download_file_handle ::write(const std::vector<uint
 
 void download_file_handle ::shutdown()
 {
+    auto msg = fmt::format("download file handle shutdown {}", id_);
     boost::asio::co_spawn(
-        io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); }, boost::asio::detached);
+        io_,
+        [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); },
+        [msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); });
 }
 
 boost::asio::awaitable<void> download_file_handle::shutdown_coro()

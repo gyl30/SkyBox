@@ -3,6 +3,7 @@
 #include <filesystem>
 #include "log/log.h"
 #include "file/file.h"
+#include "net/exception.h"
 #include "protocol/codec.h"
 #include "file/event_manager.h"
 #include "file/download_session.h"
@@ -22,8 +23,11 @@ void download_session::startup()
     LOG_INFO("{} startup", id_);
 
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/download", io_);
-
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
+    auto msg = fmt::format("download session startup {}", token_);
+    boost::asio::co_spawn(
+        io_,
+        [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); },
+        [msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); });
 }
 
 boost::asio::awaitable<void> download_session::send_keepalive(boost::beast::error_code& ec)
@@ -156,8 +160,11 @@ boost::asio::awaitable<void> download_session::write(const std::vector<uint8_t>&
 
 void download_session::shutdown()
 {
+    auto msg = fmt::format("download session shutdown {}", token_);
     boost::asio::co_spawn(
-        io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); }, boost::asio::detached);
+        io_,
+        [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); },
+        [msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); });
 }
 
 boost::asio::awaitable<void> download_session::shutdown_coro()
