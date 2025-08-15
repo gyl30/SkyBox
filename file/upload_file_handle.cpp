@@ -4,6 +4,7 @@
 #include "file/file.h"
 #include "crypt/easy.h"
 #include "crypt/passwd.h"
+#include "net/exception.h"
 #include "config/config.h"
 #include "protocol/codec.h"
 #include "protocol/message.h"
@@ -25,7 +26,11 @@ void upload_file_handle::startup()
 {
     LOG_INFO("startup {}", id_);
 
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); }, boost::asio::detached);
+    auto msg = fmt::format("upload file handle startup {}", token_);
+    boost::asio::co_spawn(
+        io_,
+        [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); },
+        [msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); });
 }
 
 boost::asio::awaitable<void> upload_file_handle::write(const std::vector<uint8_t>& msg, boost::beast::error_code& ec)
@@ -35,8 +40,11 @@ boost::asio::awaitable<void> upload_file_handle::write(const std::vector<uint8_t
 
 void upload_file_handle ::shutdown()
 {
+    auto msg = fmt::format("upload file handle shutdown {}", token_);
     boost::asio::co_spawn(
-        io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); }, boost::asio::detached);
+        io_,
+        [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); },
+        [msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); });
 }
 
 boost::asio::awaitable<void> upload_file_handle::shutdown_coro()
