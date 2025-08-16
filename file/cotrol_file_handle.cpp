@@ -267,6 +267,7 @@ boost::asio::awaitable<void> cotrol_file_handle::on_files_request(const std::str
     }
 
     const auto& msg = files_request.value();
+    LOG_DEBUG("files request {} {}", msg.dir, msg.token);
     std::string token_path = leaf::make_user_path(token_);
     auto file_path = std::filesystem::path(token_path).append(msg.dir);
     auto dir_path = std::filesystem::absolute(file_path).lexically_normal().string();
@@ -288,6 +289,7 @@ boost::asio::awaitable<void> cotrol_file_handle::on_create_dir(const std::string
         LOG_ERROR("{} deserialize create dir request error", id_);
         co_return;
     }
+    LOG_INFO("{} create dir parent {} dir {}", id_, dir_request->parent, dir_request->dir);
     std::string dir_path = std::filesystem::path(dir_request->parent).append(dir_request->dir).string();
     auto local_path = leaf::make_file_path(dir_request->token, dir_path);
     if (local_path.empty())
