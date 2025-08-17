@@ -189,9 +189,15 @@ boost::asio::awaitable<leaf::file_info> upload_file_handle::wait_upload_file_req
     }
     if (exist)
     {
+        ec = {};
         LOG_ERROR("{} upload request file {} exist", id_, upload_file_path);
-        ec = boost::system::errc::make_error_code(boost::system::errc::file_exists);
-        co_return file;
+        std::filesystem::remove(upload_file_path, ec);
+        if (ec)
+        {
+            ec = boost::system::errc::make_error_code(boost::system::errc::file_exists);
+            co_return file;
+        }
+        LOG_WARN("{} upload request file {} remove success", id_, upload_file_path);
     }
     LOG_INFO("{} upload request file size {} name {} path {} dir {} local path {}",
              id_,
