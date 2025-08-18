@@ -27,8 +27,10 @@ class file_widget : public QWidget
     file_widget(std::string user, std::string password, std::string token, QWidget* parent = nullptr);
     ~file_widget() override;
 
-   private:
+   public:
     void startup();
+
+   private:
     void on_new_file_clicked();
 
    Q_SIGNALS:

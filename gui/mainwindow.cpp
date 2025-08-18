@@ -103,6 +103,7 @@ void main_window::handle_login_success(QString account, QString password, QStrin
                 });
     }
     connect(files_, &file_widget::window_closed, this, &main_window::show);
+    files_->startup();
     files_->show();
     this->hide();
 }
