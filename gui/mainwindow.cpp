@@ -88,7 +88,7 @@ main_window::main_window(QWidget *parent) : QWidget(parent)
 
 main_window::~main_window() { delete files_; }
 
-void main_window::handle_login_success(QString account, QString password, QString token)
+void main_window::handle_login_success(QString ip, uint16_t port, QString account, QString password, QString token)
 {
     if (files_ == nullptr)
     {
@@ -103,7 +103,7 @@ void main_window::handle_login_success(QString account, QString password, QStrin
                 });
     }
     connect(files_, &file_widget::window_closed, this, &main_window::show);
-    files_->startup();
+    files_->startup(ip, port);
     files_->show();
     this->hide();
 }

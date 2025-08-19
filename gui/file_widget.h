@@ -28,7 +28,7 @@ class file_widget : public QWidget
     ~file_widget() override;
 
    public:
-    void startup();
+    void startup(const QString& ip, uint16_t port);
 
    private:
     void on_new_file_clicked();

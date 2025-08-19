@@ -21,7 +21,7 @@ class login_window : public QWidget
 
    signals:
     void switch_to_other();
-    void login_success(QString account, QString password, QString token);
+    void login_success(QString ip, uint16_t port, QString account, QString password, QString token);
 
    private slots:
     void on_settings_clicked();

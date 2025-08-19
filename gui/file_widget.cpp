@@ -66,8 +66,6 @@ file_widget::file_widget(std::string user, std::string password, std::string tok
     main_layout->setContentsMargins(8, 0, 0, 0);
 
     update_breadcrumb();
-
-    startup();
 }
 
 void file_widget::setup_side_ui()
@@ -649,7 +647,7 @@ void file_widget::mouseDoubleClickEvent(QMouseEvent *e)
     }
     QWidget::mouseDoubleClickEvent(e);
 }
-void file_widget::startup()
+void file_widget::startup(const QString &ip, uint16_t port)
 {
     leaf::event_manager::instance().subscribe("error", [this](const std::any &data) { error_progress(data); });
     leaf::event_manager::instance().subscribe("notify", [this](const std::any &data) { notify_progress(data); });
@@ -661,7 +659,7 @@ void file_widget::startup()
     connect(this, &file_widget::download_notify_signal, this, &file_widget::on_download_notify);
     connect(this, &file_widget::cotrol_notify_signal, this, &file_widget::on_cotrol_notify);
     connect(this, &file_widget::notify_event_signal, this, &file_widget::on_notify_event);
-    file_client_ = std::make_shared<leaf::file_transfer_client>("127.0.0.1", 8080, user_, password_, token_);
+    file_client_ = std::make_shared<leaf::file_transfer_client>(ip.toStdString(), port, user_, password_, token_);
     file_client_->startup();
     file_client_->change_current_dir(path_manager_->current_directory()->path());
 }

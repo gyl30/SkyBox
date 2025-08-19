@@ -24,7 +24,7 @@ login_window::login_window(QWidget *parent) : QWidget(parent)
 {
     account_ = new QLineEdit(this);
     account_->setFixedHeight(35);
-    account_->setPlaceholderText("QQ号码/手机/邮箱");
+    account_->setPlaceholderText("手机/邮箱");
 
     password_ = new QLineEdit(this);
     password_->setFixedHeight(35);
@@ -103,7 +103,7 @@ void login_window::request_finished(QNetworkReply *reply)
         auto username = account_->text().toStdString();
         auto password = password_->text().toStdString();
         LOG_INFO("username {} password {} token {}", username, password, token);
-        emit login_success(account_->text(), password_->text(), QString::fromStdString(token));
+        emit login_success(address_, port_, account_->text(), password_->text(), QString::fromStdString(token));
     }
     else
     {
