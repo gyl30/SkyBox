@@ -218,18 +218,26 @@ void file_widget::view_double_clicked(const QModelIndex &index)
     {
         return;
     }
+    LOG_DEBUG("click index {}", index.row());
     auto item = model_->item_at(index.row());
     if (!item)
     {
         return;
     }
+    LOG_DEBUG("click index {} name {}", index.row(), item->display_name);
     if (item->type != leaf::file_item_type::Folder)
     {
+        return;
+    }
+    if (path_manager_ == nullptr)
+    {
+        LOG_ERROR("path manager is null");
         return;
     }
 
     {
         auto current_dir = path_manager_->current_directory();
+        LOG_DEBUG("enter directory {} {}", current_dir->path(), item->display_name);
         path_manager_->enter_directory(current_dir->path(), item->display_name);
     }
     auto current_dir = path_manager_->current_directory();

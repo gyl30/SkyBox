@@ -26,7 +26,10 @@ void cotrol_session::startup()
     auto msg = fmt::format("{} loop exists", id_);
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/cotrol", io_);
     register_handler();
-    boost::asio::co_spawn(io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); },[msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); } );
+    boost::asio::co_spawn(
+        io_,
+        [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); },
+        [msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); });
 }
 
 boost::asio::awaitable<void> cotrol_session::loop()
@@ -211,6 +214,7 @@ boost::asio::awaitable<void> cotrol_session::wait_create_response(boost::beast::
         co_return;
     }
     e.data = dir_res.value();
+    leaf::event_manager::instance().post("notify", e);
     LOG_INFO("{} create_directory successful token {} dir {}", id_, token_, dir_res->dir);
 }
 
