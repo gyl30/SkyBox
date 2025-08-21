@@ -118,7 +118,9 @@ struct keepalive
 struct download_file_request
 {
     uint32_t id = 0;
+    uint64_t offset = 0;
     std::string dir;
+    std::string hash;
     std::string filename;    // 文件名称
 };
 
@@ -126,6 +128,8 @@ struct download_file_response
 {
     uint32_t id = 0;
     uint64_t filesize = 0;
+    uint64_t offset = 0;
+    std::string hash;
     std::string filename;    // 文件名称
 };
 
