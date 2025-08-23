@@ -112,7 +112,7 @@ void main_window::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        last_pos_ = event->globalPos() - frameGeometry().topLeft();
+        last_pos_ = event->globalPosition().toPoint() - frameGeometry().topLeft();
         event->accept();
     }
 }
@@ -121,7 +121,7 @@ void main_window::mouseMoveEvent(QMouseEvent *event)
 {
     if ((event->buttons() & Qt::LeftButton) != 0U)
     {
-        move(event->globalPos() - last_pos_);
+        move(event->globalPosition().toPoint() - last_pos_);
         event->accept();
     }
 }

@@ -24,7 +24,7 @@ int file_model::rowCount(const QModelIndex &parent) const
 
 QVariant file_model::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || files_.empty() || index.row() >= files_.size())
+    if (!index.isValid() || files_.empty() || index.row() >= static_cast<int>(files_.size()))
     {
         return {};
     }
@@ -56,7 +56,7 @@ Qt::ItemFlags file_model::flags(const QModelIndex &index) const
 
 bool file_model::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if (!index.isValid() || role != Qt::EditRole || files_.empty() || index.row() >= files_.size())
+    if (!index.isValid() || role != Qt::EditRole || files_.empty() || index.row() >= static_cast<int>(files_.size()))
     {
         return false;
     }
@@ -97,7 +97,7 @@ void file_model::set_files(const std::vector<leaf::file_item> &files)
 
 std::optional<leaf::file_item> file_model::item_at(int row) const
 {
-    if (files_.empty() || row < 0 || row >= files_.size())
+    if (files_.empty() || row < 0 || row >= static_cast<int>(files_.size()))
     {
         return {};
     }
