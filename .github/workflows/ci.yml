@@ -1,176 +1,149 @@
-name: CI
+name: CI with MSYS2
 
 on:
   push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  release:
+    types: [created]
 
 permissions:
   contents: write
 
 jobs:
-  windows:
+  build-windows-mingw:
     runs-on: windows-latest
     env:
-      VCPKG_DEFAULT_TRIPLET: x64-windows-static
-      VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
-      CXXFLAGS: "/D_WIN32_WINNT=0x0A00"
-      executable: skybox
+      EXECUTABLE_NAME: skybox
+      BOOST_VERSION: '1.85.0'
+      BOOST_VERSION_UNDERSCORE: '1_85_0'
+
     strategy:
       matrix:
         include:
-          - qt_ver: 6.8.1
-            qt_arch: win64_msvc2022_64
-            msvc_arch: x64
-            version: 2022
-            qt_arch_install: msvc2022_64
-            build_type: debug
-          - qt_ver: 6.8.1
-            qt_arch: win64_msvc2022_64
-            msvc_arch: x64
-            version: 2022
-            qt_arch_install: msvc2022_64
-            build_type: release
+          - build_type: debug
+          - build_type: release
 
     steps:
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: ${{ matrix.qt_ver }}
-          arch: ${{ matrix.qt_arch }}
-
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install CMake
-        uses: lukka/get-cmake@latest
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
         with:
-          useLocalCache: true
-          cmakeVersion: "~3.25.0"
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-qt6-base
+            mingw-w64-x86_64-qt6-tools
+            mingw-w64-x86_64-libsodium
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-libuv
+            p7zip
+            git
+            wget
 
-      # - name: Setup MSVC
-      #   uses: TheMrMilchmann/setup-msvc-dev@v3
-      #   with:
-      #     arch: ${{ matrix.msvc_arch }}
-      #
-      - name: Install Boost
-        uses: MarkusJx/install-boost@v2
-        id: install-boost
+      - name: Cache Boost
+        id: cache-boost
+        uses: actions/cache@v4
         with:
-          boost_version: 1.86.0
-          platform_version: 2022
-          toolset: msvc
-          link: static
+          path: ${{ runner.temp }}/boost
+          key: ${{ runner.os }}-mingw-boost-${{ env.BOOST_VERSION }}
 
-      - name: Run vcpkg integrate install
-        run: |
-          vcpkg install libsodium
-          vcpkg install libuv
-          vcpkg install openssl
-          vcpkg install pkgconf
-          C:/vcpkg/vcpkg integrate install
-        shell: cmd
-
-      - name: Run CMake using CMakePresets.json and vcpkg toolchain
-        uses: lukka/run-cmake@v10
-        with:
-          configurePreset: 'windows-${{ matrix.build_type }}'
-          buildPreset: 'windows-${{ matrix.build_type }}'
-          configurePresetAdditionalArgs: >
-            [
-              "-DBoost_NO_SYSTEM_PATHS=ON",
-              "-DBoost_INCLUDE_DIR=${{ steps.install-boost.outputs.BOOST_ROOT }}/include",
-              "-DBoost_LIBRARY_DIRS=${{ steps.install-boost.outputs.BOOST_ROOT }}/lib",
-              "-DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake",
-            ]
+      - name: Build Boost from source
+        if: steps.cache-boost.outputs.cache-hit != 'true'
+        shell: msys2 {0}
         env:
-          VCPKG_ROOT: C:/vcpkg
-          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
-          PKG_CONFIG_PATH: C:/vcpkg/installed/x64-windows-static/lib/pkgconfig
-
-      - name: Dep
-        shell: pwsh
+          RUNNER_TEMP_WINDOWS: ${{ runner.temp }}
         run: |
-          dir
-          dir .\build\${{ matrix.build_type }}
-          dir .\build\${{ matrix.build_type }}\server
-          dir .\build\${{ matrix.build_type }}\client
-          dir .\build\${{ matrix.build_type }}\gui
-          echo "---------------- ldd .\build\${{ matrix.build_type }}\server\server.exe"
-          ldd .\build\${{ matrix.build_type }}\server\server.exe
-          echo "---------------- ldd .\build\${{ matrix.build_type }}\client\client.exe"
-          ldd .\build\${{ matrix.build_type }}\client\client.exe
-          echo "---------------- ldd .\build\${{ matrix.build_type }}\gui\gclient.exe"
-          ldd .\build\${{ matrix.build_type }}\gui\gclient.exe
-          where.exe windeployqt
-          echo "---------------- windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe"
-          windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe --${{ matrix.build_type }} --no-translations --no-system-d3d-compiler --dir .\build\${{ matrix.build_type }}\gui\
-          dir .\build\${{ matrix.build_type }}\gui
-          echo "---------------- cmake install"
-          cmake --install build/${{ matrix.build_type }}
-          echo "---------------- dir"
-          dir
-          echo "---------------- dir .\install\server"
-          dir .\install\server
-          echo "---------------- dir .\install\client"
-          dir .\install\client
+          set -e
+          TEMP_DIR_NIX=$(cygpath -u "$RUNNER_TEMP_WINDOWS")
+          cd "$TEMP_DIR_NIX"
+          
+          BOOST_URL="https://archives.boost.io/release/${{ env.BOOST_VERSION }}/source/boost_${{ env.BOOST_VERSION_UNDERSCORE }}.tar.gz"
+          echo "Downloading Boost from $BOOST_URL"
+          wget -q "$BOOST_URL"
+          tar -xf boost_${{ env.BOOST_VERSION_UNDERSCORE }}.tar.gz
+          cd boost_${{ env.BOOST_VERSION_UNDERSCORE }}
+          
+          ./bootstrap.sh --with-toolset=gcc
+          
+          ./b2 install -j$(nproc) \
+            toolset=gcc \
+            --prefix="$TEMP_DIR_NIX/boost" \
+            --with-system \
+            --with-filesystem \
+            --with-thread \
+            --with-context \
+            --with-url \
+            --with-program_options
 
-      - name: Dump EXE dependencies
-        if: matrix.build_type == 'debug'
-        shell: pwsh
+      - name: Set BOOST_ROOT environment variable
+        shell: msys2 {0}
         run: |
-          echo "ldd .\install\gclient\gclient.exe awk"
-          ldd .\install\gclient\gclient.exe | awk '{print $3}'
-          echo "ldd .\install\client\client.exe awk"
-          ldd .\install\client\client.exe | awk '{print $3}'
-          echo "ldd .\install\server\server.exe awk"
-          ldd .\install\server\server.exe | awk '{print $3}'
-          echo "cp .\install\client\client.exe"
-          cp .\install\client\client.exe .\install\client\client111.exe
-          echo "---------------- dir .\install\client"
-          dir .\install\client
+          BOOST_ROOT_NIX=$(cygpath -u "${{ runner.temp }}/boost")
+          echo "BOOST_ROOT=$BOOST_ROOT_NIX" >> $GITHUB_ENV
 
-          ldd .\install\server\server.exe | awk '{print $3}' | xargs -I % cp % .\install\server\
-          echo "---------------- dir .\install\server"
-          dir .\install\server
+      - name: Configure CMake
+        run: cmake --preset windows-${{ matrix.build_type }}
+        shell: msys2 {0}
 
-          ldd .\install\client\client.exe | awk '{print $3}' | xargs -I % cp % .\install\client\
-          echo "---------------- dir .\install\client"
-          dir .\install\client
+      - name: Build with CMake
+        run: cmake --build --preset windows-${{ matrix.build_type }}
+        shell: msys2 {0}
 
-          echo "---------------- ldd .\install\gclient\gclient.exe"
-          ldd .\install\gclient\gclient.exe
+      - name: Install Project
+        run: cmake --install build/${{ matrix.build_type }} --prefix install
+        shell: msys2 {0}
 
-          ldd .\install\gclient\gclient.exe | awk '{print $3}' | xargs -I % cp % .\install\gclient\
-          echo "---------------- dir .\install\gclient"
-          dir .\install\gclient
-
-      - name: Dump Qt EXE dependencies
-        shell: pwsh
+      - name: Package All Dependencies
+        shell: msys2 {0}
         run: |
-          echo "---------------- dir .\install\gclient"
-          dir .\install\gclient
-          echo "---------------- windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe"
-          windeployqt .\build\${{ matrix.build_type }}\gui\gclient.exe --${{ matrix.build_type }} --no-translations --no-system-d3d-compiler --dir .\install\gclient\
-          echo "---------------- dir .\install\gclient"
-          dir .\install\gclient
+          set -e
+          copy_mingw_runtime_deps() {
+            local TARGET_DIR=$1
+            local EXE_NAME=$2
+            if [[ -f "$TARGET_DIR/$EXE_NAME" ]]; then
+              echo "--- Copying MinGW runtime dependencies for $EXE_NAME ---"
+              ldd "$TARGET_DIR/$EXE_NAME" | grep -i -E 'mingw64/bin/(libgcc|libstdc|libwinpthread)' | awk '{print $3}' | sort -u | xargs -I % cp -v -n % "$TARGET_DIR"
+            else
+              echo "Warning: Executable not found at $TARGET_DIR/$EXE_NAME"
+            fi
+          }
+          
+          copy_mingw_runtime_deps install/server server.exe
+          copy_mingw_runtime_deps install/client client.exe
 
-      - name: packet
-        id: packet
-        shell: pwsh
+          echo "--- Packaging gclient.exe dependencies with windeployqt6 ---"
+          if [[ -f "install/gclient/gclient.exe" ]]; then
+            windeployqt6 install/gclient/gclient.exe
+          else
+            echo "Warning: Executable not found at install/gclient/gclient.exe"
+          fi
+
+          echo "--- Dependency packaging complete ---"
+          ls -R install
+        
+      - name: Create Archive
+        shell: msys2 {0}
         run: |
-          dir .\install
-          Compress-Archive -Path .\install\* ${{ env.executable }}-${{ matrix.msvc_arch }}-${{ matrix.build_type }}'.zip'
-          dir
+          7z a "${{ env.EXECUTABLE_NAME }}-mingw-x64-${{ matrix.build_type }}.zip" ./install/*
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.executable }}-${{ matrix.msvc_arch }}-${{ matrix.build_type }}.zip
-          path: ${{ env.executable }}-${{ matrix.msvc_arch }}-${{ matrix.build_type }}.zip
+          name: ${{ env.EXECUTABLE_NAME }}-mingw-x64-${{ matrix.build_type }}
+          path: ${{ env.EXECUTABLE_NAME }}-mingw-x64-${{ matrix.build_type }}.zip
 
       - name: Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'release'
         with:
-          files: ${{ env.executable }}-${{ matrix.msvc_arch }}-${{ matrix.build_type }}.zip
-          token: ${{ secrets.GITHUB_TOKEN }}
+          files: ${{ env.EXECUTABLE_NAME }}-mingw-x64-${{ matrix.build_type }}.zip
