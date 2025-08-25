@@ -9,6 +9,7 @@
 #include "crypt/blake2b.h"
 #include "config/config.h"
 #include "protocol/codec.h"
+#include "file/hash_file.h"
 #include "file/download_file_handle.h"
 
 namespace leaf
@@ -77,7 +78,6 @@ boost::asio::awaitable<void> download_file_handle::loop()
         co_return;
     }
     LOG_INFO("{} login success token {}", id_, token_);
-    boost::beast::flat_buffer buffer;
     while (true)
     {
         auto k = co_await wait_keepalive(ec);
@@ -218,7 +218,7 @@ boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download
     }
     while (true)
     {
-        auto read_size = reader->read_at(static_cast<int64_t>(reader->size()), buffer, kBlockSize, ec);
+        auto read_size = reader->read_at(static_cast<int64_t>(reader->size() + ctx.request.offset), buffer, kBlockSize, ec);
         if (ec && ec != boost::asio::error::eof)
         {
             LOG_ERROR("{} download file read file {} error {}", id_, ctx.file.local_path, ec.message());
@@ -311,6 +311,19 @@ boost::asio::awaitable<leaf::download_file_handle::download_context> download_fi
         LOG_ERROR("{} download file {} size error {}", id_, msg.filename, ec.message());
         co_return ctx;
     }
+    if (download->offset != 0)
+    {
+        auto hash = hash_file(download->filename, ec, download->offset);
+        if (ec)
+        {
+            co_return ctx;
+        }
+        if (hash != download->hash)
+        {
+            ec = boost::system::errc::make_error_code(boost::system::errc::no_such_file_or_directory);
+            co_return ctx;
+        }
+    }
     leaf::file_info file;
     file.local_path = download_file_path;
     file.file_size = file_size;
@@ -321,6 +334,8 @@ boost::asio::awaitable<leaf::download_file_handle::download_context> download_fi
     response.filename = file.filename;
     response.id = download->id;
     response.filesize = file.file_size;
+    response.offset = download->offset;
+    response.hash = download->hash;
     co_await write(leaf::serialize_download_file_response(response), ec);
     co_return ctx;
 }

@@ -5,6 +5,7 @@
 #include "file/file.h"
 #include "net/exception.h"
 #include "protocol/codec.h"
+#include "file/hash_file.h"
 #include "file/event_manager.h"
 #include "file/download_session.h"
 
@@ -238,6 +239,16 @@ boost::asio::awaitable<void> download_session::send_download_file_request(const 
     req.dir = file.dir;
     req.filename = file.filename;
     req.id = ++seq_;
+    if (std::filesystem::exists(file.filename))
+    {
+        req.offset = std::filesystem::file_size(file.filename);
+        req.hash = leaf::hash_file(file.filename, ec);
+        if (ec)
+        {
+            co_return;
+        }
+    }
+    LOG_INFO("{} send download file request {} offset {} hash {}", id_, file.filename,req.offset ,req.hash.empty() ? "empty" : req.hash);
     co_await write(leaf::serialize_download_file_request(req), ec);
 }
 
@@ -333,7 +344,7 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
     while (true)
     {
         boost::beast::flat_buffer buffer;
-        leaf::download_file_response response;
+        // leaf::download_file_response response;
         co_await ws_client_->read(ec, buffer);
         if (ec)
         {
