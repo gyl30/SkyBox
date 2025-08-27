@@ -2,7 +2,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 aux_source_directory(${PROJECT_SOURCE_DIR}/gui CLI_GUI_SOURCE_FILE)
 aux_source_directory(${PROJECT_SOURCE_DIR}/file CLI_GUI_SOURCE_FILE)
@@ -21,7 +21,6 @@ add_executable(gclient ${WIN32_FLAG} ${CLI_GUI_SOURCE_FILE})
 
 target_link_libraries(gclient 
     Qt6::Widgets
-    Qt6::Network
     Threads::Threads 
     OpenSSL::SSL 
     OpenSSL::Crypto 

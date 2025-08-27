@@ -2,9 +2,8 @@
 #define LEAF_GUI_LOGIN_WINDOW_H
 
 #include <QWidget>
-#include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QNetworkRequest>
-#include <QtNetwork/QNetworkAccessManager>
+#include <boost/beast/core.hpp>
+#include "net/executors.h"
 
 class QLineEdit;
 class QPushButton;
@@ -26,11 +25,10 @@ class login_window : public QWidget
    private slots:
     void on_settings_clicked();
     void on_login_clicked();
-    void request_finished(QNetworkReply *);
+    void request_finished(const boost::beast::error_code &, const std::string &res);
 
    private:
-    QByteArray req_;
-    QNetworkAccessManager *network_ = nullptr;
+    leaf::executors exs_{1};
     uint16_t port_ = 8080;
     QString address_{"127.0.0.1"};
     QLineEdit *account_ = nullptr;
