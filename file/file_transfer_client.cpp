@@ -2,8 +2,10 @@
 #include <boost/beast.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/redirect_error.hpp>
+
 #include "log/log.h"
 #include "crypt/random.h"
+#include "net/exception.h"
 #include "protocol/message.h"
 #include "file/file_transfer_client.h"
 
@@ -41,12 +43,16 @@ void file_transfer_client::startup()
 
 void file_transfer_client::shutdown()
 {
+    LOG_INFO("{} shutdown", id_);
+    auto msg = fmt::format("shutdown {}", id_);
     auto self = shared_from_this();
     std::call_once(shutdown_flag_,
-                   [this, self]()
+                   [this, self, msg]()
                    {
                        boost::asio::co_spawn(
-                           *ex_, [this, self]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); }, boost::asio::detached);
+                           *ex_,
+                           [this, self]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); },
+                           [msg](const std::exception_ptr &e) { leaf::cache_exception(msg, e); });
                    });
 }
 

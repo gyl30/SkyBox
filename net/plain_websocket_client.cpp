@@ -58,10 +58,9 @@ boost::asio::awaitable<void> plain_websocket_client::write(boost::beast::error_c
 
 void plain_websocket_client::close()
 {
-    if (ws_ != nullptr)
+    if (ws_->is_open())
     {
         ws_->next_layer().close();
-        ws_.reset();
     }
 }
 }    // namespace leaf

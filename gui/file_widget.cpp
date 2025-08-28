@@ -33,8 +33,6 @@ file_widget::file_widget(std::string user, std::string password, std::string tok
     qRegisterMetaType<leaf::notify_event>("leaf::notify_event");
     setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
 
-    leaf::event_manager::instance().startup();
-
     path_manager_ = std::make_shared<leaf::path_manager>(std::make_shared<leaf::directory>("", "."));
 
     main_layout = new QVBoxLayout(this);
@@ -657,6 +655,7 @@ void file_widget::mouseDoubleClickEvent(QMouseEvent *e)
 }
 void file_widget::startup(const QString &ip, uint16_t port)
 {
+    leaf::event_manager::instance().startup();
     leaf::event_manager::instance().subscribe("error", [this](const std::any &data) { error_progress(data); });
     leaf::event_manager::instance().subscribe("notify", [this](const std::any &data) { notify_progress(data); });
     leaf::event_manager::instance().subscribe("upload", [this](const std::any &data) { upload_progress(data); });
@@ -812,16 +811,7 @@ void file_widget::create_directory_notify(const leaf::notify_event &e)
 }
 void file_widget::rename_notify(const leaf::notify_event &e) {}
 
-file_widget::~file_widget()
-{
-    if (file_client_ != nullptr)
-    {
-        file_client_->shutdown();
-        file_client_.reset();
-    }
-
-    leaf::event_manager::instance().shutdown();
-}
+file_widget::~file_widget() { LOG_INFO("file_widget destroy"); }
 
 void file_widget::on_new_file_clicked()
 {
@@ -840,6 +830,13 @@ void file_widget::on_new_file_clicked()
 }
 void file_widget::closeEvent(QCloseEvent *event)
 {
+    if (file_client_ != nullptr)
+    {
+        file_client_->shutdown();
+    }
+
+    leaf::event_manager::instance().shutdown();
+
     emit window_closed();
 
     QWidget::closeEvent(event);

@@ -28,7 +28,7 @@ class event_manager
 
    private:
     std::thread thread_;
-    leaf::executors executors_{1};
+    std::shared_ptr<leaf::executors> executors_;
     std::map<std::string, std::function<void(std::any)>> cbs_;
 };
 }    // namespace leaf

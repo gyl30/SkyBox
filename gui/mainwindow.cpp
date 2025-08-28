@@ -90,18 +90,10 @@ main_window::~main_window() { delete files_; }
 
 void main_window::handle_login_success(QString ip, uint16_t port, QString account, QString password, QString token)
 {
-    if (files_ == nullptr)
-    {
-        files_ = new file_widget(account.toStdString(), password.toStdString(), token.toStdString());
-        connect(files_,
-                &file_widget::destroyed,
-                this,
-                [this]()
-                {
-                    qDebug() << "FileListPage has been destroyed. Setting pointer to nullptr.";
-                    files_ = nullptr;
-                });
-    }
+    delete files_;
+
+    files_ = new file_widget(account.toStdString(), password.toStdString(), token.toStdString());
+
     connect(files_, &file_widget::window_closed, this, &main_window::show);
     files_->startup(ip, port);
     files_->show();

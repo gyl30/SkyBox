@@ -14,10 +14,10 @@ namespace leaf
 download_session::download_session(std::string id, std::string host, std::string port, std::string token, boost::asio::io_context& io)
     : id_(std::move(id)), host_(std::move(host)), port_(std::move(port)), token_(std::move(token)), io_(io)
 {
-    LOG_INFO("{} startup", id_);
+    LOG_INFO("{} create", id_);
 }
 
-download_session::~download_session() { LOG_INFO("{} shutdown", id_); }
+download_session::~download_session() { LOG_INFO("{} destroy", id_); }
 
 void download_session::startup()
 {
@@ -173,7 +173,6 @@ boost::asio::awaitable<void> download_session::shutdown_coro()
     if (ws_client_)
     {
         ws_client_->close();
-        ws_client_.reset();
     }
     LOG_INFO("{} shutdown", id_);
     co_return;
@@ -248,7 +247,7 @@ boost::asio::awaitable<void> download_session::send_download_file_request(const 
             co_return;
         }
     }
-    LOG_INFO("{} send download file request {} offset {} hash {}", id_, file.filename,req.offset ,req.hash.empty() ? "empty" : req.hash);
+    LOG_INFO("{} send download file request {} offset {} hash {}", id_, file.filename, req.offset, req.hash.empty() ? "empty" : req.hash);
     co_await write(leaf::serialize_download_file_request(req), ec);
 }
 

@@ -18,7 +18,7 @@ cotrol_session::cotrol_session(std::string id, std::string host, std::string por
     LOG_INFO("{} created", id_);
 }
 
-cotrol_session::~cotrol_session() { LOG_INFO("{} destroyed", id_); }
+cotrol_session::~cotrol_session() { LOG_INFO("{} destroy", id_); }
 
 void cotrol_session::startup()
 {

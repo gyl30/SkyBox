@@ -15,9 +15,10 @@ namespace leaf
 upload_session::upload_session(std::string id, std::string host, std::string port, std::string token, boost::asio::io_context& io)
     : id_(std::move(id)), host_(std::move(host)), port_(std::move(port)), token_(std::move(token)), io_(io)
 {
+    LOG_INFO("{} create", id_);
 }
 
-upload_session::~upload_session() = default;
+upload_session::~upload_session() { LOG_INFO("{} destroy", id_); }
 
 void upload_session::startup()
 {
@@ -159,7 +160,6 @@ boost::asio::awaitable<void> upload_session::shutdown_coro()
     if (ws_client_)
     {
         ws_client_->close();
-        ws_client_.reset();
     }
     LOG_INFO("{} shutdown", id_);
     co_return;
