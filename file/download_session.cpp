@@ -22,9 +22,9 @@ download_session::~download_session() { LOG_INFO("{} destroy", id_); }
 void download_session::startup()
 {
     LOG_INFO("{} startup", id_);
-
+    timer_ = std::make_shared<boost::asio::steady_timer>(io_);
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/download", io_);
-    auto msg = fmt::format("download session startup {}", token_);
+    auto msg = fmt::format("loop exception {}", token_);
     boost::asio::co_spawn(
         io_,
         [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); },
@@ -110,7 +110,7 @@ boost::asio::awaitable<void> download_session::login(boost::beast::error_code& e
 }
 boost::asio::awaitable<void> download_session::loop()
 {
-    LOG_INFO("{} download coro startup", id_);
+    LOG_INFO("{} loop", id_);
     boost::beast::error_code ec;
     co_await ws_client_->handshake(ec);
     if (ec)
@@ -126,6 +126,12 @@ boost::asio::awaitable<void> download_session::loop()
     }
     while (true)
     {
+        if (ec)
+        {
+            LOG_ERROR("{} download error {}", id_, ec.message());
+            break;
+        }
+
         LOG_INFO("{} download file size {}", id_, padding_files_.size());
         co_await send_keepalive(ec);
         if (ec)
@@ -134,24 +140,18 @@ boost::asio::awaitable<void> download_session::loop()
         }
         if (padding_files_.empty())
         {
-            co_await delay(3);
+            co_await delay(3, ec);
             continue;
         }
         co_await download(ec);
-        if (ec)
-        {
-            LOG_ERROR("{} download error {}", id_, ec.message());
-            break;
-        }
     }
 
-    LOG_INFO("{} download coro shutdown", id_);
+    LOG_INFO("{} loop quit", id_);
 }
-boost::asio::awaitable<void> download_session::delay(int second)
+boost::asio::awaitable<void> download_session::delay(int second, boost::beast::error_code& ec)
 {
-    boost::beast::error_code ec;
-    boost::asio::steady_timer timer(io_, std::chrono::seconds(second));
-    co_await timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    timer_->expires_after(std::chrono::seconds(second));
+    co_await timer_->async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
 boost::asio::awaitable<void> download_session::write(const std::vector<uint8_t>& data, boost::system::error_code& ec)
@@ -161,7 +161,7 @@ boost::asio::awaitable<void> download_session::write(const std::vector<uint8_t>&
 
 void download_session::shutdown()
 {
-    auto msg = fmt::format("download session shutdown {}", token_);
+    auto msg = fmt::format("shutdown exception {}", token_);
     boost::asio::co_spawn(
         io_,
         [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); },
@@ -170,6 +170,11 @@ void download_session::shutdown()
 
 boost::asio::awaitable<void> download_session::shutdown_coro()
 {
+    if (timer_ != nullptr)
+    {
+        timer_->cancel();
+        timer_.reset();
+    }
     if (ws_client_)
     {
         ws_client_->close();

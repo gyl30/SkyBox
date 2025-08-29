@@ -45,7 +45,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     boost::asio::awaitable<void> wait_ack(boost::beast::error_code &ec);
     boost::asio::awaitable<void> wait_file_data(leaf::download_session::download_context &ctx, boost::beast::error_code &ec);
     boost::asio::awaitable<void> wait_file_done(boost::beast::error_code &ec);
-    boost::asio::awaitable<void> delay(int second);
+    boost::asio::awaitable<void> delay(int second, boost::beast::error_code &ec);
 
    private:
     void safe_add_file(leaf::file_info f);
@@ -59,6 +59,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     std::string token_;
     boost::asio::io_context &io_;
     std::queue<leaf::file_info> padding_files_;
+    std::shared_ptr<boost::asio::steady_timer> timer_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
 };
 }    // namespace leaf

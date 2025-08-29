@@ -43,8 +43,7 @@ void file_transfer_client::startup()
 
 void file_transfer_client::shutdown()
 {
-    LOG_INFO("{} shutdown", id_);
-    auto msg = fmt::format("shutdown {}", id_);
+    auto msg = fmt::format("shutdown exception {}", id_);
     auto self = shared_from_this();
     std::call_once(shutdown_flag_,
                    [this, self, msg]()
@@ -75,11 +74,12 @@ boost::asio::awaitable<void> file_transfer_client::shutdown_coro()
         cotrol_->shutdown();
         cotrol_.reset();
     }
-    boost::system::error_code ec;
-    boost::asio::steady_timer timer(co_await boost::asio::this_coro::executor, std::chrono::seconds(1));
-    co_await timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-    timer.cancel();
+    // boost::system::error_code ec;
+    // boost::asio::steady_timer timer(co_await boost::asio::this_coro::executor, std::chrono::seconds(1));
+    // co_await timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    // timer.cancel();
     LOG_INFO("{} shutdown complete", id_);
+    co_return;
 }
 
 void file_transfer_client::add_upload_file(leaf::file_info f)

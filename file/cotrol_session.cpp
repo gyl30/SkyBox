@@ -23,7 +23,7 @@ cotrol_session::~cotrol_session() { LOG_INFO("{} destroy", id_); }
 void cotrol_session::startup()
 {
     LOG_INFO("{} startup host {} port {} token {}", id_, host_, port_, token_);
-    auto msg = fmt::format("{} loop exists", id_);
+    auto msg = fmt::format("{} loop exception", id_);
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/cotrol", io_);
     register_handler();
     boost::asio::co_spawn(
@@ -34,8 +34,8 @@ void cotrol_session::startup()
 
 boost::asio::awaitable<void> cotrol_session::loop()
 {
+    LOG_INFO("{} loop", id_);
     auto self = shared_from_this();
-    LOG_INFO("{} loop startup", id_);
     boost::beast::error_code ec;
     LOG_INFO("{} connect ws client {}:{} token {}", id_, host_, port_, token_);
     co_await ws_client_->handshake(ec);
@@ -84,7 +84,7 @@ boost::asio::awaitable<void> cotrol_session::loop()
         }
     }
 
-    LOG_INFO("{} loop shutdown", id_);
+    LOG_INFO("{} loop quit", id_);
 }
 
 boost::asio::awaitable<void> cotrol_session::wait_files_response(boost::beast::error_code& ec)
@@ -160,12 +160,16 @@ boost::asio::awaitable<void> cotrol_session::write(const std::vector<uint8_t>& d
 
 void cotrol_session::shutdown()
 {
+    auto msg = fmt::format("shutdown exception {}", token_);
     boost::asio::co_spawn(
-        io_, [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); }, boost::asio::detached);
+        io_,
+        [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); },
+        [msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); });
 }
 
 boost::asio::awaitable<void> cotrol_session::shutdown_coro()
 {
+    channel_.cancel();
     if (ws_client_)
     {
         ws_client_->close();
@@ -287,6 +291,7 @@ void cotrol_session::rename(const leaf::rename_request& req)
 
 void cotrol_session::push_message(message_pack&& mp)
 {
+    auto msg = fmt::format("{} push message exception", id_);
     boost::asio::co_spawn(
         io_,
         [this, self = shared_from_this(), mp = std::move(mp)]() -> boost::asio::awaitable<void>
@@ -294,7 +299,7 @@ void cotrol_session::push_message(message_pack&& mp)
             boost::system::error_code ec;
             co_await channel_.async_send(boost::system::error_code{}, mp, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
         },
-        boost::asio::detached);
+        [msg](const std::exception_ptr& e) { leaf::cache_exception(msg, e); });
 }
 
 }    // namespace leaf

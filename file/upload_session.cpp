@@ -23,8 +23,9 @@ upload_session::~upload_session() { LOG_INFO("{} destroy", id_); }
 void upload_session::startup()
 {
     LOG_INFO("{} startup", id_);
+    timer_ = std::make_shared<boost::asio::steady_timer>(io_);
     ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/upload", io_);
-    auto msg = fmt::format("upload session startup {}", token_);
+    auto msg = fmt::format("loop exception {}", token_);
     boost::asio::co_spawn(
         io_,
         [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await loop(); },
@@ -69,7 +70,7 @@ boost::asio::awaitable<void> upload_session::login(boost::beast::error_code& ec)
 }
 boost::asio::awaitable<void> upload_session::loop()
 {
-    LOG_INFO("{} startup", id_);
+    LOG_INFO("{} loop", id_);
     boost::beast::error_code ec;
     co_await ws_client_->handshake(ec);
     if (ec)
@@ -141,7 +142,7 @@ boost::asio::awaitable<void> upload_session::loop()
         }
         LOG_INFO("{} wait file done complete {}", id_, file.local_path);
     }
-    LOG_INFO("{} shutdown", id_);
+    LOG_INFO("{} loop quit", id_);
 }
 
 boost::asio::awaitable<void> upload_session::write(const std::vector<uint8_t>& data, boost::system::error_code& ec)
@@ -152,11 +153,16 @@ boost::asio::awaitable<void> upload_session::write(const std::vector<uint8_t>& d
 boost::asio::awaitable<void> upload_session::delay(int second)
 {
     boost::beast::error_code ec;
-    boost::asio::steady_timer timer(io_, std::chrono::seconds(second));
-    co_await timer.async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+    timer_->expires_after(std::chrono::seconds(second));
+    co_await timer_->async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 boost::asio::awaitable<void> upload_session::shutdown_coro()
 {
+    if (timer_ != nullptr)
+    {
+        timer_->cancel();
+        timer_ = nullptr;
+    }
     if (ws_client_)
     {
         ws_client_->close();
@@ -167,7 +173,7 @@ boost::asio::awaitable<void> upload_session::shutdown_coro()
 
 void upload_session::shutdown()
 {
-    auto msg = fmt::format("upload session shutdown {}", token_);
+    auto msg = fmt::format("shutdown exception {}", token_);
     boost::asio::co_spawn(
         io_,
         [this, self = shared_from_this()]() -> boost::asio::awaitable<void> { co_await shutdown_coro(); },
@@ -177,6 +183,7 @@ void upload_session::safe_add_file(const file_info& file)
 {
     LOG_INFO("{} add file {}", id_, file.filename);
     padding_files_.push_back(file);
+    timer_->cancel();
 }
 void upload_session::safe_add_files(const std::vector<file_info>& files)
 {
@@ -184,6 +191,7 @@ void upload_session::safe_add_files(const std::vector<file_info>& files)
     {
         padding_files_.push_back(filename);
     }
+    timer_->cancel();
 }
 
 void upload_session::add_file(const file_info& file)
