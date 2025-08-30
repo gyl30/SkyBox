@@ -88,7 +88,7 @@ main_window::main_window(QWidget *parent) : QWidget(parent)
 
 main_window::~main_window() { delete files_; }
 
-void main_window::handle_login_success(QString ip, uint16_t port, QString account, QString password, QString token)
+void main_window::handle_login_success(const QString &ip, uint16_t port, const QString &account, const QString &password, const QString &token)
 {
     delete files_;
 

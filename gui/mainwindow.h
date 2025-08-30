@@ -23,7 +23,7 @@ class main_window : public QWidget
     void on_close_clicked();
 
    private:
-    void handle_login_success(QString ip, uint16_t port, QString account, QString password, QString token);
+    void handle_login_success(const QString &ip, uint16_t port, const QString &account, const QString &password, const QString &token);
 
    private:
     QPoint last_pos_;
