@@ -92,7 +92,7 @@ void async_https_client::on_read(const boost::beast::error_code& ec, std::size_t
 void async_https_client::shutdown()
 {
     auto self = shared_from_this();
-    ex_.post([this, self]() { safe_shutdown(); });
+    boost::asio::post(ex_, [this, self]() { safe_shutdown(); });
 }
 
 void async_https_client::safe_shutdown()
