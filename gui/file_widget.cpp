@@ -706,7 +706,6 @@ void file_widget::upload_progress(const std::any &data)
 }
 void file_widget::on_upload_notify(const leaf::upload_event &e)
 {
-    upload_list_widget_->add_task_to_view(e);
     if (e.file_size == e.upload_size && e.file_size == 0 && e.upload_size == 0)
     {
         if (file_client_ != nullptr)
@@ -714,6 +713,10 @@ void file_widget::on_upload_notify(const leaf::upload_event &e)
             auto current_dir = path_manager_->current_directory();
             file_client_->change_current_dir(current_dir->path());
         }
+    }
+    else
+    {
+        upload_list_widget_->add_task_to_view(e);
     }
 }
 
