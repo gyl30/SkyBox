@@ -23,6 +23,8 @@ class plain_websocket_session : public leaf::websocket_session
     boost::asio::awaitable<void> handshake(boost::beast::error_code& /*unused*/) override;
     boost::asio::awaitable<void> read(boost::beast::error_code& /*unused*/, boost::beast::flat_buffer& /*unused*/) override;
     boost::asio::awaitable<void> write(boost::beast::error_code& /*unused*/, const uint8_t* /*unused*/, std::size_t /*unused*/) override;
+    void set_read_limit(std::size_t bytes_per_second) override;
+    void set_write_limit(std::size_t bytes_per_second) override;
     void close() override;
 
    private:

@@ -28,14 +28,21 @@ boost::asio::awaitable<void> ssl_websocket_session::handshake(boost::beast::erro
 
 boost::asio::awaitable<void> ssl_websocket_session::read(boost::beast::error_code& ec, boost::beast::flat_buffer& buffer)
 {
-    //
-
     co_await ws_.async_read(buffer, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 boost::asio::awaitable<void> ssl_websocket_session::write(boost::beast::error_code& ec, const uint8_t* data, std::size_t data_len)
 {
-    //
     co_await ws_.async_write(boost::asio::buffer(data, data_len), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+}
+
+void ssl_websocket_session::set_read_limit(std::size_t bytes_per_second)
+{
+    boost::beast::get_lowest_layer(ws_).rate_policy().read_limit(bytes_per_second);
+}
+
+void ssl_websocket_session::set_write_limit(std::size_t bytes_per_second)
+{
+    boost::beast::get_lowest_layer(ws_).rate_policy().write_limit(bytes_per_second);
 }
 
 void ssl_websocket_session::close()

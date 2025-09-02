@@ -23,6 +23,8 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     virtual boost::asio::awaitable<void> handshake(boost::beast::error_code&) = 0;
     virtual boost::asio::awaitable<void> read(boost::beast::error_code&, boost::beast::flat_buffer&) = 0;
     virtual boost::asio::awaitable<void> write(boost::beast::error_code&, const uint8_t*, std::size_t) = 0;
+    virtual void set_read_limit(std::size_t bytes_per_second) = 0;
+    virtual void set_write_limit(std::size_t bytes_per_second) = 0;
 };
 
 }    // namespace leaf

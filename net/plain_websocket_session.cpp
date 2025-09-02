@@ -18,11 +18,8 @@ plain_websocket_session::plain_websocket_session(std::string id,
     LOG_INFO("create {}", id_);
 }
 
-plain_websocket_session::~plain_websocket_session()
-{
-    //
-    LOG_INFO("destroy {}", id_);
-}
+plain_websocket_session::~plain_websocket_session() { LOG_INFO("destroy {}", id_); }
+
 boost::asio::awaitable<void> plain_websocket_session::handshake(boost::beast::error_code& ec)
 {
     ws_.set_option(boost::beast::websocket::stream_base::timeout::suggested(boost::beast::role_type::server));
@@ -35,17 +32,19 @@ boost::asio::awaitable<void> plain_websocket_session::handshake(boost::beast::er
 
 boost::asio::awaitable<void> plain_websocket_session::read(boost::beast::error_code& ec, boost::beast::flat_buffer& buffer)
 {
-    //
-
     co_await ws_.async_read(buffer, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
 
 boost::asio::awaitable<void> plain_websocket_session::write(boost::beast::error_code& ec, const uint8_t* data, std::size_t data_len)
 {
-    //
     ws_.binary(true);
     co_await ws_.async_write(boost::asio::buffer(data, data_len), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
+
+void plain_websocket_session::set_read_limit(std::size_t bytes_per_second) { ws_.next_layer().rate_policy().read_limit(bytes_per_second); }
+
+void plain_websocket_session::set_write_limit(std::size_t bytes_per_second) { ws_.next_layer().rate_policy().write_limit(bytes_per_second); }
+
 void plain_websocket_session::close()
 {
     if (ws_.is_open())

@@ -13,11 +13,8 @@ plain_websocket_client::plain_websocket_client(std::string id, std::string host,
     LOG_INFO("create {}", id_);
 }
 
-plain_websocket_client::~plain_websocket_client()
-{
-    //
-    LOG_INFO("destroy {}", id_);
-}
+plain_websocket_client::~plain_websocket_client() { LOG_INFO("destroy {}", id_); }
+
 boost::asio::awaitable<void> plain_websocket_client::handshake(boost::beast::error_code& ec)
 {
     auto resolver = boost::asio::use_awaitable_t<boost::asio::any_io_executor>::as_default_on(
@@ -55,6 +52,10 @@ boost::asio::awaitable<void> plain_websocket_client::write(boost::beast::error_c
     ws_->binary(true);
     co_await ws_->async_write(boost::asio::buffer(data, data_size), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 }
+
+void plain_websocket_client::set_read_limit(std::size_t bytes_per_second) { ws_->next_layer().rate_policy().read_limit(bytes_per_second); }
+
+void plain_websocket_client::set_write_limit(std::size_t bytes_per_second) { ws_->next_layer().rate_policy().write_limit(bytes_per_second); }
 
 void plain_websocket_client::close()
 {
