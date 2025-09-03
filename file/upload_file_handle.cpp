@@ -68,6 +68,8 @@ boost::asio::awaitable<void> upload_file_handle::loop()
         co_return;
     }
     LOG_INFO("{} handshake success", id_);
+    session_->set_read_limit(kMB * 10);
+    session_->set_write_limit(kKB);
     // setup 1 wait login
     co_await wait_login(ec);
     if (ec)
