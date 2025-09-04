@@ -294,8 +294,7 @@ boost::asio::awaitable<leaf::download_session::download_context> download_sessio
         }
         if (exists_size != response.filesize)
         {
-            ec = boost::system::errc::make_error_code(boost::system::errc::no_such_process);
-            co_return ctx;
+            LOG_INFO("{} file {} exists size {} response file size {} offset {}", id_, file_path, exists_size, response.filesize, response.offset);
         }
     }
 
@@ -343,8 +342,8 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
     }
 
     auto hash = std::make_shared<leaf::blake2b>();
-
-    int64_t write_offset = 0;
+    auto write_offset = static_cast<int64_t>(ctx.response.offset);
+    uint32_t write_size = write_offset;
     while (true)
     {
         boost::beast::flat_buffer buffer;
@@ -369,12 +368,19 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
             break;
         }
 
-        writer->write_at(write_offset, data->data.data(), data->data.size(), ec);
+        auto rsize = writer->write_at(write_offset, data->data.data(), data->data.size(), ec);
         if (ec)
         {
             LOG_ERROR("{} wait file data writer write error {}", id_, ec.message());
             break;
         }
+        if (rsize != data->data.size())
+        {
+            LOG_ERROR("{} wait file data writer write size {} != {}", id_, rsize, data->data.size());
+            ec = boost::system::errc::make_error_code(boost::system::errc::file_too_large);
+            break;
+        }
+        write_size += rsize;
         write_offset += static_cast<int64_t>(data->data.size());
         hash->update(data->data.data(), data->data.size());
         LOG_DEBUG("{} download file {} hash {} data size {} write size {}",
@@ -394,10 +400,11 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
                 break;
             }
             hash.reset();
+            hash = std::make_shared<leaf::blake2b>();
         }
         download_event d;
         d.filename = ctx.file->filename;
-        d.download_size = writer->size();
+        d.download_size = write_size;
         d.file_size = ctx.file->file_size;
         leaf::event_manager::instance().post("download", d);
         if (ctx.file->file_size == writer->size())

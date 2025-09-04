@@ -236,6 +236,7 @@ boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download
             hash->final();
             fd.hash = hash->hex();
             hash.reset();
+            hash = std::make_shared<leaf::blake2b>();
         }
         LOG_DEBUG("{} download file {} size {} hash {}", id_, ctx.file.local_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
         boost::beast::error_code write_ec;
