@@ -385,7 +385,7 @@ boost::asio::awaitable<void> upload_session::send_keepalive(boost::beast::error_
     k.client_id = reinterpret_cast<uintptr_t>(this);
     k.client_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     k.server_timestamp = padding_files_.size();
-    LOG_DEBUG("{} keepalive request client {} server_timestamp {} client_timestamp {} token {}",
+    LOG_TRACE("{} keepalive request client {} server_timestamp {} client_timestamp {} token {}",
               id_,
               k.client_id,
               k.server_timestamp,
@@ -412,7 +412,7 @@ boost::asio::awaitable<void> upload_session::send_keepalive(boost::beast::error_
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
-    LOG_DEBUG("{} keepalive response client {} server_timestamp {} client_timestamp {} token {}",
+    LOG_TRACE("{} keepalive response client {} server_timestamp {} client_timestamp {} token {}",
               id_,
               kk->client_id,
               kk->server_timestamp,

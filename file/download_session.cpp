@@ -3,6 +3,7 @@
 #include <filesystem>
 #include "log/log.h"
 #include "file/file.h"
+#include "config/config.h"
 #include "net/exception.h"
 #include "protocol/codec.h"
 #include "file/hash_file.h"
@@ -118,6 +119,8 @@ boost::asio::awaitable<void> download_session::loop()
         LOG_ERROR("{} download coro handshake error {}", id_, ec.message());
         co_return;
     }
+    ws_client_->set_write_limit(kMB);
+    ws_client_->set_read_limit(kMB * 10);
     co_await login(ec);
     if (ec)
     {

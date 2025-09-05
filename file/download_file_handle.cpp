@@ -68,7 +68,8 @@ boost::asio::awaitable<void> download_file_handle::loop()
         co_return;
     }
     LOG_INFO("{} handshake success", id_);
-
+    session_->set_read_limit(kMB);
+    session_->set_write_limit(kMB * 10);
     // setup 1 wait login
     LOG_INFO("{} wait login", id_);
     co_await wait_login(ec);
@@ -238,12 +239,20 @@ boost::asio::awaitable<void> download_file_handle::send_file_data(leaf::download
             hash.reset();
             hash = std::make_shared<leaf::blake2b>();
         }
-        LOG_DEBUG("{} download file {} size {} hash {}", id_, ctx.file.local_path, read_size, fd.hash.empty() ? "empty" : fd.hash);
+        LOG_DEBUG("{} download file {} offset {} read {} hash {}",
+                  id_,
+                  ctx.file.local_path,
+                  ctx.request.offset,
+                  read_size,
+                  fd.hash.empty() ? "empty" : fd.hash);
         boost::beast::error_code write_ec;
         if (!fd.data.empty())
         {
             co_await write(leaf::serialize_file_data(fd), write_ec);
         }
+        LOG_DEBUG(
+            "{} download file {} left {} hash {}", id_, ctx.file.local_path, ctx.request.offset + read_size, fd.hash.empty() ? "empty" : fd.hash);
+
         if (ec == boost::asio::error::eof || reader->size() == ctx.file.file_size)
         {
             LOG_INFO("{} download file {} complete", id_, ctx.file.local_path);
