@@ -13,11 +13,11 @@
 #include "gui/upload_item_widget.h"
 #include "gui/upload_item_delegate.h"
 
-upload_item_delegate::upload_item_delegate(QObject *parent) : QStyledItemDelegate(parent) {}
+file_item_delegate::file_item_delegate(QObject *parent) : QStyledItemDelegate(parent) {}
 
-QSize upload_item_delegate::sizeHint(const QStyleOptionViewItem & /*option*/, const QModelIndex & /*index*/) const { return {800, 60}; }
+QSize file_item_delegate::sizeHint(const QStyleOptionViewItem & /*option*/, const QModelIndex & /*index*/) const { return {800, 60}; }
 
-QWidget *upload_item_delegate::createEditor(QWidget *parent, const QStyleOptionViewItem & /*option*/, const QModelIndex & /*index*/) const
+QWidget *file_item_delegate::createEditor(QWidget *parent, const QStyleOptionViewItem & /*option*/, const QModelIndex & /*index*/) const
 {
     auto *editor = new upload_item_widget(parent);
 
@@ -46,7 +46,7 @@ QWidget *upload_item_delegate::createEditor(QWidget *parent, const QStyleOptionV
     return editor;
 }
 
-void upload_item_delegate::setEditorData(QWidget *editor, const QModelIndex &index) const
+void file_item_delegate::setEditorData(QWidget *editor, const QModelIndex &index) const
 {
     auto *item_widget = qobject_cast<upload_item_widget *>(editor);
     if (item_widget == nullptr)
@@ -72,12 +72,12 @@ void upload_item_delegate::setEditorData(QWidget *editor, const QModelIndex &ind
     }
 }
 
-void upload_item_delegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex & /*index*/) const
+void file_item_delegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex & /*index*/) const
 {
     editor->setGeometry(option.rect);
 }
 
-void upload_item_delegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+void file_item_delegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     if (!index.isValid())
     {

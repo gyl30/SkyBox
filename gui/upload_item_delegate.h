@@ -4,12 +4,12 @@
 #include <QModelIndex>
 #include <QStyledItemDelegate>
 
-class upload_item_delegate : public QStyledItemDelegate
+class file_item_delegate : public QStyledItemDelegate
 {
     Q_OBJECT
 
    public:
-    explicit upload_item_delegate(QObject *parent = nullptr);
+    explicit file_item_delegate(QObject *parent = nullptr);
 
     QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
     void setEditorData(QWidget *editor, const QModelIndex &index) const override;

@@ -6,16 +6,16 @@
 
 class QListView;
 class upload_task_model;
-class upload_item_delegate;
+class file_item_delegate;
 
 
-class upload_list_widget : public QWidget
+class file_list_widget : public QWidget
 {
     Q_OBJECT
 
    public:
-    explicit upload_list_widget(QWidget *parent = nullptr);
-    ~upload_list_widget() override = default;
+    explicit file_list_widget(QWidget *parent = nullptr);
+    ~file_list_widget() override = default;
 
    public slots:
     void add_task_to_view(const leaf::upload_event &e);
@@ -28,7 +28,7 @@ class upload_list_widget : public QWidget
    private:
     QListView *list_view_;
     upload_task_model *model_;
-    upload_item_delegate *delegate_;
+    file_item_delegate *delegate_;
 };
 
 #endif

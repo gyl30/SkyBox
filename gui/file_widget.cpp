@@ -38,9 +38,11 @@ file_widget::file_widget(std::string user, std::string password, std::string tok
     main_layout = new QVBoxLayout(this);
     stack_ = new QStackedWidget(this);
     file_page_ = new QWidget(stack_);
-    upload_list_widget_ = new upload_list_widget(stack_);
+    upload_list_widget_ = new file_list_widget(stack_);
+    download_list_widget_ = new file_list_widget(stack_);
     stack_->addWidget(file_page_);
     stack_->addWidget(upload_list_widget_);
+    stack_->addWidget(download_list_widget_);
     stack_->setCurrentWidget(file_page_);
 
     setup_side_ui();
@@ -80,8 +82,14 @@ void file_widget::setup_side_ui()
     btn_upload_page_->setCheckable(true);
     btn_upload_page_->setFixedHeight(30);
 
+    btn_download_page_ = new QPushButton("⏬ 下载任务");
+    btn_download_page_->setFlat(true);
+    btn_download_page_->setCheckable(true);
+    btn_download_page_->setFixedHeight(30);
+
     side_layout_->addWidget(btn_file_page_);
     side_layout_->addWidget(btn_upload_page_);
+    side_layout_->addWidget(btn_download_page_);
 }
 
 void file_widget::setup_files_ui()
@@ -197,6 +205,7 @@ void file_widget::setup_connections()
 {
     connect(btn_file_page_, &QPushButton::clicked, this, &file_widget::show_file_page);
     connect(btn_upload_page_, &QPushButton::clicked, this, &file_widget::show_upload_page);
+    connect(btn_download_page_, &QPushButton::clicked, this, &file_widget::show_download_page);
 
     connect(new_folder_btn_, &QPushButton::clicked, this, &file_widget::on_new_folder);
     connect(upload_file_btn_, &QPushButton::clicked, this, &file_widget::on_upload_file);
@@ -352,6 +361,15 @@ void file_widget::show_upload_page()
     stack_->setCurrentWidget(upload_list_widget_);
     btn_file_page_->setChecked(false);
     btn_upload_page_->setChecked(true);
+    btn_download_page_->setChecked(false);
+}
+
+void file_widget::show_download_page()
+{
+    stack_->setCurrentWidget(download_list_widget_);
+    btn_file_page_->setChecked(false);
+    btn_upload_page_->setChecked(false);
+    btn_download_page_->setChecked(true);
 }
 
 void file_widget::on_upload_file()

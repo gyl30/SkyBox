@@ -50,6 +50,7 @@ class file_widget : public QWidget
     void on_cotrol_notify(const leaf::cotrol_event& e);
     void show_file_page();
     void show_upload_page();
+    void show_download_page();
     void on_upload_file();
     void on_new_folder();
     void on_breadcrumb_clicked();
@@ -104,6 +105,7 @@ class file_widget : public QWidget
     QHBoxLayout* breadcrumb_layout_ = nullptr;
     QPushButton* btn_file_page_;
     QPushButton* btn_upload_page_;
+    QPushButton* btn_download_page_;
     QPushButton* new_folder_btn_;
     QPushButton* upload_file_btn_;
     QListView* view_ = nullptr;
@@ -114,7 +116,8 @@ class file_widget : public QWidget
     QVBoxLayout* side_layout_ = nullptr;
     QVBoxLayout* main_layout = nullptr;
     QHBoxLayout* content_layout_ = nullptr;
-    upload_list_widget* upload_list_widget_ = nullptr;
+    file_list_widget* upload_list_widget_ = nullptr;
+    file_list_widget* download_list_widget_ = nullptr;
     std::shared_ptr<leaf::path_manager> path_manager_ = nullptr;
     std::vector<std::shared_ptr<leaf::directory>> breadcrumb_list_;
     std::shared_ptr<leaf::file_transfer_client> file_client_ = nullptr;
