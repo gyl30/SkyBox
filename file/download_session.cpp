@@ -407,7 +407,7 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
         }
         download_event d;
         d.filename = ctx.file->filename;
-        d.download_size = write_size;
+        d.process_size = write_size;
         d.file_size = ctx.file->file_size;
         leaf::event_manager::instance().post("download", d);
         if (ctx.file->file_size == writer->size())

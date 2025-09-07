@@ -22,6 +22,7 @@
 #include <memory>
 #include "log/log.h"
 #include "gui/titlebar.h"
+#include "config/config.h"
 #include "file/file_item.h"
 #include "gui/file_widget.h"
 #include "file/event_manager.h"
@@ -293,6 +294,7 @@ void file_widget::view_custom_context_menu_requested(const QPoint &pos)
     QMenu context_menu(view_);
     QAction *rename_action = context_menu.addAction("✏️ 重命名");
     QAction *delete_action = context_menu.addAction("🗑️ 删除");
+    QAction *download_action = context_menu.addAction("⬇️ 下载");
     context_menu.addSeparator();
 
     QAction *selected_action = context_menu.exec(view_->viewport()->mapToGlobal(pos));
@@ -300,6 +302,10 @@ void file_widget::view_custom_context_menu_requested(const QPoint &pos)
     if (selected_action == rename_action)
     {
         view_->edit(index);
+    }
+    else if (selected_action == download_action)
+    {
+        on_download(*item);
     }
     else if (selected_action == delete_action)
     {
@@ -314,6 +320,22 @@ void file_widget::view_custom_context_menu_requested(const QPoint &pos)
     }
 }
 
+void file_widget::on_download(const leaf::file_item &i)
+{
+    if (file_client_ != nullptr)
+    {
+        auto local_dir = path_manager_->current_directory()->path();
+        auto current_path = std::filesystem::path(path_manager_->current_directory()->path());
+        auto file_path = current_path.append(i.display_name);
+        leaf::file_info fi;
+        fi.local_path = file_path.filename();
+        fi.filename = i.display_name;
+        fi.file_size = std::filesystem::file_size(fi.local_path);
+        fi.dir = local_dir;
+        LOG_DEBUG("download file local path {} filename {} file size {} dir {}", fi.local_path, fi.filename, fi.file_size, fi.dir);
+        file_client_->add_download_file(fi);
+    }
+}
 void file_widget::on_rename(const QModelIndex &index, const QString &old_name, const QString &new_name)
 {
     auto item_opt = model_->item_at(index.row());
@@ -707,7 +729,7 @@ void file_widget::download_progress(const std::any &data)
 {
     auto e = std::any_cast<leaf::download_event>(data);
     emit download_notify_signal(e);
-    LOG_DEBUG("--> download progress {} {} {}", e.filename, e.download_size, e.file_size);
+    LOG_DEBUG("--> download progress {} {} {}", e.filename, e.process_size, e.file_size);
 }
 
 void file_widget::notify_progress(const std::any &data)
@@ -718,13 +740,13 @@ void file_widget::notify_progress(const std::any &data)
 
 void file_widget::upload_progress(const std::any &data)
 {
-    auto e = std::any_cast<leaf::upload_event>(data);
-    LOG_DEBUG("upload progress: file {} progress {}:{}", e.filename, e.file_size, e.upload_size);
+    auto e = std::any_cast<leaf::file_event>(data);
+    LOG_DEBUG("upload progress: file {} progress {}:{}", e.filename, e.file_size, e.process_size);
     emit upload_notify_signal(e);
 }
-void file_widget::on_upload_notify(const leaf::upload_event &e)
+void file_widget::on_upload_notify(const leaf::file_event &e)
 {
-    if (e.file_size == e.upload_size && e.file_size == 0 && e.upload_size == 0)
+    if (e.file_size == e.process_size && e.file_size == 0 && e.process_size == 0)
     {
         if (file_client_ != nullptr)
         {
@@ -738,7 +760,12 @@ void file_widget::on_upload_notify(const leaf::upload_event &e)
     }
 }
 
-void file_widget::on_download_notify(const leaf::download_event &e) {}
+void file_widget::on_download_notify(const leaf::download_event &e)
+{
+    //
+    LOG_DEBUG("--> download progress {} {} {}", e.filename, e.process_size, e.file_size);
+    download_list_widget_->add_task_to_view(e);
+}
 
 void file_widget::on_cotrol_notify(const leaf::cotrol_event &e) {}
 

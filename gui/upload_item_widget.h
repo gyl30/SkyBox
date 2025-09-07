@@ -14,7 +14,7 @@ class upload_item_widget : public QWidget
 
    public:
     explicit upload_item_widget(QWidget *parent = nullptr);
-    void set_data(const leaf::upload_event &task);
+    void set_data(const leaf::file_event &task);
 
     [[nodiscard]] QPushButton *get_action_button() const { return action_button_; }
     [[nodiscard]] QPushButton *get_cancel_button() const { return cancel_button_; }

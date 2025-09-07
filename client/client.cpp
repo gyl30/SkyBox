@@ -16,13 +16,13 @@
 static void download_progress(const std::any &data)
 {
     auto e = std::any_cast<leaf::download_event>(data);
-    LOG_INFO("--> download progress {} {} {}", e.filename, e.download_size, e.file_size);
+    LOG_INFO("--> download progress {} {} {}", e.filename, e.process_size, e.file_size);
 }
 
 static void upload_progress(const std::any &data)
 {
-    auto e = std::any_cast<leaf::upload_event>(data);
-    LOG_INFO("<-- upload progress {} {} {}", e.filename, e.upload_size, e.file_size);
+    auto e = std::any_cast<leaf::file_event>(data);
+    LOG_INFO("<-- upload progress {} {} {}", e.filename, e.process_size, e.file_size);
 }
 
 static void cotrol_progress(const std::any &data)
@@ -100,7 +100,7 @@ std::optional<command_args> parse_command_line(int argc, char *argv[])
     boost::program_options::variables_map vm;
     boost::program_options::store(parsed, vm);
     boost::program_options::notify(vm);
-    if (vm.count("help") != 0U)
+    if (vm.contains("help"))
     {
         std::cerr << desc << "\n";
         return {};

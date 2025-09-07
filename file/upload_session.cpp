@@ -307,8 +307,8 @@ boost::asio::awaitable<void> upload_session::send_file_data(const file_info& fil
                   kBlockSize,
                   fd.hash.empty() ? "empty" : fd.hash);
 
-        upload_event u;
-        u.upload_size = reader->size();
+        file_event u;
+        u.process_size = reader->size();
         u.file_size = file.file_size;
         u.filename = file.local_path;
         leaf::event_manager::instance().post("upload", u);
@@ -355,8 +355,8 @@ boost::asio::awaitable<void> upload_session::wait_file_done(boost::beast::error_
         ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
         co_return;
     }
-    upload_event u;
-    u.upload_size = 0;
+    file_event u;
+    u.process_size = 0;
     u.file_size = 0;
     leaf::event_manager::instance().post("upload", u);
 }
@@ -370,10 +370,10 @@ void upload_session::padding_file_event()
 {
     for (const auto& file : padding_files_)
     {
-        upload_event e;
+        file_event e;
         e.filename = file.local_path;
         e.file_size = file.file_size;
-        e.upload_size = 0;
+        e.process_size = 0;
         LOG_DEBUG("padding files {}", e.filename);
         leaf::event_manager::instance().post("upload", e);
     }

@@ -56,7 +56,7 @@ void file_item_delegate::setEditorData(QWidget *editor, const QModelIndex &index
 
     item_widget->setProperty("model_index", QVariant::fromValue(index));
 
-    auto task = index.data(static_cast<int>(leaf::task_role::kFullEventRole)).value<leaf::upload_event>();
+    auto task = index.data(static_cast<int>(leaf::task_role::kFullEventRole)).value<leaf::file_event>();
 
     item_widget->set_data(task);
 

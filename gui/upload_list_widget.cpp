@@ -13,7 +13,7 @@ file_list_widget::file_list_widget(QWidget *parent) : QWidget(parent)
     layout->setContentsMargins(0, 0, 0, 0);
 
     list_view_ = new QListView(this);
-    model_ = new upload_task_model(this);
+    model_ = new file_task_model(this);
     delegate_ = new file_item_delegate(this);
 
     list_view_->setModel(model_);
@@ -48,9 +48,9 @@ file_list_widget::file_list_widget(QWidget *parent) : QWidget(parent)
             });
 }
 
-void file_list_widget::add_task_to_view(const leaf::upload_event &e) { model_->add_task(e); }
+void file_list_widget::add_task_to_view(const leaf::file_event &e) { model_->add_task(e); }
 
-void file_list_widget::remove_task_from_view(const leaf::upload_event &e) { model_->remove_task(e); }
+void file_list_widget::remove_task_from_view(const leaf::file_event &e) { model_->remove_task(e); }
 
 void file_list_widget::on_pause_button_clicked(const QModelIndex &index)
 {
@@ -59,7 +59,7 @@ void file_list_widget::on_pause_button_clicked(const QModelIndex &index)
         return;
     }
 
-    auto task = index.data(static_cast<int>(leaf::task_role::kFullEventRole)).value<leaf::upload_event>();
+    auto task = index.data(static_cast<int>(leaf::task_role::kFullEventRole)).value<leaf::file_event>();
 
     LOG_INFO("pause button clicked for file: {}", task.filename);
 }
@@ -71,7 +71,7 @@ void file_list_widget::on_cancel_button_clicked(const QModelIndex &index)
         return;
     }
 
-    auto task = index.data(static_cast<int>(leaf::task_role::kFullEventRole)).value<leaf::upload_event>();
+    auto task = index.data(static_cast<int>(leaf::task_role::kFullEventRole)).value<leaf::file_event>();
 
     LOG_INFO("cancel button clicked for file: {}", task.filename);
 }

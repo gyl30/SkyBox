@@ -6,25 +6,25 @@
 #include <QAbstractListModel>
 #include "file/event.h"
 
-class upload_task_model : public QAbstractListModel
+class file_task_model : public QAbstractListModel
 {
     Q_OBJECT
 
    public:
-    explicit upload_task_model(QObject *parent = nullptr);
+    explicit file_task_model(QObject *parent = nullptr);
 
     [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
 
    public slots:
-    void add_task(const leaf::upload_event &e);
-    void update_task(const leaf::upload_event &e);
-    void remove_task(const leaf::upload_event &e);
+    void add_task(const leaf::file_event &e);
+    void update_task(const leaf::file_event &e);
+    void remove_task(const leaf::file_event &e);
 
    private:
     [[nodiscard]] int find_task_index(const std::string &filename) const;
 
-    QVector<leaf::upload_event> tasks_;
+    QVector<leaf::file_event> tasks_;
 };
 
 #endif

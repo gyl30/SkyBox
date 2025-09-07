@@ -36,7 +36,7 @@ class file_widget : public QWidget
    Q_SIGNALS:
     void window_closed();
     void notify_event_signal(const leaf::notify_event& e);
-    void upload_notify_signal(const leaf::upload_event& e);
+    void upload_notify_signal(const leaf::file_event& e);
     void download_notify_signal(const leaf::download_event& e);
     void cotrol_notify_signal(const leaf::cotrol_event& e);
 
@@ -45,7 +45,7 @@ class file_widget : public QWidget
    private Q_SLOTS:
     void on_notify_event(const leaf::notify_event& e);
     void on_error_occurred(const QString& error_msg);
-    void on_upload_notify(const leaf::upload_event& e);
+    void on_upload_notify(const leaf::file_event& e);
     void on_download_notify(const leaf::download_event& e);
     void on_cotrol_notify(const leaf::cotrol_event& e);
     void show_file_page();
@@ -70,6 +70,7 @@ class file_widget : public QWidget
     void download_progress(const std::any& data);
     void on_files(const leaf::files_response& files);
     void error_progress(const std::any& data);
+    void on_download(const leaf::file_item& i);
 
    public:
     void mousePressEvent(QMouseEvent* e) override;

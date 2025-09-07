@@ -9,25 +9,22 @@
 namespace leaf
 {
 
-struct upload_event
+struct file_event
 {
     uint64_t file_size = 0;
-    uint64_t upload_size = 0;
+    uint64_t process_size = 0;
     double speed_mbps = 0.0;
     int remaining_time_sec = 0;
     std::string filename;
 };
+using upload_event = file_event;
+using download_event = file_event;
+
 struct notify_event
 {
     std::string method;
     std::string error;
     std::any data;
-};
-struct download_event
-{
-    uint64_t file_size = 0;
-    uint64_t download_size = 0;
-    std::string filename;
 };
 
 struct error_event
@@ -42,7 +39,7 @@ struct cotrol_event
 };
 
 using download_progress_callback = std::function<void(const download_event&)>;
-using upload_progress_callback = std::function<void(const upload_event&)>;
+using upload_progress_callback = std::function<void(const file_event&)>;
 using notify_progress_callback = std::function<void(const notify_event&)>;
 using cotrol_progress_callback = std::function<void(const cotrol_event&)>;
 using error_progress_callback = std::function<void(const boost::system::error_code&)>;

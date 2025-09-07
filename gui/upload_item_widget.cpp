@@ -83,21 +83,21 @@ void upload_item_widget::setup_ui()
     main_layout->setStretch(3, 0);
 }
 
-void upload_item_widget::set_data(const leaf::upload_event &task)
+void upload_item_widget::set_data(const leaf::file_event &task)
 {
     file_name_label_->setText(QFileInfo(QString::fromStdString(task.filename)).fileName());
     file_name_label_->setToolTip(file_name_label_->text());
 
     size_label_->setText(QString("%1 / %2")
-                             .arg(QLocale().formattedDataSize(static_cast<int64_t>(task.upload_size), 1, QLocale::DataSizeTraditionalFormat))
+                             .arg(QLocale().formattedDataSize(static_cast<int64_t>(task.process_size), 1, QLocale::DataSizeTraditionalFormat))
                              .arg(QLocale().formattedDataSize(static_cast<int64_t>(task.file_size), 1, QLocale::DataSizeTraditionalFormat)));
 
-    int percentage = (task.file_size > 0) ? static_cast<int>((task.upload_size * 100) / task.file_size) : 0;
+    int percentage = (task.file_size > 0) ? static_cast<int>((task.process_size * 100) / task.file_size) : 0;
     progress_bar_->setValue(percentage);
 
     if (task.file_size > 0)
     {
-        progress_bar_->setFormat(QString::asprintf("%.1f%%", static_cast<float>(task.upload_size) / static_cast<float>(task.file_size)));
+        progress_bar_->setFormat(QString::asprintf("%.1f%%", static_cast<float>(task.process_size) / static_cast<float>(task.file_size)));
     }
     else
     {

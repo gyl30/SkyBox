@@ -5,7 +5,7 @@
 #include "file/event.h"
 
 class QListView;
-class upload_task_model;
+class file_task_model;
 class file_item_delegate;
 
 
@@ -18,8 +18,8 @@ class file_list_widget : public QWidget
     ~file_list_widget() override = default;
 
    public slots:
-    void add_task_to_view(const leaf::upload_event &e);
-    void remove_task_from_view(const leaf::upload_event &e);
+    void add_task_to_view(const leaf::file_event &e);
+    void remove_task_from_view(const leaf::file_event &e);
 
    private slots:
     void on_pause_button_clicked(const QModelIndex &index);
@@ -27,7 +27,7 @@ class file_list_widget : public QWidget
 
    private:
     QListView *list_view_;
-    upload_task_model *model_;
+    file_task_model *model_;
     file_item_delegate *delegate_;
 };
 
