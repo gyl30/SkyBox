@@ -330,7 +330,7 @@ void file_widget::on_download(const leaf::file_item &i)
         leaf::file_info fi;
         fi.local_path = file_path.filename();
         fi.filename = i.display_name;
-        fi.file_size = std::filesystem::file_size(fi.local_path);
+        fi.file_size = i.file_size;
         fi.dir = local_dir;
         LOG_DEBUG("download file local path {} filename {} file size {} dir {}", fi.local_path, fi.filename, fi.file_size, fi.dir);
         file_client_->add_download_file(fi);

@@ -237,6 +237,7 @@ static std::vector<leaf::file_node> lookup_dir(const std::filesystem::path& dir,
                 continue;
             }
             f.type = "file";
+            f.file_size = static_cast<int64_t>(entry.file_size());
             f.name = leaf::decode(leaf::decode_leaf_filename(file_path.filename().string()));
         }
         else
