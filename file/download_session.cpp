@@ -143,7 +143,9 @@ boost::asio::awaitable<void> download_session::loop()
         }
         if (padding_files_.empty())
         {
+            LOG_INFO("--> delay file size {}", padding_files_.size());
             co_await delay(3, ec);
+            LOG_INFO("<-- delay file size {}", padding_files_.size());
             continue;
         }
         co_await download(ec);
@@ -226,16 +228,6 @@ boost::asio::awaitable<void> download_session::download(boost::beast::error_code
             LOG_ERROR("{} wait file data error {} {}", id_, ctx.response.filename, ec.message());
             break;
         }
-        LOG_INFO("{} wait file data success for download file {}", id_, ctx.response.filename);
-        // wait file done
-        LOG_INFO("{} wait file done for download file {}", id_, ctx.response.filename);
-        co_await wait_file_done(ec);
-        if (ec)
-        {
-            LOG_ERROR("{} wait file done error {} {}", id_, ctx.response.filename, ec.message());
-            break;
-        }
-        LOG_INFO("{} wait file done success for download file {}", id_, ctx.response.filename);
     }
     co_return;
 }
@@ -350,15 +342,19 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
     while (true)
     {
         boost::beast::flat_buffer buffer;
-        // leaf::download_file_response response;
         co_await ws_client_->read(ec, buffer);
         if (ec)
         {
-            LOG_ERROR("{} wait ack error {}", id_, ec.message());
+            LOG_ERROR("{} read error {}", id_, ec.message());
             break;
         }
         auto message = boost::beast::buffers_to_string(buffer.data());
         auto type = leaf::get_message_type(message);
+        if (type == leaf::message_type::done)
+        {
+            LOG_INFO("{} file data done", id_);
+            break;
+        }
         if (type != leaf::message_type::file_data)
         {
             ec = boost::system::errc::make_error_code(boost::system::errc::protocol_error);
@@ -414,6 +410,10 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
         {
             LOG_INFO("{} download file {} size {} done", id_, ctx.file->local_path, d.file_size);
         }
+    }
+    if (ec)
+    {
+        co_return;
     }
     ec = writer->close();
     if (ec)
