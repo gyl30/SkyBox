@@ -1,5 +1,5 @@
-#ifndef LEAF_GUI_UPLOAD_LIST_WIDGET_H
-#define LEAF_GUI_UPLOAD_LIST_WIDGET_H
+#ifndef LEAF_GUI_FILE_LIST_WIDGET_H
+#define LEAF_GUI_FILE_LIST_WIDGET_H
 
 #include <QWidget>
 #include "file/event.h"

@@ -1,7 +1,7 @@
 #include <QFileInfo>
 #include "gui/util.h"
 #include "file/event.h"
-#include "gui/upload_task_model.h"
+#include "gui/file_task_model.h"
 
 file_task_model::file_task_model(QObject *parent) : QAbstractListModel(parent) {}
 

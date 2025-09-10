@@ -22,7 +22,6 @@
 #include <memory>
 #include "log/log.h"
 #include "gui/titlebar.h"
-#include "config/config.h"
 #include "file/file_item.h"
 #include "gui/file_widget.h"
 #include "file/event_manager.h"
@@ -713,6 +712,7 @@ void file_widget::startup(const QString &ip, uint16_t port)
 
 void file_widget::error_progress(const std::any &data)
 {
+    (void)this;
     auto e = std::any_cast<leaf::error_event>(data);
     LOG_ERROR("error {}", e.message);
 }

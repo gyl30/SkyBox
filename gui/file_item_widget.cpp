@@ -9,15 +9,15 @@
 #include <QLocale>
 
 #include "gui/util.h"
-#include "gui/upload_item_widget.h"
+#include "gui/file_item_widget.h"
 
-upload_item_widget::upload_item_widget(QWidget *parent) : QWidget(parent)
+file_item_widget::file_item_widget(QWidget *parent) : QWidget(parent)
 {
     setup_ui();
     setAttribute(Qt::WA_TranslucentBackground);
 }
 
-void upload_item_widget::setup_ui()
+void file_item_widget::setup_ui()
 {
     auto *main_layout = new QHBoxLayout(this);
     main_layout->setContentsMargins(15, 0, 15, 0);
@@ -83,7 +83,7 @@ void upload_item_widget::setup_ui()
     main_layout->setStretch(3, 0);
 }
 
-void upload_item_widget::set_data(const leaf::file_event &task)
+void file_item_widget::set_data(const leaf::file_event &task)
 {
     file_name_label_->setText(QFileInfo(QString::fromStdString(task.filename)).fileName());
     file_name_label_->setToolTip(file_name_label_->text());

@@ -10,8 +10,8 @@
 #include <QAbstractItemView>
 #include "gui/util.h"
 #include "file/event.h"
-#include "gui/upload_item_widget.h"
-#include "gui/upload_item_delegate.h"
+#include "gui/file_item_widget.h"
+#include "gui/file_item_delegate.h"
 
 file_item_delegate::file_item_delegate(QObject *parent) : QStyledItemDelegate(parent) {}
 
@@ -19,7 +19,7 @@ QSize file_item_delegate::sizeHint(const QStyleOptionViewItem & /*option*/, cons
 
 QWidget *file_item_delegate::createEditor(QWidget *parent, const QStyleOptionViewItem & /*option*/, const QModelIndex & /*index*/) const
 {
-    auto *editor = new upload_item_widget(parent);
+    auto *editor = new file_item_widget(parent);
 
     connect(editor->get_action_button(),
             &QPushButton::clicked,
@@ -48,7 +48,7 @@ QWidget *file_item_delegate::createEditor(QWidget *parent, const QStyleOptionVie
 
 void file_item_delegate::setEditorData(QWidget *editor, const QModelIndex &index) const
 {
-    auto *item_widget = qobject_cast<upload_item_widget *>(editor);
+    auto *item_widget = qobject_cast<file_item_widget *>(editor);
     if (item_widget == nullptr)
     {
         return;

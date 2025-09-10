@@ -1,5 +1,5 @@
-#ifndef LEAF_GUI_UPLOAD_ITEM_DELEGATE_H
-#define LEAF_GUI_UPLOAD_ITEM_DELEGATE_H
+#ifndef LEAF_GUI_FILE_ITEM_DELEGATE_H
+#define LEAF_GUI_FILE_ITEM_DELEGATE_H
 
 #include <QModelIndex>
 #include <QStyledItemDelegate>

@@ -1,5 +1,5 @@
-#ifndef LEAF_GUI_UPLOAD_TASK_MODEL_H
-#define LEAF_GUI_UPLOAD_TASK_MODEL_H
+#ifndef LEAF_GUI_FILE_TASK_MODEL_H
+#define LEAF_GUI_FILE_TASK_MODEL_H
 
 #include <QVector>
 #include <QMetaType>

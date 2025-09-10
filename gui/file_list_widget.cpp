@@ -3,9 +3,9 @@
 #include "log/log.h"
 #include "gui/util.h"
 #include "file/event.h"
-#include "gui/upload_task_model.h"
-#include "gui/upload_list_widget.h"
-#include "gui/upload_item_delegate.h"
+#include "gui/file_task_model.h"
+#include "gui/file_list_widget.h"
+#include "gui/file_item_delegate.h"
 
 file_list_widget::file_list_widget(QWidget *parent) : QWidget(parent)
 {
@@ -54,6 +54,7 @@ void file_list_widget::remove_task_from_view(const leaf::file_event &e) { model_
 
 void file_list_widget::on_pause_button_clicked(const QModelIndex &index)
 {
+    (void)this;
     if (!index.isValid())
     {
         return;
@@ -66,6 +67,7 @@ void file_list_widget::on_pause_button_clicked(const QModelIndex &index)
 
 void file_list_widget::on_cancel_button_clicked(const QModelIndex &index)
 {
+    (void)this;
     if (!index.isValid())
     {
         return;

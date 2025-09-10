@@ -1,5 +1,5 @@
-#ifndef LEAF_GUI_UPLOAD_ITEM_WIDGET_H
-#define LEAF_GUI_UPLOAD_ITEM_WIDGET_H
+#ifndef LEAF_GUI_FILE_ITEM_WIDGET_H
+#define LEAF_GUI_FILE_ITEM_WIDGET_H
 
 #include <QWidget>
 #include "file/event.h"
@@ -8,12 +8,12 @@ class QLabel;
 class QProgressBar;
 class QPushButton;
 
-class upload_item_widget : public QWidget
+class file_item_widget : public QWidget
 {
     Q_OBJECT
 
    public:
-    explicit upload_item_widget(QWidget *parent = nullptr);
+    explicit file_item_widget(QWidget *parent = nullptr);
     void set_data(const leaf::file_event &task);
 
     [[nodiscard]] QPushButton *get_action_button() const { return action_button_; }

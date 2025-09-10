@@ -16,7 +16,7 @@
 #include "file/event.h"
 #include "file/directory.h"
 #include "gui/file_model.h"
-#include "gui/upload_list_widget.h"
+#include "gui/file_list_widget.h"
 #include "file/file_transfer_client.h"
 
 class file_widget : public QWidget
