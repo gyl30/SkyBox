@@ -327,7 +327,7 @@ void file_widget::on_download(const leaf::file_item &i)
         auto current_path = std::filesystem::path(path_manager_->current_directory()->path());
         auto file_path = current_path.append(i.display_name);
         leaf::file_info fi;
-        fi.local_path = file_path.filename();
+        fi.local_path = file_path.string();
         fi.filename = i.display_name;
         fi.file_size = i.file_size;
         fi.dir = local_dir;

@@ -300,8 +300,11 @@ boost::asio::awaitable<leaf::download_file_handle::download_context> download_fi
         co_return ctx;
     }
     const auto& msg = download.value();
-    auto download_file_path = leaf::encode_leaf_filename(leaf::make_file_path(token_, leaf::encode(msg.filename)));
-    LOG_INFO("{} download file {} to {}", id_, msg.filename, download_file_path);
+    auto local_path = std::filesystem::path(token_).append(download->dir).string();
+    auto file_path = leaf::make_file_path(local_path, leaf::encode(download->filename));
+    auto download_file_path = leaf::encode_leaf_filename(file_path);
+
+    LOG_INFO("{} download file {} dir {} to {}", id_, msg.filename, msg.dir, download_file_path);
     bool exist = std::filesystem::exists(download_file_path, ec);
     if (ec)
     {

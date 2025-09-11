@@ -190,44 +190,41 @@ boost::asio::awaitable<void> download_session::shutdown_coro()
 
 boost::asio::awaitable<void> download_session::download(boost::beast::error_code& ec)
 {
-    while (!padding_files_.empty())
+    auto file = padding_files_.front();
+    padding_files_.pop();
+    // send download file request
+    LOG_INFO("{} send download file request {}", id_, file.local_path);
+    co_await send_download_file_request(file, ec);
+    if (ec)
     {
-        auto file = padding_files_.front();
-        padding_files_.pop();
-        // send download file request
-        LOG_INFO("{} send download file request {}", id_, file.local_path);
-        co_await send_download_file_request(file, ec);
-        if (ec)
-        {
-            LOG_ERROR("{} send download file request error {} {}", id_, file.local_path, ec.message());
-            break;
-        }
-        LOG_INFO("{} send download file request success {}", id_, file.local_path);
-        // wait download file response
-        auto ctx = co_await wait_download_file_response(ec);
-        if (ec)
-        {
-            LOG_ERROR("{} wait download file response error {} {}", id_, file.local_path, ec.message());
-            break;
-        }
-        LOG_INFO("{} wait download file response success {} file size {}", id_, ctx.response.filename, ctx.response.filesize);
-        // wait ack message
-        LOG_INFO("{} wait ack for download file {}", id_, ctx.response.filename);
-        co_await wait_ack(ec);
-        if (ec)
-        {
-            LOG_ERROR("{} wait ack error {} {}", id_, file.local_path, ec.message());
-            break;
-        }
-        LOG_INFO("{} wait ack success for download file {}", id_, ctx.response.filename);
-        // wait file data
-        LOG_INFO("{} wait file data for download file {}", id_, ctx.response.filename);
-        co_await wait_file_data(ctx, ec);
-        if (ec)
-        {
-            LOG_ERROR("{} wait file data error {} {}", id_, ctx.response.filename, ec.message());
-            break;
-        }
+        LOG_ERROR("{} send download file request error {} {}", id_, file.local_path, ec.message());
+        co_return;
+    }
+    LOG_INFO("{} send download file request success {}", id_, file.local_path);
+    // wait download file response
+    auto ctx = co_await wait_download_file_response(ec);
+    if (ec)
+    {
+        LOG_ERROR("{} wait download file response error {} {}", id_, file.local_path, ec.message());
+        co_return;
+    }
+    LOG_INFO("{} wait download file response success {} file size {}", id_, ctx.response.filename, ctx.response.filesize);
+    // wait ack message
+    LOG_INFO("{} wait ack for download file {}", id_, ctx.response.filename);
+    co_await wait_ack(ec);
+    if (ec)
+    {
+        LOG_ERROR("{} wait ack error {} {}", id_, file.local_path, ec.message());
+        co_return;
+    }
+    LOG_INFO("{} wait ack success for download file {}", id_, ctx.response.filename);
+    // wait file data
+    LOG_INFO("{} wait file data for download file {}", id_, ctx.response.filename);
+    co_await wait_file_data(ctx, ec);
+    if (ec)
+    {
+        LOG_ERROR("{} wait file data error {} {}", id_, ctx.response.filename, ec.message());
+        co_return;
     }
     co_return;
 }
