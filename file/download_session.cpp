@@ -336,6 +336,8 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
     auto hash = std::make_shared<leaf::blake2b>();
     auto write_offset = static_cast<int64_t>(ctx.response.offset);
     uint32_t write_size = write_offset;
+
+    auto start_time = std::chrono::steady_clock::now();
     while (true)
     {
         boost::beast::flat_buffer buffer;
@@ -398,10 +400,12 @@ boost::asio::awaitable<void> download_session::wait_file_data(leaf::download_ses
             hash.reset();
             hash = std::make_shared<leaf::blake2b>();
         }
+
         download_event d;
         d.filename = ctx.file->filename;
         d.process_size = write_size;
         d.file_size = ctx.file->file_size;
+        d.remaining_time_mil = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
         leaf::event_manager::instance().post("download", d);
         if (ctx.file->file_size == writer->size())
         {

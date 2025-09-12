@@ -97,13 +97,33 @@ void file_item_widget::set_data(const leaf::file_event &task)
 
     if (task.file_size > 0)
     {
-        progress_bar_->setFormat(QString::asprintf("%.1f%%", static_cast<float>(task.process_size) / static_cast<float>(task.file_size)));
+        progress_bar_->setFormat(QString::asprintf("%.1f%%", static_cast<float>(task.process_size * 100) / static_cast<float>(task.file_size)));
     }
     else
     {
         progress_bar_->setFormat("0.0%");
     }
 
-    time_label_->setText(leaf::format_time(task.remaining_time_sec));
-    speed_label_->setText(QString::asprintf("%.1f MB/s", task.speed_mbps));
+    int second = 0;
+    if (task.remaining_time_mil > 1000)
+    {
+        second = static_cast<int>(task.remaining_time_mil / 1000);
+    }
+    time_label_->setText(leaf::format_time(second));
+    speed_label_->setText(QString::asprintf("%.1d KB/s", 0));
+    if (task.process_size > 0 && task.remaining_time_mil > 0)
+    {
+        auto bytes_per_sec = static_cast<double>(task.process_size / task.remaining_time_mil);    // NOLINT
+        bytes_per_sec = bytes_per_sec * 1000;
+        if (bytes_per_sec >= 1024 * 1024)
+        {
+            auto speed_value = bytes_per_sec / (1024.0 * 1024.0);
+            speed_label_->setText(QString::asprintf("%.1f MB/s", speed_value));
+        }
+        else
+        {
+            auto speed_value = bytes_per_sec / 1024.0;
+            speed_label_->setText(QString::asprintf("%.1f KB/s", speed_value));
+        }
+    }
 }
