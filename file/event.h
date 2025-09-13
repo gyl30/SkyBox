@@ -12,6 +12,7 @@ namespace leaf
 struct file_event
 {
     uint64_t file_size = 0;
+    uint64_t offset = 0;
     uint64_t process_size = 0;
     int64_t remaining_time_mil = 0;
     std::string filename;

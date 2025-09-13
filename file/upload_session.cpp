@@ -267,6 +267,7 @@ boost::asio::awaitable<void> upload_session::send_file_data(const file_info& fil
 
     uint8_t buffer[kBlockSize] = {0};
     int64_t read_offset = 0;
+    auto start_time = std::chrono::steady_clock::now();
     while (true)
     {
         assert(reader->size() <= file.file_size);
@@ -309,8 +310,10 @@ boost::asio::awaitable<void> upload_session::send_file_data(const file_info& fil
 
         file_event u;
         u.process_size = reader->size();
+        u.offset = read_offset;
         u.file_size = file.file_size;
         u.filename = file.local_path;
+        u.remaining_time_mil = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count();
         leaf::event_manager::instance().post("upload", u);
 
         if (!fd.data.empty())

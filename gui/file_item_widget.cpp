@@ -88,16 +88,18 @@ void file_item_widget::set_data(const leaf::file_event &task)
     file_name_label_->setText(QFileInfo(QString::fromStdString(task.filename)).fileName());
     file_name_label_->setToolTip(file_name_label_->text());
 
-    size_label_->setText(QString("%1 / %2")
-                             .arg(QLocale().formattedDataSize(static_cast<int64_t>(task.process_size), 1, QLocale::DataSizeTraditionalFormat))
-                             .arg(QLocale().formattedDataSize(static_cast<int64_t>(task.file_size), 1, QLocale::DataSizeTraditionalFormat)));
+    size_label_->setText(
+        QString("%1 / %2")
+            .arg(QLocale().formattedDataSize(static_cast<int64_t>(task.process_size + task.offset), 1, QLocale::DataSizeTraditionalFormat))
+            .arg(QLocale().formattedDataSize(static_cast<int64_t>(task.file_size), 1, QLocale::DataSizeTraditionalFormat)));
 
     int percentage = (task.file_size > 0) ? static_cast<int>((task.process_size * 100) / task.file_size) : 0;
     progress_bar_->setValue(percentage);
 
     if (task.file_size > 0)
     {
-        progress_bar_->setFormat(QString::asprintf("%.1f%%", static_cast<float>(task.process_size * 100) / static_cast<float>(task.file_size)));
+        progress_bar_->setFormat(
+            QString::asprintf("%.1f%%", static_cast<float>((task.process_size + task.offset) * 100) / static_cast<float>(task.file_size)));
     }
     else
     {
