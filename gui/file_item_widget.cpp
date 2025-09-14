@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QStackedLayout>
 #include <QFileInfo>
+#include <QGridLayout>
 #include <QLocale>
 
 #include "gui/util.h"
@@ -19,7 +20,7 @@ file_item_widget::file_item_widget(QWidget *parent) : QWidget(parent)
 
 void file_item_widget::setup_ui()
 {
-    auto *main_layout = new QHBoxLayout(this);
+    auto *main_layout = new QGridLayout(this);
     main_layout->setContentsMargins(15, 0, 15, 0);
     main_layout->setSpacing(20);
     main_layout->setAlignment(Qt::AlignVCenter);
@@ -71,16 +72,15 @@ void file_item_widget::setup_ui()
     actions_layout->addWidget(action_button_);
     actions_layout->addWidget(cancel_button_);
 
-    main_layout->addWidget(file_info_widget);
-    main_layout->addWidget(progress_widget);
-    main_layout->addWidget(speed_label_);
-    main_layout->addSpacing(45);
-    main_layout->addWidget(actions_widget);
+    main_layout->addWidget(file_info_widget, 0, 0);
+    main_layout->addWidget(progress_widget, 0, 1);
+    main_layout->addWidget(speed_label_, 0, 2);
+    main_layout->addWidget(actions_widget, 0, 3);
 
-    main_layout->setStretch(0, 5);
-    main_layout->setStretch(1, 3);
-    main_layout->setStretch(2, 0);
-    main_layout->setStretch(3, 0);
+    main_layout->setColumnStretch(0, 3);
+    main_layout->setColumnStretch(1, 5);
+    main_layout->setColumnStretch(2, 1);
+    main_layout->setColumnStretch(3, 1);
 }
 
 void file_item_widget::set_data(const leaf::file_event &task)
