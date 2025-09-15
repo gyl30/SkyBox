@@ -6,7 +6,6 @@
 #include <QPushButton>
 #include <QStackedLayout>
 #include <QFileInfo>
-#include <QGridLayout>
 #include <QLocale>
 
 #include "gui/util.h"
@@ -22,7 +21,7 @@ void file_item_widget::setup_ui()
 {
     auto *main_layout = new QGridLayout(this);
     main_layout->setContentsMargins(15, 0, 15, 0);
-    main_layout->setSpacing(20);
+    main_layout->setSpacing(10);
     main_layout->setAlignment(Qt::AlignVCenter);
 
     auto *file_info_widget = new QWidget();
@@ -39,9 +38,9 @@ void file_item_widget::setup_ui()
 
     auto *progress_widget = new QWidget();
     auto *progress_layout = new QGridLayout(progress_widget);
-    progress_layout->setContentsMargins(0, 0, 45, 0);
+    progress_layout->setContentsMargins(0, 0, 10, 0);
     progress_layout->setVerticalSpacing(2);
-    progress_layout->setHorizontalSpacing(45);
+    progress_layout->setHorizontalSpacing(10);
 
     progress_bar_ = new QProgressBar();
     progress_bar_->setFixedHeight(22);
@@ -62,7 +61,7 @@ void file_item_widget::setup_ui()
     auto *actions_widget = new QWidget();
     auto *actions_layout = new QHBoxLayout(actions_widget);
     actions_layout->setContentsMargins(0, 0, 0, 0);
-    actions_layout->setSpacing(45);
+    actions_layout->setSpacing(15);
     action_button_ = new QPushButton();
     cancel_button_ = new QPushButton();
     action_button_->setFixedSize(22, 22);
@@ -77,8 +76,8 @@ void file_item_widget::setup_ui()
     main_layout->addWidget(speed_label_, 0, 2);
     main_layout->addWidget(actions_widget, 0, 3);
 
-    main_layout->setColumnStretch(0, 3);
-    main_layout->setColumnStretch(1, 5);
+    main_layout->setColumnStretch(0, 5);
+    main_layout->setColumnStretch(1, 3);
     main_layout->setColumnStretch(2, 1);
     main_layout->setColumnStretch(3, 1);
 }
