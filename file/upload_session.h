@@ -22,6 +22,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
 
    private:
     boost::asio::awaitable<void> loop();
+    boost::asio::awaitable<void> loop1(boost::beast::error_code &ec);
     boost::asio::awaitable<void> write(const std::vector<uint8_t> &data, boost::system::error_code &ec);
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> delay(int second);
