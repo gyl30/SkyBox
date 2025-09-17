@@ -48,7 +48,7 @@ class upload_session : public std::enable_shared_from_this<upload_session>
     std::string token_;
     boost::asio::io_context &io_;
     std::deque<file_info> padding_files_;
-
+    bool shutdown_ = false;
     std::shared_ptr<boost::asio::steady_timer> timer_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
 };

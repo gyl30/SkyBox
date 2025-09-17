@@ -7,6 +7,7 @@
 #include "crypt/blake2b.h"
 #include "protocol/codec.h"
 #include "protocol/message.h"
+#include "net/scoped_exit.hpp"
 #include "file/event_manager.h"
 #include "file/upload_session.h"
 
@@ -74,7 +75,7 @@ boost::asio::awaitable<void> upload_session::loop()
         ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/upload", io_);
         boost::beast::error_code ec;
         co_await loop1(ec);
-        if (ec != boost::asio::error::eof)
+        if (shutdown_)
         {
             break;
         }
@@ -116,7 +117,6 @@ boost::asio::awaitable<void> upload_session::loop1(boost::beast::error_code& ec)
             continue;
         }
         auto file = padding_files_.front();
-        padding_files_.pop_front();
         // send upload file request
         LOG_INFO("{} send upload request file {} name {} dir {}", id_, file.local_path, file.filename, file.dir);
         co_await send_upload_file_request(file, ec);
@@ -157,6 +157,7 @@ boost::asio::awaitable<void> upload_session::loop1(boost::beast::error_code& ec)
             LOG_ERROR("{} wait file done error {} {}", id_, ec.message(), file.local_path);
             break;
         }
+        padding_files_.pop_front();
         LOG_INFO("{} wait file done complete {}", id_, file.local_path);
     }
     LOG_INFO("{} loop quit", id_);
@@ -175,6 +176,7 @@ boost::asio::awaitable<void> upload_session::delay(int second)
 }
 boost::asio::awaitable<void> upload_session::shutdown_coro()
 {
+    shutdown_ = true;
     if (timer_ != nullptr)
     {
         timer_->cancel();
@@ -270,12 +272,14 @@ boost::asio::awaitable<void> upload_session::send_file_data(const file_info& fil
         ec = boost::system::errc::make_error_code(boost::system::errc::not_enough_memory);
         co_return;
     }
-
     ec = reader->open();
     if (ec)
     {
         co_return;
     }
+
+    auto _ = leaf::make_scoped_exit([&reader]() { auto _ = reader->close(); });
+
     auto hash = std::make_shared<leaf::blake2b>();
 
     uint8_t buffer[kBlockSize] = {0};
@@ -331,14 +335,12 @@ boost::asio::awaitable<void> upload_session::send_file_data(const file_info& fil
 
         if (!fd.data.empty())
         {
-            boost::beast::error_code write_ec;
-            co_await write(leaf::serialize_file_data(fd), write_ec);
-            if (write_ec)
+            co_await write(leaf::serialize_file_data(fd), ec);
+            if (ec)
             {
                 break;
             }
         }
-
         if (ec == boost::asio::error::eof || reader->size() == file.file_size)
         {
             ec = {};
@@ -347,13 +349,10 @@ boost::asio::awaitable<void> upload_session::send_file_data(const file_info& fil
             break;
         }
     }
-    auto close_ec = reader->close();
-    if (close_ec)
+    if (!ec)
     {
-        LOG_ERROR("{} reader close error {} {}", id_, close_ec.message(), file.local_path);
-        co_return;
+        LOG_DEBUG("{} reader close success {}", id_, file.local_path);
     }
-    LOG_DEBUG("{} reader close success {}", id_, file.local_path);
 }
 
 boost::asio::awaitable<void> upload_session::wait_file_done(boost::beast::error_code& ec)
