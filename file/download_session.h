@@ -36,6 +36,7 @@ class download_session : public std::enable_shared_from_this<download_session>
    public:
     boost::asio::awaitable<void> login(boost::beast::error_code &);
     boost::asio::awaitable<void> loop();
+    boost::asio::awaitable<void> loop1(boost::beast::error_code &ec);
     boost::asio::awaitable<void> write(const std::vector<uint8_t> &data, boost::system::error_code &ec);
     boost::asio::awaitable<void> shutdown_coro();
     boost::asio::awaitable<void> send_keepalive(boost::beast::error_code &ec);
@@ -57,6 +58,7 @@ class download_session : public std::enable_shared_from_this<download_session>
     std::string host_;
     std::string port_;
     std::string token_;
+    bool shutdown_ = false;
     boost::asio::io_context &io_;
     std::queue<leaf::file_info> padding_files_;
     std::shared_ptr<boost::asio::steady_timer> timer_;

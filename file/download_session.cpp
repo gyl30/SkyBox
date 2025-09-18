@@ -24,7 +24,6 @@ void download_session::startup()
 {
     LOG_INFO("{} startup", id_);
     timer_ = std::make_shared<boost::asio::steady_timer>(io_);
-    ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/download", io_);
     auto msg = fmt::format("loop exception {}", token_);
     boost::asio::co_spawn(
         io_,
@@ -111,8 +110,22 @@ boost::asio::awaitable<void> download_session::login(boost::beast::error_code& e
 }
 boost::asio::awaitable<void> download_session::loop()
 {
+    while (true)
+    {
+        ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/download", io_);
+        boost::beast::error_code ec;
+        co_await loop1(ec);
+        if (shutdown_)
+        {
+            break;
+        }
+        ws_client_->close();
+        co_await delay(3, ec);
+    }
+}
+boost::asio::awaitable<void> download_session::loop1(boost::beast::error_code& ec)
+{
     LOG_INFO("{} loop", id_);
-    boost::beast::error_code ec;
     co_await ws_client_->handshake(ec);
     if (ec)
     {
@@ -175,6 +188,7 @@ void download_session::shutdown()
 
 boost::asio::awaitable<void> download_session::shutdown_coro()
 {
+    shutdown_ = true;
     if (timer_ != nullptr)
     {
         timer_->cancel();
