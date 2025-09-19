@@ -23,8 +23,8 @@ cotrol_session::~cotrol_session() { LOG_INFO("{} destroy", id_); }
 void cotrol_session::startup()
 {
     LOG_INFO("{} startup host {} port {} token {}", id_, host_, port_, token_);
+    timer_ = std::make_shared<boost::asio::steady_timer>(io_);
     auto msg = fmt::format("{} loop exception", id_);
-    ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/cotrol", io_);
     register_handler();
     boost::asio::co_spawn(
         io_,
@@ -34,9 +34,29 @@ void cotrol_session::startup()
 
 boost::asio::awaitable<void> cotrol_session::loop()
 {
+    while (true)
+    {
+        ws_client_ = std::make_shared<leaf::plain_websocket_client>(id_, host_, port_, "/leaf/ws/cotrol", io_);
+        boost::beast::error_code ec;
+        co_await loop1(ec);
+        if (shutdown_)
+        {
+            break;
+        }
+        ws_client_->close();
+        co_await delay(3, ec);
+    }
+}
+boost::asio::awaitable<void> cotrol_session::delay(int second, boost::beast::error_code& ec)
+{
+    timer_->expires_after(std::chrono::seconds(second));
+    co_await timer_->async_wait(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+}
+
+boost::asio::awaitable<void> cotrol_session::loop1(boost::beast::error_code& ec)
+{
     LOG_INFO("{} loop", id_);
     auto self = shared_from_this();
-    boost::beast::error_code ec;
     LOG_INFO("{} connect ws client {}:{} token {}", id_, host_, port_, token_);
     co_await ws_client_->handshake(ec);
     if (ec)
@@ -169,7 +189,13 @@ void cotrol_session::shutdown()
 
 boost::asio::awaitable<void> cotrol_session::shutdown_coro()
 {
+    shutdown_ = true;
     channel_.cancel();
+    if (timer_ != nullptr)
+    {
+        timer_->cancel();
+        timer_.reset();
+    }
     if (ws_client_)
     {
         ws_client_->close();

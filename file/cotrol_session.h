@@ -28,6 +28,7 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
 
    private:
     boost::asio::awaitable<void> loop();
+    boost::asio::awaitable<void> loop1(boost::beast::error_code &ec);
     boost::asio::awaitable<void> login(boost::beast::error_code &);
     boost::asio::awaitable<void> wait_files_response(boost::beast::error_code &);
     boost::asio::awaitable<void> wait_create_response(boost::beast::error_code &);
@@ -45,13 +46,16 @@ class cotrol_session : public std::enable_shared_from_this<cotrol_session>
 
    private:
     void push_message(message_pack &&mp);
+    boost::asio::awaitable<void> delay(int second, boost::beast::error_code &ec);
 
    private:
     std::string id_;
     std::string host_;
     std::string port_;
     std::string token_;
+    bool shutdown_ = false;
     boost::asio::io_context &io_;
+    std::shared_ptr<boost::asio::steady_timer> timer_;
     std::shared_ptr<leaf::plain_websocket_client> ws_client_;
     std::map<std::string, std::function<boost::asio::awaitable<void>(boost::system::error_code &)>> handlers_;
     boost::asio::experimental::channel<void(boost::system::error_code, message_pack)> channel_{io_, 1024};
